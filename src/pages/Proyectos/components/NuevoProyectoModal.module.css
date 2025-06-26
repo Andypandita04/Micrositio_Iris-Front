@@ -1,0 +1,113 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+}
+
+.input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-sm);
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+}
+
+.textarea {
+  min-height: 5rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.input-error {
+  border-color: var(--color-error);
+}
+
+.input-error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.colaboradores-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-sm);
+}
+
+.colaborador-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.colaborador-item:hover {
+  background-color: var(--theme-bg-secondary);
+}
+
+.colaborador-selected {
+  background-color: color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+  border-color: var(--color-primary-purple);
+}
+
+.colaborador-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.colaborador-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.colaborador-nombre {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+}
+
+.colaborador-email {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,26 +1,14 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Edit3, Trash2, Plus, FileText, ClipboardList } from 'lucide-react';
+import { Edit3, Trash2, Plus, ClipboardList } from 'lucide-react';
 import { TestingCardData } from './types';
 import './styles/TestingCardNode.css';
 
-/**
- * Props para el componente TestingCardNode
- */
 interface TestingCardNodeProps {
-  data: TestingCardData;      // Datos de la Testing Card
-  selected?: boolean;         // Indica si el nodo está seleccionado
+  data: TestingCardData;
+  selected?: boolean;
 }
 
-/**
- * Componente personalizado para representar una Testing Card en React Flow
- * 
- * Características:
- * - Muestra información clave del experimento
- * - Permite añadir nuevas Testing Cards o Learning Cards conectadas
- * - Ofrece opciones para editar y eliminar
- * - Visualmente distinto de las Learning Cards
- */
 const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => {
   return (
     <div className={`testing-card ${selected ? 'selected' : ''}`}>
@@ -31,13 +19,39 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         className="node-handle" 
       />
       
+      {/* Handles laterales para conexiones entre Testing Cards */}
+      <Handle 
+        type="source" 
+        position={Position.Left} 
+        id="left"
+        className="node-handle" 
+      />
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="left-target"
+        className="node-handle" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="right"
+        className="node-handle" 
+      />
+      <Handle 
+        type="target" 
+        position={Position.Right} 
+        id="right-target"
+        className="node-handle" 
+      />
+      
       {/* Header de la tarjeta */}
       <div className="card-header">
         <div className="experiment-type">
-          <ClipboardList size={16} />
+          <ClipboardList size={14} />
           <span>{data.experimentType}</span>
         </div>
-        <div className="card-id">ID: {data.id}</div>
+        <div className="card-id">#{data.id.slice(-4)}</div>
       </div>
 
       {/* Cuerpo principal con información */}
@@ -46,7 +60,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         <p className="card-description">{data.description}</p>
         
         <div className="card-dates">
-          <span>{data.startDate} - {data.endDate}</span>
+          <span className="dates-text">{data.startDate} - {data.endDate}</span>
           <span className={`status-badge ${data.status.toLowerCase().replace(' ', '-')}`}>
             {data.status}
           </span>
@@ -55,7 +69,6 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
 
       {/* Footer con botones de acción */}
       <div className="card-footer">
-        {/* Botón para añadir nueva Testing Card conectada */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -64,10 +77,9 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           className="card-btn add-testing"
           title="Añadir Testing Card conectada"
         >
-          <Plus size={14} /> TC
+          <Plus size={12} /> TC
         </button>
         
-        {/* Botón para añadir Learning Card conectada */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -76,10 +88,9 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           className="card-btn add-learning"
           title="Añadir Learning Card conectada"
         >
-          <Plus size={14} /> LC
+          <Plus size={12} /> LC
         </button>
         
-        {/* Botón para editar la Testing Card */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -88,10 +99,9 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           className="card-btn edit"
           title="Editar Testing Card"
         >
-          <Edit3 size={14} />
+          <Edit3 size={12} />
         </button>
         
-        {/* Botón para eliminar la Testing Card */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -100,14 +110,15 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           className="card-btn delete"
           title="Eliminar Testing Card"
         >
-          <Trash2 size={14} />
+          <Trash2 size={12} />
         </button>
       </div>
 
-      {/* Handle inferior para conexiones salientes */}
+      {/* Handle inferior para conexiones a Learning Cards */}
       <Handle 
         type="source" 
         position={Position.Bottom} 
+        id="learning"
         className="node-handle" 
       />
     </div>

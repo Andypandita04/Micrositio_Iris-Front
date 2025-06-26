@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import styles from './BubbleBackground.module.css';
 
 interface Bubble {
   x: number;
@@ -29,7 +30,7 @@ const BubbleBackground: React.FC = () => {
     if (!container) return {} as Bubble;
 
     const bubble = document.createElement('div');
-    bubble.className = 'absolute rounded-full';
+    bubble.className = styles.bubble;
     container.appendChild(bubble);
 
     const size = Math.random() * 30 + 20;
@@ -58,11 +59,9 @@ const BubbleBackground: React.FC = () => {
     const height = container.offsetHeight;
 
     bubblesRef.current.forEach(bubble => {
-      // Update position
       bubble.x += bubble.speedX;
       bubble.y += bubble.speedY;
 
-      // Bounce off walls
       if (bubble.x <= 0 || bubble.x + bubble.size >= width) {
         bubble.speedX *= -1;
       }
@@ -71,7 +70,6 @@ const BubbleBackground: React.FC = () => {
         bubble.speedY *= -1;
       }
 
-      // Update DOM element
       bubble.element.style.transform = `translate(${bubble.x}px, ${bubble.y}px)`;
     });
 
@@ -81,12 +79,10 @@ const BubbleBackground: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Create bubbles
     for (let i = 0; i < 15; i++) {
       bubblesRef.current.push(createBubble());
     }
 
-    // Start animation
     animationFrameRef.current = requestAnimationFrame(updateBubbles);
 
     return () => {
@@ -99,7 +95,7 @@ const BubbleBackground: React.FC = () => {
   return (
     <div 
       ref={containerRef} 
-      className="absolute inset-0 w-full h-full overflow-hidden bg-gradient-to-r from-primary-purple/10 to-secondary-purple/10 dark:from-primary-purple/20 dark:to-secondary-purple/20"
+      className={styles['bubble-container']}
     />
   );
 };

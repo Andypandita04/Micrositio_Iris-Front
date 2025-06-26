@@ -1,0 +1,36 @@
+/* Tema Claro (por defecto) */
+:root {
+  --theme-bg-primary: var(--color-bg-primary);
+  --theme-bg-secondary: var(--color-bg-secondary);
+  --theme-bg-tertiary: var(--color-bg-tertiary);
+  --theme-text-primary: var(--color-text-primary);
+  --theme-text-secondary: var(--color-text-secondary);
+  --theme-text-tertiary: var(--color-text-tertiary);
+  --theme-border: var(--color-border-light);
+  --theme-border-hover: var(--color-border-medium);
+}
+
+/* Tema Oscuro */
+.dark {
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #e2e8f0;
+  --color-text-tertiary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  
+  --color-border-light: #334155;
+  --color-border-medium: #475569;
+  --color-border-dark: #64748b;
+  
+  --theme-bg-primary: var(--color-bg-primary);
+  --theme-bg-secondary: var(--color-bg-secondary);
+  --theme-bg-tertiary: var(--color-bg-tertiary);
+  --theme-text-primary: var(--color-text-primary);
+  --theme-text-secondary: var(--color-text-secondary);
+  --theme-text-tertiary: var(--color-text-tertiary);
+  --theme-border: var(--color-border-light);
+  --theme-border-hover: var(--color-border-medium);
+}

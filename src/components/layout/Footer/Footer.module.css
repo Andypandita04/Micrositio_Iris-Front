@@ -1,0 +1,112 @@
+.footer {
+  background-color: var(--theme-bg-primary);
+  padding: var(--spacing-lg) 0;
+  border-top: 1px solid var(--theme-border);
+}
+
+.footer-content {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+  .footer-content {
+    padding: 0 var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer-content {
+    padding: 0 var(--spacing-2xl);
+  }
+}
+
+.footer-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .footer-main {
+    flex-direction: row;
+  }
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .footer-logo {
+    margin-bottom: 0;
+  }
+}
+
+.logo-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--color-primary-purple);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  color: white;
+  font-weight: var(--font-weight-bold);
+}
+
+.logo-title {
+  margin-left: var(--spacing-md);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.logo-innovative {
+  color: var(--color-primary-purple);
+}
+
+.logo-repository {
+  color: var(--color-primary-yellow);
+}
+
+.footer-sections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-2xl);
+}
+
+@media (min-width: 768px) {
+  .footer-sections {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.footer-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-md);
+}
+
+.footer-section-text {
+  color: var(--theme-text-tertiary);
+  font-size: var(--font-size-base);
+}
+
+.footer-bottom {
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-2xl);
+  border-top: 1px solid var(--theme-border);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-tertiary);
+}

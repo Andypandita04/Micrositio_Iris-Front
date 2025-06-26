@@ -1,116 +1,218 @@
 .testing-card {
-  border: 2px solid #3182ce;
-  border-radius: 8px;
-  padding: 12px;
-  background: #ebf8ff;
-  min-width: 250px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--color-primary-purple);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--color-primary-purple) 5%, var(--theme-bg-primary)),
+    var(--theme-bg-primary)
+  );
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.testing-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .testing-card.selected {
-  border-color: #63b3ed;
-  box-shadow: 0 0 0 2px #90cdf4;
+  border-color: var(--color-secondary-purple);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-secondary-purple) 30%, transparent);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 0.9em;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-sm);
 }
 
 .experiment-type {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-weight: bold;
+  gap: var(--spacing-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-purple);
+  background-color: color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-md);
 }
 
 .card-id {
-  color: #4a5568;
+  color: var(--theme-text-tertiary);
+  font-size: var(--font-size-xs);
 }
 
 .card-body {
-  margin: 8px 0;
+  margin: var(--spacing-sm) 0;
 }
 
 .card-title {
-  margin: 0 0 8px 0;
-  font-size: 1.1em;
-  color: #2d3748;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .card-description {
   margin: 0;
-  font-size: 0.9em;
-  color: #4a5568;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
+  line-height: var(--line-height-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-dates {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 0.8em;
+  align-items: center;
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+}
+
+.dates-text {
+  color: var(--theme-text-tertiary);
 }
 
 .status-badge {
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8em;
-  font-weight: bold;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .status-badge.en-desarrollo {
-  background: #f6e05e;
-  color: #744210;
+  background: color-mix(in srgb, var(--color-warning) 20%, transparent);
+  color: var(--color-warning);
 }
 
 .status-badge.en-ejecución {
-  background: #68d391;
-  color: #22543d;
+  background: color-mix(in srgb, var(--color-success) 20%, transparent);
+  color: var(--color-success);
+}
+
+.status-badge.completado {
+  background: color-mix(in srgb, var(--color-info) 20%, transparent);
+  color: var(--color-info);
+}
+
+.status-badge.pausado {
+  background: color-mix(in srgb, var(--color-error) 20%, transparent);
+  color: var(--color-error);
 }
 
 .card-footer {
   display: flex;
-  gap: 4px;
-  margin-top: 12px;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--theme-border);
 }
 
 .card-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  background: #fff;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-md);
+  background: var(--theme-bg-primary);
   cursor: pointer;
-  font-size: 0.8em;
-  transition: background 0.2s;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+  color: var(--theme-text-secondary);
 }
 
 .card-btn:hover {
-  background: #e2e8f0;
+  background: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  transform: translateY(-1px);
 }
 
 .card-btn.add-testing {
-  background: #bee3f8;
+  border-color: var(--color-primary-purple);
+  color: var(--color-primary-purple);
+}
+
+.card-btn.add-testing:hover {
+  background: color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
 }
 
 .card-btn.add-learning {
-  background: #c6f6d5;
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.card-btn.add-learning:hover {
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 
 .card-btn.edit {
-  background: #fed7d7;
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.card-btn.edit:hover {
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
 }
 
 .card-btn.delete {
-  background: #fed7d7;
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
+.card-btn.delete:hover {
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+/* Handles personalizados */
 .node-handle {
-  width: 8px;
-  height: 8px;
-  background: #3182ce;
+  width: 10px;
+  height: 10px;
+  background: var(--color-primary-purple);
+  border: 2px solid var(--theme-bg-primary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.node-handle:hover {
+  background: var(--color-secondary-purple);
+  transform: scale(1.2);
+}
+
+/* Handles específicos para Testing Cards */
+.react-flow__handle-left,
+.react-flow__handle-right {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.react-flow__handle-left {
+  left: -6px;
+}
+
+.react-flow__handle-right {
+  right: -6px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.react-flow__handle-top {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
 }

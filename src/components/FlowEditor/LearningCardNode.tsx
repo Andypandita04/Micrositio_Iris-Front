@@ -4,26 +4,15 @@ import { Edit3, Trash2, BookOpen } from 'lucide-react';
 import { LearningCardData } from './types';
 import './styles/LearningCardNode.css';
 
-/**
- * Props para el componente LearningCardNode
- */
 interface LearningCardNodeProps {
-  data: LearningCardData;     // Datos de la Learning Card
-  selected?: boolean;         // Indica si el nodo está seleccionado
+  data: LearningCardData;
+  selected?: boolean;
 }
 
-/**
- * Componente personalizado para representar una Learning Card en React Flow
- * 
- * Características:
- * - Muestra resultados y aprendizajes de un experimento
- * - Visualmente distinto de las Testing Cards
- * - Solo permite edición y eliminación (no puede crear nuevos nodos)
- */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
   return (
     <div className={`learning-card ${selected ? 'selected' : ''}`}>
-      {/* Handle superior para conexiones entrantes */}
+      {/* Handle superior para conexiones desde Testing Cards */}
       <Handle 
         type="target" 
         position={Position.Top} 
@@ -33,30 +22,27 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
       {/* Header de la tarjeta */}
       <div className="card-header">
         <div className="card-type">
-          <BookOpen size={16} />
+          <BookOpen size={14} />
           <span>Learning Card</span>
         </div>
-        <div className="card-id">ID: {data.id}</div>
+        <div className="card-id">#{data.id.slice(-4)}</div>
       </div>
 
       {/* Cuerpo principal con información */}
       <div className="card-body">
-        {/* Sección de resultados */}
         <div className="result-section">
           <h4>Resultado:</h4>
-          <p>{data.result}</p>
+          <p>{data.result || 'Sin resultados registrados'}</p>
         </div>
         
-        {/* Sección de hallazgos accionables */}
         <div className="insight-section">
           <h4>Hallazgo accionable:</h4>
-          <p>{data.actionableInsight}</p>
+          <p>{data.actionableInsight || 'Sin hallazgos registrados'}</p>
         </div>
       </div>
 
       {/* Footer con botones de acción */}
       <div className="card-footer">
-        {/* Botón para editar la Learning Card */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -65,10 +51,9 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
           className="card-btn edit"
           title="Editar Learning Card"
         >
-          <Edit3 size={14} /> Editar
+          <Edit3 size={12} /> Editar
         </button>
         
-        {/* Botón para eliminar la Learning Card */}
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -77,11 +62,11 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
           className="card-btn delete"
           title="Eliminar Learning Card"
         >
-          <Trash2 size={14} />
+          <Trash2 size={12} />
         </button>
       </div>
 
-      {/* Handle inferior para conexiones salientes (opcional) */}
+      {/* Handle inferior opcional para futuras conexiones */}
       <Handle 
         type="source" 
         position={Position.Bottom} 

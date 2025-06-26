@@ -1,0 +1,19 @@
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+}
+
+.content-wrapper {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--theme-bg-secondary);
+}

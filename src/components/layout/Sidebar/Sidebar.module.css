@@ -1,0 +1,105 @@
+.sidebar {
+  background-color: var(--theme-bg-primary);
+  transition: width var(--transition-normal);
+  border-right: 1px solid var(--theme-border);
+  height: calc(100vh - 6rem - 3rem - 4rem);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    height: calc(100vh - 8rem - 3rem - 4rem);
+  }
+}
+
+.sidebar-collapsed {
+  width: 4rem;
+}
+
+.sidebar-expanded {
+  width: 16rem;
+}
+
+.sidebar-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+}
+
+.toggle-button {
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.toggle-button:hover {
+  background-color: var(--theme-bg-tertiary);
+  color: var(--theme-text-primary);
+}
+
+.navigation {
+  flex: 1;
+  padding: 0 var(--spacing-sm) var(--spacing-md);
+  overflow-y: auto;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-fast);
+  color: var(--theme-text-secondary);
+}
+
+.nav-item:hover {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+}
+
+.nav-item-active {
+  background-color: var(--color-primary-purple);
+  color: white;
+}
+
+.dark .nav-item-active {
+  background-color: var(--color-primary-yellow);
+  color: var(--color-text-primary);
+}
+
+.nav-item-collapsed {
+  justify-content: center;
+}
+
+.nav-item-expanded {
+  justify-content: flex-start;
+}
+
+.nav-icon {
+  flex-shrink: 0;
+}
+
+.nav-text {
+  margin-left: var(--spacing-md);
+}
