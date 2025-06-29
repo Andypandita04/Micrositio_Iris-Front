@@ -13,8 +13,8 @@ const Proyectos: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleProyectoClick = (proyectoId: string) => {
-    navigate(`/proyecto-${proyectoId}`);
-  };
+  navigate(`/proyectos/${proyectoId}`); 
+};
 
   const handleNuevoProyecto = () => {
     setIsModalOpen(true);
