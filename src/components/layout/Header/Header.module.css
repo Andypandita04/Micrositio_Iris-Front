@@ -1,3 +1,8 @@
+/* =================================================================
+   HEADER - CABECERA PRINCIPAL CON AUTENTICACIÓN
+   ================================================================= */
+
+/* @section: Contenedor principal del header */
 .header {
   position: relative;
   height: 6rem;
@@ -10,6 +15,7 @@
   }
 }
 
+/* @section: Contenido del header */
 .header-content {
   position: relative;
   z-index: 10;
@@ -34,30 +40,56 @@
   }
 }
 
+/* =================================================================
+   LOGO Y TÍTULO
+   ================================================================= */
+
+/* @section: Área del logo */
 .logo-area {
   display: flex;
   align-items: center;
+  text-decoration: none;
+  transition: all var(--transition-fast);
 }
 
+.logo-area:hover {
+  transform: translateY(-1px);
+}
+
+/* @section: Icono del logo */
 .logo-icon {
   width: 2.5rem;
   height: 2.5rem;
-  background-color: var(--color-primary-purple);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple)
+  );
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+}
+
+.logo-area:hover .logo-icon {
+  box-shadow: var(--shadow-lg);
+  transform: rotate(5deg);
 }
 
 .logo-text {
   color: white;
   font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
 }
 
+/* @section: Título del logo */
 .logo-title {
   margin-left: var(--spacing-md);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
+  line-height: 1;
 }
 
 @media (min-width: 768px) {
@@ -68,59 +100,342 @@
 
 .logo-innovative {
   color: var(--color-primary-purple);
+  transition: color var(--transition-fast);
 }
 
 .logo-repository {
   color: var(--color-primary-yellow);
+  transition: color var(--transition-fast);
 }
 
+/* =================================================================
+   ACCIONES DEL HEADER
+   ================================================================= */
+
+/* @section: Contenedor de acciones */
 .header-actions {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
+/* @section: Toggle de tema */
 .theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: var(--spacing-sm);
   border-radius: 50%;
   background-color: var(--theme-bg-primary);
   box-shadow: var(--shadow-md);
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-normal);
+  border: 1px solid var(--theme-border);
 }
 
 .theme-toggle:hover {
   box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--theme-border-hover);
 }
 
 .theme-icon-sun {
   height: 1.25rem;
   width: 1.25rem;
   color: var(--color-primary-yellow);
+  transition: all var(--transition-fast);
 }
 
 .theme-icon-moon {
   height: 1.25rem;
   width: 1.25rem;
   color: var(--color-secondary-purple);
+  transition: all var(--transition-fast);
 }
 
+.theme-toggle:hover .theme-icon-sun,
+.theme-toggle:hover .theme-icon-moon {
+  transform: rotate(15deg) scale(1.1);
+}
+
+/* =================================================================
+   BOTÓN DE LOGIN (USUARIO NO AUTENTICADO)
+   ================================================================= */
+
+/* @section: Botón de login */
 .login-button {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  background-color: var(--color-primary-purple);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple)
+  );
   color: white;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-xl);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-normal);
+  border: none;
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
 }
 
 .login-button:hover {
-  background-color: color-mix(in srgb, var(--color-primary-purple) 90%, black);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary-purple) 90%, black),
+    color-mix(in srgb, var(--color-secondary-purple) 90%, black)
+  );
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.login-button:active {
+  transform: translateY(0);
 }
 
 .login-icon {
   height: 1rem;
   width: 1rem;
+}
+
+/* =================================================================
+   MENÚ DE USUARIO (USUARIO AUTENTICADO)
+   ================================================================= */
+
+/* @section: Contenedor del menú de usuario */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* @section: Perfil del usuario */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  color: var(--theme-text-primary);
+}
+
+.user-profile:hover {
+  background-color: var(--theme-bg-secondary);
+  border-color: var(--color-primary-purple);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* @section: Avatar del usuario */
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple)
+  );
+  flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-icon {
+  width: 1rem;
+  height: 1rem;
+  color: white;
+}
+
+/* @section: Nombre del usuario */
+.user-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .user-name {
+    display: none;
+  }
+}
+
+/* @section: Botón de logout */
+.logout-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.logout-button:hover {
+  background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
+  border-color: var(--color-error);
+  color: var(--color-error);
+  transform: translateY(-1px);
+}
+
+.logout-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.logout-text {
+  font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 640px) {
+  .logout-text {
+    display: none;
+  }
+  
+  .logout-button {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* =================================================================
+   MODO OSCURO
+   ================================================================= */
+
+.dark .logo-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange)
+  );
+}
+
+.dark .logo-text {
+  color: var(--color-text-primary);
+}
+
+.dark .login-button {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange)
+  );
+  color: var(--color-text-primary);
+}
+
+.dark .login-button:hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary-yellow) 90%, black),
+    color-mix(in srgb, var(--color-secondary-orange) 90%, black)
+  );
+}
+
+.dark .user-avatar {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange)
+  );
+}
+
+.dark .avatar-icon {
+  color: var(--color-text-primary);
+}
+
+.dark .user-profile:hover {
+  border-color: var(--color-primary-yellow);
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .logo-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .header-actions {
+    gap: var(--spacing-sm);
+  }
+  
+  .theme-toggle {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .theme-icon-sun,
+  .theme-icon-moon {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+/* @accessibility: Focus visible para navegación por teclado */
+.theme-toggle:focus,
+.login-button:focus,
+.user-profile:focus,
+.logout-button:focus {
+  outline: 2px solid var(--color-primary-purple);
+  outline-offset: 2px;
+}
+
+.dark .theme-toggle:focus,
+.dark .login-button:focus,
+.dark .user-profile:focus,
+.dark .logout-button:focus {
+  outline-color: var(--color-primary-yellow);
+}
+
+/* @accessibility: Reducir animaciones para usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .logo-area:hover,
+  .theme-toggle:hover,
+  .login-button:hover,
+  .user-profile:hover,
+  .logout-button:hover {
+    transform: none;
+  }
+  
+  .logo-area:hover .logo-icon {
+    transform: none;
+  }
+  
+  .theme-toggle:hover .theme-icon-sun,
+  .theme-toggle:hover .theme-icon-moon {
+    transform: none;
+  }
 }

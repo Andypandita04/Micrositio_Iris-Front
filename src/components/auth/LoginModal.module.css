@@ -1,0 +1,427 @@
+/* =================================================================
+   LOGIN MODAL - MODAL DE INICIO DE SESIÓN
+   ================================================================= */
+
+/* @section: Backdrop del modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-backdrop);
+  padding: var(--spacing-md);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* @animation: Entrada del backdrop */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* @section: Contenedor principal del modal */
+.modal-container {
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 28rem;
+  animation: slideIn 0.4s ease-out;
+  z-index: var(--z-modal);
+  border: 1px solid var(--theme-border);
+  overflow: hidden;
+}
+
+/* @animation: Entrada del modal */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2rem) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* @section: Header del modal */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--theme-border);
+  background: linear-gradient(
+    135deg,
+    var(--theme-bg-secondary),
+    color-mix(in srgb, var(--color-primary-purple) 5%, var(--theme-bg-secondary))
+  );
+}
+
+/* @section: Icono del modal */
+.modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple)
+  );
+  color: white;
+  border-radius: var(--border-radius-xl);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-md);
+}
+
+/* @section: Título del modal */
+.modal-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+/* @section: Botón de cerrar */
+.modal-close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--theme-bg-tertiary);
+  color: var(--theme-text-secondary);
+  transition: all var(--transition-fast);
+  border: 1px solid var(--theme-border);
+  flex-shrink: 0;
+}
+
+.modal-close-button:hover:not(:disabled) {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border-hover);
+}
+
+.modal-close-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* @section: Cuerpo del modal */
+.modal-body {
+  padding: var(--spacing-xl);
+}
+
+/* @section: Descripción del modal */
+.modal-description {
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}
+
+/* =================================================================
+   FORMULARIO DE LOGIN
+   ================================================================= */
+
+/* @section: Formulario principal */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* @section: Grupo de campo */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* @section: Etiqueta del campo */
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+}
+
+.form-label-icon {
+  color: var(--theme-text-secondary);
+  flex-shrink: 0;
+}
+
+/* @section: Contenedor de input */
+.input-container {
+  position: relative;
+}
+
+/* @section: Campo de entrada */
+.form-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-base);
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: all var(--transition-normal);
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-purple) 15%, transparent);
+  transform: translateY(-1px);
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* @section: Campo de contraseña con botón */
+.password-input {
+  padding-right: 3rem;
+}
+
+/* @section: Botón toggle de contraseña */
+.password-toggle {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--theme-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-radius: var(--border-radius-md);
+}
+
+.password-toggle:hover:not(:disabled) {
+  color: var(--theme-text-primary);
+  background-color: var(--theme-bg-secondary);
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* @section: Estado de error */
+.input-error {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 15%, transparent) !important;
+}
+
+/* @section: Texto de error */
+.error-text {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* @section: Error de autenticación */
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+  border: 1px solid color-mix(in srgb, var(--color-error) 20%, transparent);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* @section: Credenciales de demostración */
+.demo-credentials {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-info) 8%, transparent),
+    color-mix(in srgb, var(--color-primary-purple) 5%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--color-info) 20%, transparent);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+.demo-credentials h4 {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-info);
+  margin: 0 0 var(--spacing-sm) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.demo-credentials p {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
+  margin: var(--spacing-xs) 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* @section: Botón de envío */
+.submit-button {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-normal);
+}
+
+.submit-button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.submit-button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: var(--spacing-sm);
+  }
+  
+  .modal-container {
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .modal-header {
+    padding: var(--spacing-md);
+  }
+  
+  .modal-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .modal-body {
+    padding: var(--spacing-md);
+  }
+  
+  .form-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .password-input {
+    padding-right: 2.5rem;
+  }
+}
+
+/* =================================================================
+   MODO OSCURO
+   ================================================================= */
+
+.dark .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark .modal-header {
+  background: linear-gradient(
+    135deg,
+    var(--theme-bg-secondary),
+    color-mix(in srgb, var(--color-primary-yellow) 8%, var(--theme-bg-secondary))
+  );
+}
+
+.dark .modal-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange)
+  );
+  color: var(--color-text-primary);
+}
+
+.dark .form-input:focus {
+  border-color: var(--color-primary-yellow);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-yellow) 20%, transparent);
+}
+
+.dark .demo-credentials {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary-yellow) 12%, transparent),
+    color-mix(in srgb, var(--color-info) 8%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--color-primary-yellow) 25%, transparent);
+}
+
+.dark .demo-credentials h4 {
+  color: var(--color-primary-yellow);
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+/* @accessibility: Focus visible para navegación por teclado */
+.modal-container:focus {
+  outline: none;
+}
+
+/* @accessibility: Mejoras de contraste */
+@media (prefers-contrast: high) {
+  .form-input {
+    border-width: 3px;
+  }
+  
+  .modal-icon {
+    border: 2px solid currentColor;
+  }
+}
+
+/* @accessibility: Reducir animaciones para usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-container {
+    animation: none;
+  }
+  
+  .form-input:focus {
+    transform: none;
+  }
+  
+  .submit-button:hover {
+    transform: none;
+  }
+}

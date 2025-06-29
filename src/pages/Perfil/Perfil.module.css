@@ -1,0 +1,614 @@
+/* =================================================================
+   PERFIL - PÁGINA DE PERFIL DE USUARIO
+   ================================================================= */
+
+/* @section: Contenedor principal */
+.perfil-container {
+  flex: 1;
+  background-color: var(--theme-bg-secondary);
+  overflow-y: auto;
+}
+
+.perfil-content {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+  .perfil-content {
+    padding: var(--spacing-2xl) var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .perfil-content {
+    padding: var(--spacing-2xl) var(--spacing-2xl);
+  }
+}
+
+/* =================================================================
+   HEADER DEL PERFIL
+   ================================================================= */
+
+/* @section: Header con fondo */
+.perfil-header {
+  position: relative;
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-2xl);
+  overflow: hidden;
+  margin-bottom: var(--spacing-2xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.header-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple),
+    var(--color-primary-yellow)
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+
+/* @animation: Cambio de gradiente */
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .header-content {
+    flex-direction: row;
+    text-align: left;
+    align-items: flex-end;
+    padding: var(--spacing-2xl);
+  }
+}
+
+/* =================================================================
+   AVATAR DEL USUARIO
+   ================================================================= */
+
+/* @section: Sección del avatar */
+.avatar-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .avatar-section {
+    margin-bottom: 0;
+    margin-right: var(--spacing-xl);
+  }
+}
+
+.avatar-container {
+  position: relative;
+  display: inline-block;
+}
+
+.avatar-image,
+.avatar-placeholder {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: var(--shadow-lg);
+}
+
+.avatar-image {
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  background: linear-gradient(
+    135deg,
+    var(--theme-bg-secondary),
+    var(--theme-bg-tertiary)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-text-secondary);
+}
+
+.avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 2rem;
+  height: 2rem;
+  background: var(--color-primary-purple);
+  color: white;
+  border-radius: 50%;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+}
+
+.avatar-edit:hover {
+  background: var(--color-secondary-purple);
+  transform: scale(1.1);
+}
+
+/* =================================================================
+   INFORMACIÓN DEL USUARIO
+   ================================================================= */
+
+/* @section: Información del usuario */
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.user-email {
+  font-size: var(--font-size-lg);
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.user-role,
+.join-date {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-tertiary);
+  margin-bottom: var(--spacing-xs);
+}
+
+@media (min-width: 768px) {
+  .user-role,
+  .join-date {
+    justify-content: flex-start;
+  }
+}
+
+/* =================================================================
+   SECCIÓN DEL FORMULARIO
+   ================================================================= */
+
+/* @section: Sección del formulario */
+.perfil-form-section {
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-2xl);
+  padding: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--theme-border);
+}
+
+.section-header {
+  margin-bottom: var(--spacing-xl);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .section-header {
+    text-align: left;
+  }
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    justify-content: flex-start;
+  }
+}
+
+.section-description {
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+/* =================================================================
+   MENSAJES DE ESTADO
+   ================================================================= */
+
+/* @section: Mensaje de éxito */
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
+  margin-bottom: var(--spacing-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+/* @section: Mensaje de error */
+.error-message {
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-error) 20%, transparent);
+  margin-bottom: var(--spacing-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+/* =================================================================
+   FORMULARIO
+   ================================================================= */
+
+/* @section: Formulario principal */
+.perfil-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* @section: Fila del formulario */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .form-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* @section: Grupo de campo */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* @section: Etiqueta del campo */
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+}
+
+/* @section: Campo de entrada */
+.form-input {
+  padding: var(--spacing-md);
+  border: 2px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-base);
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+}
+
+.form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--theme-bg-secondary);
+}
+
+.form-textarea {
+  min-height: 5rem;
+  resize: vertical;
+  line-height: var(--line-height-normal);
+}
+
+/* @section: Estado de error */
+.input-error {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-error) 10%, transparent) !important;
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* @section: Acciones del formulario */
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-xl);
+}
+
+@media (min-width: 768px) {
+  .form-actions {
+    justify-content: flex-start;
+  }
+}
+
+.save-button {
+  min-width: 12rem;
+}
+
+/* =================================================================
+   SECCIÓN DE PROYECTOS
+   ================================================================= */
+
+/* @section: Sección de proyectos */
+.projects-section {
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--theme-border);
+}
+
+/* @section: Toggle de proyectos */
+.projects-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-xl);
+  background: var(--theme-bg-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--theme-text-primary);
+}
+
+.projects-toggle:hover {
+  background: var(--theme-bg-tertiary);
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* @section: Contenido de proyectos */
+.projects-content {
+  padding: var(--spacing-xl);
+  border-top: 1px solid var(--theme-border);
+}
+
+.projects-description {
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-base);
+}
+
+/* @section: Lista de proyectos */
+.projects-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+  .projects-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .projects-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* @section: Item de proyecto */
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--theme-border);
+  transition: all var(--transition-fast);
+}
+
+.project-item:hover {
+  background: var(--theme-bg-tertiary);
+  border-color: var(--color-primary-purple);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-purple),
+    var(--color-secondary-purple)
+  );
+  color: white;
+  border-radius: var(--border-radius-lg);
+  flex-shrink: 0;
+}
+
+.project-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-status {
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  font-weight: var(--font-weight-medium);
+}
+
+/* =================================================================
+   ESTADO DE ERROR
+   ================================================================= */
+
+.error-state {
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--theme-text-secondary);
+}
+
+.error-state h1 {
+  font-size: var(--font-size-2xl);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* =================================================================
+   MODO OSCURO
+   ================================================================= */
+
+.dark .header-background {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange),
+    var(--color-primary-purple)
+  );
+}
+
+.dark .avatar-edit {
+  background: var(--color-primary-yellow);
+  color: var(--color-text-primary);
+}
+
+.dark .avatar-edit:hover {
+  background: var(--color-secondary-orange);
+}
+
+.dark .project-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-yellow),
+    var(--color-secondary-orange)
+  );
+  color: var(--color-text-primary);
+}
+
+.dark .form-input:focus {
+  border-color: var(--color-primary-yellow);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-yellow) 15%, transparent);
+}
+
+.dark .project-item:hover {
+  border-color: var(--color-primary-yellow);
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 640px) {
+  .perfil-content {
+    padding: var(--spacing-md);
+  }
+  
+  .perfil-header {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .header-content {
+    padding: var(--spacing-lg);
+  }
+  
+  .user-name {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .perfil-form-section,
+  .projects-section {
+    padding: var(--spacing-lg);
+  }
+  
+  .projects-content {
+    padding: var(--spacing-lg);
+  }
+  
+  .projects-toggle {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .gradientShift {
+    animation: none;
+  }
+  
+  .avatar-edit:hover,
+  .project-item:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .form-input {
+    border-width: 3px;
+  }
+  
+  .project-item {
+    border-width: 2px;
+  }
+}

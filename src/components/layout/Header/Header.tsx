@@ -1,18 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../../hooks/useTheme';
-import { Sun, Moon, LogIn } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
+import { Sun, Moon, LogIn, LogOut, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import BubbleBackground from '../BubbleBackground/BubbleBackground';
+import LoginModal from '../../auth/LoginModal';
 import styles from './Header.module.css';
 
+/**
+ * Componente Header con sistema de autenticación integrado
+ * 
+ * @component Header
+ * @description Header principal de la aplicación que incluye logo, toggle de tema
+ * y sistema de autenticación. Muestra diferentes estados según si el usuario
+ * está autenticado o no.
+ * 
+ * Características principales:
+ * - Logo con gradiente animado
+ * - Toggle de tema claro/oscuro
+ * - Botón de login para usuarios no autenticados
+ * - Menú de usuario para usuarios autenticados (perfil + logout)
+ * - Modal de login integrado
+ * - Fondo animado con burbujas
+ * - Responsive design
+ * 
+ * Estados de autenticación:
+ * - No autenticado: Muestra botón "Login"
+ * - Autenticado: Muestra icono de usuario + botón logout
+ * 
+ * @returns {JSX.Element} Header de la aplicación
+ */
 const Header: React.FC = () => {
+  // @context: Tema y autenticación
   const { isDarkMode, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  
+  // @state: Control del modal de login
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  /**
+   * Maneja el clic en el botón de login
+   * @function handleLoginClick
+   */
+  const handleLoginClick = () => {
+    setShowLoginModal(true);
+  };
+
+  /**
+   * Maneja el logout del usuario
+   * @function handleLogout
+   */
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <header className={styles.header}>
       <BubbleBackground />
       
       <div className={styles['header-content']}>
-        <div className={styles['logo-area']}>
+        {/* @section: Logo y título */}
+        <Link to="/" className={styles['logo-area']}>
           <div className={styles['logo-icon']}>
             <span className={styles['logo-text']}>IR</span>
           </div>
@@ -20,9 +68,11 @@ const Header: React.FC = () => {
             <span className={styles['logo-innovative']}>Innovative</span>
             <span className={styles['logo-repository']}>Repository</span>
           </h1>
-        </div>
+        </Link>
 
+        {/* @section: Acciones del header */}
         <div className={styles['header-actions']}>
+          {/* @component: Toggle de tema */}
           <button 
             onClick={toggleTheme}
             className={styles['theme-toggle']}
@@ -34,12 +84,54 @@ const Header: React.FC = () => {
             }
           </button>
 
-          <button className={styles['login-button']}>
-            <LogIn className={styles['login-icon']} />
-            <span>Login</span>
-          </button>
+          {/* @section: Autenticación condicional */}
+          {user ? (
+            /* @section: Usuario autenticado */
+            <div className={styles['user-menu']}>
+              {/* @component: Enlace al perfil */}
+              <Link to="/perfil" className={styles['user-profile']}>
+                <div className={styles['user-avatar']}>
+                  {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name}
+                      className={styles['avatar-image']}
+                    />
+                  ) : (
+                    <User className={styles['avatar-icon']} />
+                  )}
+                </div>
+                <span className={styles['user-name']}>{user.name}</span>
+              </Link>
+
+              {/* @component: Botón de logout */}
+              <button 
+                onClick={handleLogout}
+                className={styles['logout-button']}
+                aria-label="Cerrar sesión"
+              >
+                <LogOut className={styles['logout-icon']} />
+                <span className={styles['logout-text']}>Logout</span>
+              </button>
+            </div>
+          ) : (
+            /* @section: Usuario no autenticado */
+            <button 
+              onClick={handleLoginClick}
+              className={styles['login-button']}
+            >
+              <LogIn className={styles['login-icon']} />
+              <span>Login</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* @component: Modal de login */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
     </header>
   );
 };
