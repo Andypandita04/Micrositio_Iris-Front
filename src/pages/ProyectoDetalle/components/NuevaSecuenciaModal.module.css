@@ -1,0 +1,379 @@
+/* =================================================================
+   MODAL NUEVA SECUENCIA - ESTILOS MODULARES
+   ================================================================= */
+
+/* Backdrop del modal - Fondo oscuro que cubre toda la pantalla */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal-backdrop);
+  padding: var(--spacing-md);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Animación de entrada del backdrop */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Contenedor principal del modal */
+.modal-container {
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease-out;
+  z-index: var(--z-modal);
+  border: 1px solid var(--theme-border);
+}
+
+/* Animación de entrada del modal */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-1.25rem) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header del modal - Contiene título y botón de cerrar */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+}
+
+/* Contenedor del título con icono */
+.modal-title-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Icono del modal */
+.modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+  color: var(--color-primary-purple);
+  border-radius: var(--border-radius-lg);
+}
+
+/* Título principal del modal */
+.modal-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-primary);
+  margin: 0;
+}
+
+/* Botón para cerrar el modal */
+.modal-close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  background-color: var(--theme-bg-tertiary);
+  color: var(--theme-text-secondary);
+  transition: all var(--transition-fast);
+  border: 1px solid var(--theme-border);
+}
+
+.modal-close-button:hover {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border-hover);
+}
+
+/* Cuerpo del modal - Contiene el formulario */
+.modal-body {
+  padding: var(--spacing-xl);
+}
+
+/* Descripción del modal */
+.modal-description {
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* =================================================================
+   FORMULARIO - ESTILOS DE CAMPOS Y VALIDACIÓN
+   ================================================================= */
+
+/* Contenedor principal del formulario */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Grupo de campo del formulario */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Etiqueta del campo */
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+}
+
+/* Icono de la etiqueta */
+.form-label-icon {
+  color: var(--theme-text-secondary);
+  flex-shrink: 0;
+}
+
+/* Campo de entrada base */
+.form-input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-sm);
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+/* Estado focus del campo */
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+}
+
+/* Campo de texto largo (textarea) */
+.form-textarea {
+  min-height: 5rem;
+  resize: vertical;
+  line-height: var(--line-height-normal);
+}
+
+/* Estado de error del campo */
+.form-input-error {
+  border-color: var(--color-error);
+}
+
+.form-input-error:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+/* Mensaje de error */
+.form-error {
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Icono del mensaje de error */
+.form-error-icon {
+  flex-shrink: 0;
+}
+
+/* Texto de ayuda */
+.form-help {
+  color: var(--theme-text-tertiary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+/* Contador de caracteres */
+.character-count {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
+  text-align: right;
+  margin-top: var(--spacing-xs);
+}
+
+/* Estado de advertencia del contador */
+.character-count-warning {
+  color: var(--color-warning);
+}
+
+/* Estado de error del contador */
+.character-count-error {
+  color: var(--color-error);
+}
+
+/* =================================================================
+   FOOTER Y BOTONES - ACCIONES DEL MODAL
+   ================================================================= */
+
+/* Footer del modal - Contiene los botones de acción */
+.modal-footer {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xl);
+  border-top: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+}
+
+/* Botón base del modal */
+.modal-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: 1px solid transparent;
+  min-width: 6rem;
+}
+
+/* Botón secundario (Cancelar) */
+.modal-button-secondary {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-secondary);
+  border-color: var(--theme-border);
+}
+
+.modal-button-secondary:hover {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border-hover);
+}
+
+/* Botón primario (Guardar) */
+.modal-button-primary {
+  background-color: var(--color-primary-purple);
+  color: white;
+  border-color: var(--color-primary-purple);
+}
+
+.modal-button-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-primary-purple) 90%, black);
+  border-color: color-mix(in srgb, var(--color-primary-purple) 90%, black);
+}
+
+/* Estado deshabilitado del botón */
+.modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Efecto de clic en botones */
+.modal-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Icono del botón */
+.modal-button-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN - ADAPTACIÓN A DISPOSITIVOS MÓVILES
+   ================================================================= */
+
+@media (max-width: 640px) {
+  /* Ajustes para pantallas pequeñas */
+  .modal-backdrop {
+    padding: var(--spacing-sm);
+  }
+  
+  .modal-container {
+    max-width: 100%;
+    margin: 0;
+    border-radius: var(--border-radius-xl);
+  }
+  
+  .modal-header {
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+  }
+  
+  .modal-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .modal-body {
+    padding: var(--spacing-md);
+  }
+  
+  .modal-footer {
+    flex-direction: column-reverse;
+    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  }
+  
+  .modal-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+/* Focus visible para navegación por teclado */
+.modal-container:focus {
+  outline: none;
+}
+
+/* Mejoras de contraste para modo oscuro */
+.dark .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.dark .modal-icon {
+  background-color: color-mix(in srgb, var(--color-primary-yellow) 15%, transparent);
+  color: var(--color-primary-yellow);
+}
+
+.dark .modal-button-primary {
+  background-color: var(--color-primary-yellow);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary-yellow);
+}
+
+.dark .modal-button-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-primary-yellow) 90%, black);
+  border-color: color-mix(in srgb, var(--color-primary-yellow) 90%, black);
+}

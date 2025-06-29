@@ -4,11 +4,12 @@ import { Edit } from 'lucide-react';
 import { proyectosMock } from '../../data/mockData';
 import { secuenciasMock } from '../../data/secuenciasMock';
 import { Proyecto } from '../../types/proyecto';
-import { Secuencia } from '../../types/secuencia';
+import { Secuencia, CreateSecuenciaData } from '../../types/secuencia';
 import Button from '../../components/ui/Button/Button';
 import EditarProyectoModal from './components/EditarProyectoModal';
 import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
+import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
 import styles from './ProyectoDetalle.module.css';
 
 const ProyectoDetalle: React.FC = () => {
@@ -17,6 +18,7 @@ const ProyectoDetalle: React.FC = () => {
   const [secuencias, setSecuencias] = useState<Secuencia[]>([]);
   const [secuenciaSeleccionada, setSecuenciaSeleccionada] = useState<Secuencia | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNuevaSecuenciaModalOpen, setIsNuevaSecuenciaModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,8 +64,30 @@ const ProyectoDetalle: React.FC = () => {
   };
 
   const handleNuevaSecuencia = () => {
-    console.log('Crear nueva secuencia para proyecto:', proyecto?.id);
-    // Aquí se implementaría la lógica para crear una nueva secuencia
+    setIsNuevaSecuenciaModalOpen(true);
+  };
+
+  const handleSecuenciaCreada = (nuevaSecuenciaData: CreateSecuenciaData) => {
+    // Simular creación de secuencia con ID único
+    const nuevaSecuencia: Secuencia = {
+      id: Date.now().toString(),
+      nombre: nuevaSecuenciaData.nombre,
+      descripcion: nuevaSecuenciaData.descripcion,
+      proyectoId: nuevaSecuenciaData.proyectoId,
+      fechaCreacion: new Date().toISOString().split('T')[0],
+      estado: 'activa'
+    };
+
+    // Actualizar la lista de secuencias
+    setSecuencias(prev => [...prev, nuevaSecuencia]);
+    
+    // Seleccionar la nueva secuencia automáticamente
+    setSecuenciaSeleccionada(nuevaSecuencia);
+    
+    // Cerrar el modal
+    setIsNuevaSecuenciaModalOpen(false);
+
+    console.log('Nueva secuencia creada:', nuevaSecuencia);
   };
 
   const handleGuardarCambios = () => {
@@ -156,6 +180,13 @@ const ProyectoDetalle: React.FC = () => {
           onClose={() => setIsEditModalOpen(false)}
           proyecto={proyecto}
           onProyectoActualizado={handleProyectoActualizado}
+        />
+
+        <NuevaSecuenciaModal
+          isOpen={isNuevaSecuenciaModalOpen}
+          onClose={() => setIsNuevaSecuenciaModalOpen(false)}
+          proyectoId={proyecto.id}
+          onSecuenciaCreada={handleSecuenciaCreada}
         />
       </div>
     </div>
