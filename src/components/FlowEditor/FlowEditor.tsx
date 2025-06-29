@@ -16,8 +16,8 @@ import 'reactflow/dist/style.css';
 import TestingCardNode from './TestingCardNode';
 import LearningCardNode from './LearningCardNode';
 import LearningCardEditModal from './LearningCardEditModal';
-
 import TestingCardEditModal from './TestingCardEditModal';
+import EmptyFlowState from './components/EmptyFlowState';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
 import './styles/FlowEditor.css';
@@ -195,12 +195,9 @@ const FlowEditor: React.FC = () => {
           <Controls position="top-right" />
         </ReactFlow>
 
+        {/* Mostrar EmptyFlowState solo cuando no hay nodos */}
         {nodes.length === 0 && (
-          <div className="empty-state">
-            <button onClick={createFirstNode} className="btn btn-primary">
-              Crear Primer Nodo
-            </button>
-          </div>
+          <EmptyFlowState onCreateFirstNode={createFirstNode} />
         )}
       </ReactFlowProvider>
 
