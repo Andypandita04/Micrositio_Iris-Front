@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -24,6 +24,7 @@ import './styles/FlowEditor.css';
 
 /**
  * Tipos de nodos disponibles en el FlowEditor
+ * @constant nodeTypes
  */
 const nodeTypes = {
   testing: TestingCardNode,
@@ -33,55 +34,159 @@ const nodeTypes = {
 /**
  * Componente FlowEditor
  * 
- * Editor de flujo principal que maneja Testing Cards y Learning Cards.
- * Incluye funcionalidades de creación, edición, eliminación y conexión de nodos.
+ * @component FlowEditor
+ * @description Editor de flujo principal que maneja Testing Cards y Learning Cards.
+ * Incluye funcionalidades de creación, edición, eliminación y conexión de nodos
+ * con posicionamiento automático y z-index dinámico.
  * 
  * Características principales:
  * - Posicionamiento automático de nodos basado en tipo de conexión
  * - Testing Cards se conectan horizontalmente (derecha)
  * - Learning Cards se conectan verticalmente (abajo)
+ * - Z-index dinámico para evitar superposiciones
  * - Estado vacío atractivo cuando no hay nodos
  * - Modales de edición para ambos tipos de cards
  * - Gestión completa del estado de nodos y conexiones
+ * - useLayoutEffect para cálculos previos al renderizado
+ * 
+ * @returns {JSX.Element} Editor de flujo completo
  */
 const FlowEditor: React.FC = () => {
-  // Estados principales del editor
+  // @state: Estados principales del editor
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
   
-  // Contador para generar IDs únicos de nodos
+  // @ref: Contador para generar IDs únicos de nodos
   const nodeIdCounter = useRef(1);
+  
+  // @ref: Mapa de niveles de nodos para z-index dinámico
+  const nodeLevels = useRef<Map<string, number>>(new Map());
 
   /**
-   * Calcula la posición automática para un nuevo nodo basado en su padre y tipo
-   * 
-   * @param parentNode - Nodo padre desde el cual se crea la conexión
-   * @param childType - Tipo del nodo hijo ('testing' o 'learning')
-   * @returns Posición calculada para el nuevo nodo
+   * Calcula el nivel de profundidad de un nodo en el árbol
+   * @function calculateNodeLevel
+   * @param {string} nodeId - ID del nodo
+   * @param {Node[]} allNodes - Todos los nodos disponibles
+   * @param {Edge[]} allEdges - Todas las conexiones disponibles
+   * @returns {number} Nivel de profundidad del nodo
    */
-  const getNodePosition = useCallback((parentNode: Node, childType: 'testing' | 'learning') => {
-    const baseOffset = 350; // Distancia base entre nodos
-    const verticalOffset = 200; // Offset vertical para Learning Cards
-    
-    if (childType === 'testing') {
-      // Testing Cards se posicionan a la derecha del padre
-      return {
-        x: parentNode.position.x + baseOffset,
-        y: parentNode.position.y
-      };
-    } else {
-      // Learning Cards se posicionan debajo del padre
-      return {
-        x: parentNode.position.x,
-        y: parentNode.position.y + verticalOffset
-      };
+  const calculateNodeLevel = useCallback((nodeId: string, allNodes: Node[], allEdges: Edge[]): number => {
+    if (nodeLevels.current.has(nodeId)) {
+      return nodeLevels.current.get(nodeId)!;
     }
+
+    // @logic: Buscar nodos padre
+    const parentEdges = allEdges.filter(edge => edge.target === nodeId);
+    
+    if (parentEdges.length === 0) {
+      // @case: Nodo raíz
+      nodeLevels.current.set(nodeId, 0);
+      return 0;
+    }
+
+    // @logic: Calcular nivel basado en el padre más profundo
+    const maxParentLevel = Math.max(
+      ...parentEdges.map(edge => calculateNodeLevel(edge.source, allNodes, allEdges))
+    );
+    
+    const level = maxParentLevel + 1;
+    nodeLevels.current.set(nodeId, level);
+    return level;
   }, []);
 
   /**
+   * Calcula la posición automática para un nuevo nodo basado en su padre y tipo
+   * @function getNodePosition
+   * @param {Node} parentNode - Nodo padre desde el cual se crea la conexión
+   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo
+   * @param {Node[]} existingNodes - Nodos existentes para evitar superposiciones
+   * @returns {Object} Posición calculada para el nuevo nodo
+   */
+  const getNodePosition = useCallback((
+    parentNode: Node, 
+    childType: 'testing' | 'learning',
+    existingNodes: Node[]
+  ) => {
+    const baseOffset = 350; // @config: Distancia base entre nodos
+    const verticalOffset = 200; // @config: Offset vertical para Learning Cards
+    const collisionPadding = 50; // @config: Padding para evitar superposiciones
+    
+    let newPosition = {
+      x: parentNode.position.x,
+      y: parentNode.position.y
+    };
+
+    if (childType === 'testing') {
+      // @positioning: Testing Cards se posicionan a la derecha del padre
+      newPosition.x = parentNode.position.x + baseOffset;
+      newPosition.y = parentNode.position.y;
+    } else {
+      // @positioning: Learning Cards se posicionan debajo del padre
+      newPosition.x = parentNode.position.x;
+      newPosition.y = parentNode.position.y + verticalOffset;
+    }
+
+    // @collision-detection: Verificar superposiciones y ajustar posición
+    const checkCollision = (pos: { x: number; y: number }) => {
+      return existingNodes.some(node => {
+        const distance = Math.sqrt(
+          Math.pow(node.position.x - pos.x, 2) + 
+          Math.pow(node.position.y - pos.y, 2)
+        );
+        return distance < collisionPadding;
+      });
+    };
+
+    // @adjustment: Ajustar posición si hay colisión
+    let attempts = 0;
+    while (checkCollision(newPosition) && attempts < 10) {
+      if (childType === 'testing') {
+        newPosition.x += collisionPadding;
+      } else {
+        newPosition.y += collisionPadding;
+      }
+      attempts++;
+    }
+
+    return newPosition;
+  }, []);
+
+  /**
+   * Actualiza los z-index de todos los nodos basado en su nivel
+   * @function updateNodeZIndex
+   */
+  const updateNodeZIndex = useCallback(() => {
+    setNodes(currentNodes => {
+      return currentNodes.map(node => {
+        const level = calculateNodeLevel(node.id, currentNodes, edges);
+        const zIndex = 1000 + level; // @z-index: Base 1000 + nivel
+        
+        return {
+          ...node,
+          style: {
+            ...node.style,
+            zIndex
+          }
+        };
+      });
+    });
+  }, [edges, calculateNodeLevel]);
+
+  /**
+   * Efecto para actualizar z-index cuando cambian nodos o conexiones
+   * @function useLayoutEffect
+   */
+  useLayoutEffect(() => {
+    if (nodes.length > 0) {
+      updateNodeZIndex();
+    }
+  }, [nodes.length, edges.length, updateNodeZIndex]);
+
+  /**
    * Crea el primer nodo Testing Card en el centro del canvas
+   * @function createFirstNode
    */
   const createFirstNode = useCallback(() => {
     const newNodeId = `node-${nodeIdCounter.current++}`;
@@ -89,7 +194,8 @@ const FlowEditor: React.FC = () => {
     const newNode: Node<TestingCardData> = {
       id: newNodeId,
       type: 'testing',
-      position: { x: 250, y: 100 }, // Posición central inicial
+      position: { x: 250, y: 100 }, // @position: Posición central inicial
+      style: { zIndex: 1000 }, // @z-index: Nodo raíz
       data: {
         id: newNodeId,
         type: 'testing',
@@ -102,6 +208,7 @@ const FlowEditor: React.FC = () => {
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         attachments: [],
+        documentationUrls: [],
         responsible: '',
         experimentCategory: 'Descubrimiento',
         status: 'En desarrollo',
@@ -112,28 +219,33 @@ const FlowEditor: React.FC = () => {
       },
     };
     
+    // @action: Resetear niveles y añadir nodo
+    nodeLevels.current.clear();
     setNodes([newNode]);
   }, [setNodes]);
 
   /**
    * Crea un nodo hijo conectado a un nodo padre
-   * 
-   * @param parentId - ID del nodo padre
-   * @param childType - Tipo del nodo hijo a crear
+   * @function createChildNode
+   * @param {string} parentId - ID del nodo padre
+   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo a crear
    */
   const createChildNode = useCallback((parentId: string, childType: 'testing' | 'learning') => {
     const parentNode = nodes.find(node => node.id === parentId);
     if (!parentNode) return;
 
     const newNodeId = `node-${nodeIdCounter.current++}`;
-    const newPosition = getNodePosition(parentNode, childType);
+    const newPosition = getNodePosition(parentNode, childType, nodes);
+    const parentLevel = calculateNodeLevel(parentId, nodes, edges);
+    const newZIndex = 1000 + parentLevel + 1;
 
     if (childType === 'testing') {
-      // Crear nueva Testing Card
+      // @creation: Crear nueva Testing Card
       const newNode: Node<TestingCardData> = {
         id: newNodeId,
         type: 'testing',
         position: newPosition,
+        style: { zIndex: newZIndex },
         data: {
           id: newNodeId,
           type: 'testing',
@@ -146,6 +258,7 @@ const FlowEditor: React.FC = () => {
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           attachments: [],
+          documentationUrls: [],
           responsible: '',
           experimentCategory: 'Descubrimiento',
           status: 'En desarrollo',
@@ -157,7 +270,7 @@ const FlowEditor: React.FC = () => {
       };
       setNodes((nds) => [...nds, newNode]);
       
-      // Crear conexión desde el handle derecho del padre
+      // @connection: Crear conexión desde el handle derecho del padre
       const newEdge: Edge = {
         id: `edge-${parentId}-${newNodeId}`,
         source: parentId,
@@ -169,11 +282,12 @@ const FlowEditor: React.FC = () => {
       setEdges((eds) => [...eds, newEdge]);
       
     } else {
-      // Crear nueva Learning Card
+      // @creation: Crear nueva Learning Card
       const newNode: Node<LearningCardData> = {
         id: newNodeId,
         type: 'learning',
         position: newPosition,
+        style: { zIndex: newZIndex },
         data: {
           id: newNodeId,
           type: 'learning',
@@ -188,7 +302,7 @@ const FlowEditor: React.FC = () => {
       };
       setNodes((nds) => [...nds, newNode]);
       
-      // Crear conexión desde el handle inferior del padre
+      // @connection: Crear conexión desde el handle inferior del padre
       const newEdge: Edge = {
         id: `edge-${parentId}-${newNodeId}`,
         source: parentId,
@@ -199,22 +313,25 @@ const FlowEditor: React.FC = () => {
       };
       setEdges((eds) => [...eds, newEdge]);
     }
-  }, [nodes, setNodes, setEdges, getNodePosition]);
+  }, [nodes, setNodes, setEdges, getNodePosition, calculateNodeLevel, edges]);
 
   /**
    * Elimina un nodo y todas sus conexiones
-   * 
-   * @param nodeId - ID del nodo a eliminar
+   * @function deleteNode
+   * @param {string} nodeId - ID del nodo a eliminar
    */
   const deleteNode = useCallback((nodeId: string) => {
+    // @cleanup: Limpiar niveles del nodo eliminado
+    nodeLevels.current.delete(nodeId);
+    
     setNodes((nds) => nds.filter((node) => node.id !== nodeId));
     setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
   }, [setNodes, setEdges]);
 
   /**
    * Abre el modal de edición para un nodo específico
-   * 
-   * @param nodeId - ID del nodo a editar
+   * @function openEditModal
+   * @param {string} nodeId - ID del nodo a editar
    */
   const openEditModal = useCallback((nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -226,10 +343,12 @@ const FlowEditor: React.FC = () => {
 
   /**
    * Maneja las conexiones manuales entre nodos
+   * @function onConnect
+   * @param {Connection} params - Parámetros de la conexión
    */
   const onConnect = useCallback(
     (params: Connection) => {
-      // Personalizar el estilo de la conexión basado en los tipos de nodos
+      // @styling: Personalizar el estilo de la conexión basado en los tipos de nodos
       const sourceNode = nodes.find(n => n.id === params.source);
       const targetNode = nodes.find(n => n.id === params.target);
       
@@ -249,7 +368,8 @@ const FlowEditor: React.FC = () => {
 
   /**
    * Actualiza los nodos con los handlers correctos
-   * Esto es necesario para mantener las referencias de funciones actualizadas
+   * @function nodesWithHandlers
+   * @description Esto es necesario para mantener las referencias de funciones actualizadas
    */
   const nodesWithHandlers = nodes.map((node) => {
     if (node.type === 'testing') {
@@ -288,7 +408,7 @@ const FlowEditor: React.FC = () => {
           fitView
           attributionPosition="bottom-left"
         >
-          {/* Fondo con patrón de puntos */}
+          {/* @component: Fondo con patrón de puntos */}
           <Background 
             variant={BackgroundVariant.Dots} 
             gap={20} 
@@ -296,7 +416,7 @@ const FlowEditor: React.FC = () => {
             color="var(--theme-text-tertiary)"
           />
           
-          {/* Controles de zoom y navegación */}
+          {/* @component: Controles de zoom y navegación */}
           <Controls 
             position="top-right"
             showZoom={true}
@@ -305,13 +425,13 @@ const FlowEditor: React.FC = () => {
           />
         </ReactFlow>
 
-        {/* Mostrar EmptyFlowState solo cuando no hay nodos */}
+        {/* @component: Mostrar EmptyFlowState solo cuando no hay nodos */}
         {nodes.length === 0 && (
           <EmptyFlowState onCreateFirstNode={createFirstNode} />
         )}
       </ReactFlowProvider>
 
-      {/* Modales de edición condicionales */}
+      {/* @component: Modales de edición condicionales */}
       {isModalOpen && editingNode && (
         editingNode.type === 'testing' ? (
           <TestingCardEditModal

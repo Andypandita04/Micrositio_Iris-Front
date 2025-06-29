@@ -1,21 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Calendar, FileText, Tag, ClipboardList, ChevronDown } from 'lucide-react';
+import { 
+  X, 
+  Save, 
+  Calendar, 
+  FileText, 
+  Tag, 
+  ClipboardList, 
+  ChevronDown,
+  Link as LinkIcon,
+  Upload,
+  Plus,
+  Trash2
+} from 'lucide-react';
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
+import DocumentationModal from './components/DocumentationModal';
 import './styles/TestingCardEditModal.css';
 
+/**
+ * Props para el componente TestingCardEditModal
+ * @interface TestingCardEditModalProps
+ */
 interface TestingCardEditModalProps {
+  /** Nodo de Testing Card a editar */
   node: Node<TestingCardData>;
+  /** Función callback para guardar los cambios */
   onSave: (data: TestingCardData) => void;
+  /** Función callback para cerrar el modal */
   onClose: () => void;
 }
 
+/**
+ * Modal para editar Testing Cards con sistema de documentación completo
+ * 
+ * @component TestingCardEditModal
+ * @description Componente modal que permite editar todos los aspectos de una Testing Card,
+ * incluyendo información básica, métricas, criterios y documentación (URLs y archivos).
+ * 
+ * Características principales:
+ * - Formulario completo con validación
+ * - Sistema de documentación con URLs y archivos
+ * - Secciones colapsables para mejor organización
+ * - Drag & Drop para archivos
+ * - Límite de 10MB por archivo
+ * - Preview de archivos adjuntos
+ * - Responsive design
+ * 
+ * @param {TestingCardEditModalProps} props - Props del componente
+ * @returns {JSX.Element} Modal de edición de Testing Card
+ */
 const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose }) => {
+  // @state: Datos del formulario
   const [formData, setFormData] = useState<TestingCardData>(node.data);
+  
+  // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // @state: Control de secciones expandibles
   const [showMetrics, setShowMetrics] = useState(false);
   const [showCriteria, setShowCriteria] = useState(false);
+  const [showDocumentation, setShowDocumentation] = useState(false);
+  
+  // @state: Control del modal de documentación
+  const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
 
+  /**
+   * Efecto para manejar el cierre del modal con tecla ESC
+   * @function useEffect
+   */
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -24,6 +76,11 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
+  /**
+   * Valida todos los campos del formulario
+   * @function validateForm
+   * @returns {boolean} true si el formulario es válido
+   */
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
@@ -36,6 +93,11 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Maneja el envío del formulario
+   * @function handleSubmit
+   * @param {React.FormEvent} e - Evento del formulario
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
@@ -43,12 +105,23 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     }
   };
 
+  /**
+   * Actualiza una métrica específica
+   * @function handleMetricChange
+   * @param {number} index - Índice de la métrica
+   * @param {string} field - Campo a actualizar
+   * @param {string | number} value - Nuevo valor
+   */
   const handleMetricChange = (index: number, field: string, value: string | number) => {
     const updatedMetrics = [...formData.metrics];
     updatedMetrics[index] = { ...updatedMetrics[index], [field]: value };
     setFormData({ ...formData, metrics: updatedMetrics });
   };
 
+  /**
+   * Añade una nueva métrica vacía
+   * @function addMetric
+   */
   const addMetric = () => {
     setFormData({
       ...formData,
@@ -56,14 +129,66 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     });
   };
 
+  /**
+   * Elimina una métrica por índice
+   * @function removeMetric
+   * @param {number} index - Índice de la métrica a eliminar
+   */
   const removeMetric = (index: number) => {
     const updatedMetrics = formData.metrics.filter((_, i) => i !== index);
     setFormData({ ...formData, metrics: updatedMetrics });
   };
 
+  /**
+   * Añade una nueva URL de documentación
+   * @function addDocumentationUrl
+   * @param {string} url - URL a añadir
+   */
+  const addDocumentationUrl = (url: string) => {
+    if (!formData.documentationUrls) {
+      setFormData({ ...formData, documentationUrls: [url] });
+    } else {
+      setFormData({ 
+        ...formData, 
+        documentationUrls: [...formData.documentationUrls, url] 
+      });
+    }
+  };
+
+  /**
+   * Elimina una URL de documentación
+   * @function removeDocumentationUrl
+   * @param {number} index - Índice de la URL a eliminar
+   */
+  const removeDocumentationUrl = (index: number) => {
+    if (formData.documentationUrls) {
+      const updatedUrls = formData.documentationUrls.filter((_, i) => i !== index);
+      setFormData({ ...formData, documentationUrls: updatedUrls });
+    }
+  };
+
+  /**
+   * Añade archivos de documentación
+   * @function addDocumentationFiles
+   * @param {File[]} files - Archivos a añadir
+   */
+  const addDocumentationFiles = (files: File[]) => {
+    const newAttachments = files.map(file => ({
+      fileName: file.name,
+      fileUrl: URL.createObjectURL(file),
+      fileSize: file.size
+    }));
+
+    setFormData({
+      ...formData,
+      attachments: [...formData.attachments, ...newAttachments]
+    });
+  };
+
   return (
     <div className="testing-modal-backdrop">
       <div className="testing-modal-container">
+        {/* @section: Header del modal */}
         <div className="testing-modal-header">
           <div className="testing-modal-icon">
             <ClipboardList size={20} />
@@ -75,6 +200,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         </div>
 
         <form onSubmit={handleSubmit} className="testing-modal-form">
+          {/* @section: Información básica */}
           <div className="testing-form-group">
             <label htmlFor="title" className="testing-form-label">
               <Tag className="testing-form-icon" />
@@ -107,6 +233,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             {errors.hypothesis && <span className="testing-error-text">{errors.hypothesis}</span>}
           </div>
 
+          {/* @section: Configuración del experimento */}
           <div className="testing-form-row">
             <div className="testing-form-group">
               <label htmlFor="experimentType" className="testing-form-label">
@@ -157,6 +284,99 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             {errors.description && <span className="testing-error-text">{errors.description}</span>}
           </div>
 
+          {/* @section: Documentación expandible */}
+          <div className="testing-form-section">
+            <button 
+              type="button" 
+              className="testing-form-section-toggle"
+              onClick={() => setShowDocumentation(!showDocumentation)}
+            >
+              <ChevronDown className={`toggle-icon ${showDocumentation ? 'open' : ''}`} />
+              <span>Documentación</span>
+            </button>
+            
+            {showDocumentation && (
+              <div className="testing-form-section-content">
+                {/* @subsection: URLs de documentación */}
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <LinkIcon size={14} />
+                    URLs de Referencia
+                  </h4>
+                  
+                  {formData.documentationUrls && formData.documentationUrls.length > 0 && (
+                    <div className="urls-list">
+                      {formData.documentationUrls.map((url, index) => (
+                        <div key={index} className="url-item">
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {url}
+                          </a>
+                          <button 
+                            type="button" 
+                            className="testing-remove-btn"
+                            onClick={() => removeDocumentationUrl(index)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <button
+                    type="button"
+                    className="testing-add-btn"
+                    onClick={() => setIsDocumentationModalOpen(true)}
+                  >
+                    <Plus size={14} />
+                    Añadir URL
+                  </button>
+                </div>
+
+                {/* @subsection: Archivos adjuntos */}
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <Upload size={14} />
+                    Archivos Adjuntos
+                  </h4>
+                  
+                  {formData.attachments && formData.attachments.length > 0 && (
+                    <div className="attachments-list">
+                      {formData.attachments.map((file, index) => (
+                        <div key={index} className="attachment-item">
+                          <span className="file-name">{file.fileName}</span>
+                          <span className="file-size">
+                            {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
+                          </span>
+                          <button 
+                            type="button" 
+                            className="testing-remove-btn"
+                            onClick={() => {
+                              const updatedAttachments = formData.attachments.filter((_, i) => i !== index);
+                              setFormData({ ...formData, attachments: updatedAttachments });
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <button
+                    type="button"
+                    className="testing-add-btn"
+                    onClick={() => setIsDocumentationModalOpen(true)}
+                  >
+                    <Upload size={14} />
+                    Cargar Archivos
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* @section: Métricas expandibles */}
           <div className="testing-form-section">
             <button 
               type="button" 
@@ -206,12 +426,14 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   className="testing-add-btn"
                   onClick={addMetric}
                 >
-                  + Añadir Métrica
+                  <Plus size={14} />
+                  Añadir Métrica
                 </button>
               </div>
             )}
           </div>
 
+          {/* @section: Fechas y responsable */}
           <div className="testing-form-row">
             <div className="testing-form-group">
               <label htmlFor="startDate" className="testing-form-label">
@@ -244,6 +466,21 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             </div>
           </div>
 
+          <div className="testing-form-group">
+            <label htmlFor="responsible" className="testing-form-label">
+              Responsable
+            </label>
+            <input
+              type="text"
+              id="responsible"
+              value={formData.responsible}
+              onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+              className="testing-input"
+              placeholder="Nombre del responsable"
+            />
+          </div>
+
+          {/* @section: Botones de acción */}
           <div className="testing-form-actions">
             <button type="button" onClick={onClose} className="testing-btn testing-btn-secondary">
               Cancelar
@@ -254,6 +491,16 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             </button>
           </div>
         </form>
+
+        {/* @component: Modal de documentación */}
+        {isDocumentationModalOpen && (
+          <DocumentationModal
+            isOpen={isDocumentationModalOpen}
+            onClose={() => setIsDocumentationModalOpen(false)}
+            onAddUrl={addDocumentationUrl}
+            onAddFiles={addDocumentationFiles}
+          />
+        )}
       </div>
     </div>
   );
