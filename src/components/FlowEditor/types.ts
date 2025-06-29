@@ -97,6 +97,8 @@ export interface TestingCardData {
   experimentCategory: ExperimentCategory;
   /** Estado actual del experimento */
   status: ExperimentStatus;
+  /** IDs de colaboradores asignados */
+  collaborators?: string[];
   
   // @callbacks: Funciones de acción para el nodo
   /** Callback para añadir una Testing Card conectada */
@@ -130,6 +132,10 @@ export interface LearningCardData {
   links: string[];
   /** Archivos adjuntos con evidencia */
   attachments: Attachment[];
+  /** URLs de documentación de referencia */
+  documentationUrls?: string[];
+  /** IDs de colaboradores asignados */
+  collaborators?: string[];
   
   // @callbacks: Funciones de acción para el nodo
   /** Callback para editar el nodo */
