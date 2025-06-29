@@ -80,6 +80,16 @@
   font-weight: var(--font-weight-semibold);
   color: var(--theme-text-primary);
   margin: 0;
+  flex: 1;
+  margin-right: var(--spacing-sm);
+}
+
+/* @section: Contenedor de acciones (estado + botón eliminar) */
+.secuencia-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
 }
 
 .secuencia-estado {
@@ -104,6 +114,32 @@
 .estado-completada {
   background-color: color-mix(in srgb, var(--color-info) 20%, transparent);
   color: var(--color-info);
+}
+
+/* @section: Botón de eliminación */
+.delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--border-radius-md);
+  background-color: transparent;
+  color: var(--theme-text-tertiary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.delete-button:hover {
+  background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+  border-color: color-mix(in srgb, var(--color-error) 20%, transparent);
+  transform: scale(1.05);
+}
+
+.delete-button:active {
+  transform: scale(0.95);
 }
 
 .secuencia-descripcion {
@@ -144,4 +180,58 @@
   background-color: var(--color-primary-purple);
   border-radius: 50%;
   border: 2px solid var(--theme-bg-primary);
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 640px) {
+  .secuencia-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .secuencia-actions {
+    align-self: flex-end;
+  }
+  
+  .secuencia-nombre {
+    margin-right: 0;
+  }
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+/* @accessibility: Focus visible para el botón de eliminación */
+.delete-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-error);
+}
+
+/* @accessibility: Mejoras para modo oscuro */
+.dark .delete-button:hover {
+  background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
+}
+
+/* @accessibility: Reducir animaciones para usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .secuencia-card {
+    transition: none;
+  }
+  
+  .secuencia-card:hover {
+    transform: none;
+  }
+  
+  .delete-button:hover {
+    transform: none;
+  }
+  
+  .delete-button:active {
+    transform: none;
+  }
 }
