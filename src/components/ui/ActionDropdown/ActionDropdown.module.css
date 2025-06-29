@@ -1,0 +1,234 @@
+/* =================================================================
+   ACTION DROPDOWN - DROPDOWN DE ACCIONES CON KEBAB MENU
+   ================================================================= */
+
+/* @section: Contenedor principal */
+.action-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* @section: Botón trigger (tres puntos) */
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--border-radius-md);
+  background-color: transparent;
+  color: var(--theme-text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.dropdown-trigger:hover:not(:disabled) {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.dropdown-trigger:focus {
+  outline: none;
+  background-color: var(--theme-bg-secondary);
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+}
+
+.dropdown-trigger.trigger-active {
+  background-color: var(--theme-bg-secondary);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.dropdown-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =================================================================
+   DROPDOWN MENU - MENÚ DESPLEGABLE
+   ================================================================= */
+
+/* @section: Contenedor del menú */
+.dropdown-menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 10rem;
+  padding: var(--spacing-xs);
+  animation: dropdownSlideIn 0.15s ease-out;
+}
+
+/* @animation: Entrada del dropdown */
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* @section: Posicionamiento del dropdown */
+.dropdown-bottom-right {
+  top: 100%;
+  right: 0;
+  margin-top: var(--spacing-xs);
+}
+
+.dropdown-bottom-left {
+  top: 100%;
+  left: 0;
+  margin-top: var(--spacing-xs);
+}
+
+.dropdown-top-right {
+  bottom: 100%;
+  right: 0;
+  margin-bottom: var(--spacing-xs);
+}
+
+.dropdown-top-left {
+  bottom: 100%;
+  left: 0;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* =================================================================
+   ITEMS DEL DROPDOWN
+   ================================================================= */
+
+/* @section: Item base del dropdown */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  background-color: transparent;
+  color: var(--theme-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+}
+
+.dropdown-item:hover:not(:disabled) {
+  background-color: var(--theme-bg-secondary);
+}
+
+.dropdown-item:focus {
+  outline: none;
+  background-color: var(--theme-bg-secondary);
+  box-shadow: inset 0 0 0 1px var(--color-primary-purple);
+}
+
+/* @section: Variantes de tipo de item */
+.item-default {
+  /* Estilo por defecto ya definido arriba */
+}
+
+.item-danger {
+  color: var(--color-error);
+}
+
+.item-danger:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+}
+
+.item-danger:focus {
+  box-shadow: inset 0 0 0 1px var(--color-error);
+}
+
+/* @section: Estado deshabilitado */
+.item-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* @section: Icono del item */
+.item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* @section: Etiqueta del item */
+.item-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =================================================================
+   RESPONSIVE DESIGN
+   ================================================================= */
+
+@media (max-width: 640px) {
+  .dropdown-menu {
+    min-width: 8rem;
+    font-size: var(--font-size-xs);
+  }
+  
+  .dropdown-item {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}
+
+/* =================================================================
+   MEJORAS DE ACCESIBILIDAD
+   ================================================================= */
+
+/* @accessibility: Mejoras para navegación por teclado */
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--color-primary-purple);
+  outline-offset: -2px;
+}
+
+/* @accessibility: Mejoras de contraste para modo oscuro */
+.dark .dropdown-trigger:focus {
+  border-color: var(--color-primary-yellow);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-yellow) 15%, transparent);
+}
+
+.dark .dropdown-item:focus {
+  box-shadow: inset 0 0 0 1px var(--color-primary-yellow);
+}
+
+.dark .item-danger:focus {
+  box-shadow: inset 0 0 0 1px var(--color-error);
+}
+
+/* @accessibility: Indicador visual para elementos enfocados */
+@media (prefers-reduced-motion: no-preference) {
+  .dropdown-item:focus {
+    transform: translateX(2px);
+  }
+}
+
+/* @accessibility: Reducir animaciones para usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-menu {
+    animation: none;
+  }
+  
+  .dropdown-item:focus {
+    transform: none;
+  }
+}
