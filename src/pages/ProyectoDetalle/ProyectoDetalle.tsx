@@ -2,15 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit } from 'lucide-react';
 import { proyectosMock } from '../../data/mockData';
+import { secuenciasMock } from '../../data/secuenciasMock';
 import { Proyecto } from '../../types/proyecto';
+import { Secuencia } from '../../types/secuencia';
 import Button from '../../components/ui/Button/Button';
-import FlowEditor from '../../components/FlowEditor/FlowEditor';
 import EditarProyectoModal from './components/EditarProyectoModal';
+import SecuenciasSection from './components/SecuenciasSection';
+import FlowEditorSection from './components/FlowEditorSection';
 import styles from './ProyectoDetalle.module.css';
 
 const ProyectoDetalle: React.FC = () => {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
+  const [secuencias, setSecuencias] = useState<Secuencia[]>([]);
+  const [secuenciaSeleccionada, setSecuenciaSeleccionada] = useState<Secuencia | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -21,6 +26,17 @@ const ProyectoDetalle: React.FC = () => {
         const id = proyectoId.replace('proyecto-', '');
         const proyectoEncontrado = proyectosMock.find(p => p.id === id);
         setProyecto(proyectoEncontrado || null);
+
+        // Cargar secuencias del proyecto
+        if (proyectoEncontrado) {
+          const secuenciasDelProyecto = secuenciasMock.filter(s => s.proyectoId === proyectoEncontrado.id);
+          setSecuencias(secuenciasDelProyecto);
+          
+          // Seleccionar la primera secuencia por defecto si existe
+          if (secuenciasDelProyecto.length > 0) {
+            setSecuenciaSeleccionada(secuenciasDelProyecto[0]);
+          }
+        }
       }
       setLoading(false);
     }, 500);
@@ -39,6 +55,20 @@ const ProyectoDetalle: React.FC = () => {
   const handleProyectoActualizado = (proyectoActualizado: Proyecto) => {
     setProyecto(proyectoActualizado);
     setIsEditModalOpen(false);
+  };
+
+  const handleSecuenciaSelect = (secuencia: Secuencia) => {
+    setSecuenciaSeleccionada(secuencia);
+  };
+
+  const handleNuevaSecuencia = () => {
+    console.log('Crear nueva secuencia para proyecto:', proyecto?.id);
+    // Aquí se implementaría la lógica para crear una nueva secuencia
+  };
+
+  const handleGuardarCambios = () => {
+    console.log('Guardar cambios de la secuencia:', secuenciaSeleccionada?.id);
+    // Aquí se implementaría la lógica para guardar los cambios del FlowEditor
   };
 
   if (loading) {
@@ -109,14 +139,17 @@ const ProyectoDetalle: React.FC = () => {
           </div>
         </div>
 
-        <div className={styles['flow-section']}>
-          <div className={styles['flow-header']}>
-            <h2 className={styles['flow-title']}>Editor de Flujo del Proyecto</h2>
-          </div>
-          <div className={styles['flow-container']}>
-            <FlowEditor />
-          </div>
-        </div>
+        <SecuenciasSection
+          secuencias={secuencias}
+          secuenciaSeleccionada={secuenciaSeleccionada}
+          onSecuenciaSelect={handleSecuenciaSelect}
+          onNuevaSecuencia={handleNuevaSecuencia}
+        />
+
+        <FlowEditorSection
+          secuenciaSeleccionada={secuenciaSeleccionada}
+          onGuardarCambios={handleGuardarCambios}
+        />
 
         <EditarProyectoModal
           isOpen={isEditModalOpen}

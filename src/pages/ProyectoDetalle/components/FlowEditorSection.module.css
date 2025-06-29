@@ -1,0 +1,88 @@
+.flow-editor-section {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-xl);
+  overflow: hidden;
+  margin-top: var(--spacing-xl);
+}
+
+.flow-editor-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flow-editor-title-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.flow-editor-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+  margin: 0;
+}
+
+.flow-editor-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-secondary);
+  margin: 0;
+}
+
+.flow-editor-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.secuencia-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background-color: color-mix(in srgb, var(--color-primary-purple) 10%, transparent);
+  color: var(--color-primary-purple);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.flow-editor-container {
+  height: 70vh;
+  min-height: 500px;
+  position: relative;
+}
+
+.flow-editor-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--theme-text-secondary);
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.placeholder-icon {
+  margin-bottom: var(--spacing-lg);
+  color: var(--theme-text-tertiary);
+}
+
+.placeholder-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.placeholder-description {
+  font-size: var(--font-size-base);
+  max-width: 24rem;
+  line-height: var(--line-height-relaxed);
+}
