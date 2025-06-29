@@ -8,7 +8,8 @@ import {
   ChevronDown,
   Target,
   Calendar,
-  BarChart3
+  BarChart3,
+  Users
 } from 'lucide-react';
 import { TestingCardData } from './types';
 import './styles/TestingCardNode.css';
@@ -24,14 +25,48 @@ interface TestingCardNodeProps {
 }
 
 /**
+ * Mock data de colaboradores para mostrar en la card
+ * @constant mockCollaborators
+ */
+const mockCollaborators = [
+  {
+    id: '1',
+    name: 'Ana García',
+    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '2',
+    name: 'Carlos Rodríguez',
+    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '3',
+    name: 'María López',
+    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '4',
+    name: 'David Martínez',
+    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '5',
+    name: 'Laura Sánchez',
+    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  }
+];
+
+/**
  * Componente TestingCardNode
  * 
  * Renderiza una Testing Card con diseño elegante y funcionalidad expandible.
  * Incluye información básica siempre visible y contenido adicional que se puede
- * mostrar/ocultar con el botón "Ver más".
+ * mostrar/ocultar con el botón "Ver más". Ahora incluye sección de colaboradores
+ * asignados debajo del título.
  * 
  * Características:
  * - Diseño moderno con sombras y gradientes
+ * - Sección de colaboradores asignados con avatares
  * - Contenido expandible con animaciones suaves
  * - Handles personalizados para diferentes tipos de conexiones
  * - Botones de acción con estados hover
@@ -58,6 +93,38 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
       day: 'numeric'
     });
   };
+
+  /**
+   * Obtiene los colaboradores asignados basado en los IDs
+   * @function getAssignedCollaborators
+   * @returns {Array} Lista de colaboradores asignados
+   */
+  const getAssignedCollaborators = () => {
+    if (!data.collaborators || data.collaborators.length === 0) {
+      return [];
+    }
+    
+    return mockCollaborators.filter(collaborator => 
+      data.collaborators?.includes(collaborator.id)
+    );
+  };
+
+  /**
+   * Genera las iniciales de un nombre
+   * @function getInitials
+   * @param {string} name - Nombre completo
+   * @returns {string} Iniciales del nombre
+   */
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const assignedCollaborators = getAssignedCollaborators();
 
   return (
     <div className={`testing-card ${selected ? 'selected' : ''}`}>
@@ -108,6 +175,42 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
       <div className="card-body">
         {/* Título de la Testing Card */}
         <h3 className="card-title">{data.title}</h3>
+        
+        {/* @section: Colaboradores asignados - Posición: Debajo del título */}
+        {assignedCollaborators.length > 0 && (
+          <div className="card-collaborators">
+            <div className="collaborators-label">
+              <Users size={12} />
+              <span>Asignar colaboradores</span>
+            </div>
+            <div className="collaborators-list">
+              {assignedCollaborators.slice(0, 3).map((collaborator) => (
+                <div key={collaborator.id} className="collaborator-avatar-container">
+                  {collaborator.avatar ? (
+                    <img 
+                      src={collaborator.avatar} 
+                      alt={collaborator.name}
+                      className="collaborator-avatar"
+                      title={collaborator.name}
+                    />
+                  ) : (
+                    <div 
+                      className="collaborator-avatar-placeholder"
+                      title={collaborator.name}
+                    >
+                      {getInitials(collaborator.name)}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {assignedCollaborators.length > 3 && (
+                <div className="collaborator-counter" title={`${assignedCollaborators.length - 3} más`}>
+                  +{assignedCollaborators.length - 3}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         
         {/* Descripción básica (siempre visible) */}
         <p className="card-description">{data.description}</p>

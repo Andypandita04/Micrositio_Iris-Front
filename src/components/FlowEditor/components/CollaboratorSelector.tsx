@@ -34,8 +34,12 @@ interface CollaboratorSelectorProps {
   placeholder?: string;
   /** Número máximo de chips visibles antes de mostrar contador */
   maxVisibleChips?: number;
+  /** Número máximo de colaboradores seleccionables */
+  maxSelectable?: number;
   /** Si el selector está deshabilitado */
   disabled?: boolean;
+  /** Clase CSS adicional */
+  className?: string;
 }
 
 /**
@@ -44,15 +48,36 @@ interface CollaboratorSelectorProps {
  * @component CollaboratorSelector
  * @description Selector de colaboradores con búsqueda typeahead, selección múltiple
  * y visualización en chips. Incluye dropdown con filtrado en tiempo real y
- * gestión inteligente del espacio visual.
+ * gestión inteligente del espacio visual. Replicado del comportamiento del selector
+ * de proyectos pero adaptado para colaboradores.
  * 
  * Características principales:
- * - Búsqueda typeahead con filtrado instantáneo
- * - Selección múltiple con chips visuales
- * - Contador de elementos adicionales (+N)
+ * - Búsqueda typeahead con filtrado instantáneo por nombre, email y rol
+ * - Selección múltiple con chips visuales removibles
+ * - Límite máximo de 5 colaboradores seleccionables
+ * - Contador de elementos adicionales (+N) cuando excede maxVisibleChips
  * - Tooltip con lista completa de seleccionados
- * - Responsive y accesible
- * - Integración con sistema de diseño existente
+ * - Responsive y accesible con navegación por teclado
+ * - Integración perfecta con sistema de diseño existente
+ * - Ancho adaptable al contenedor padre
+ * 
+ * Funcionalidades de filtrado:
+ * - Búsqueda incremental en tiempo real
+ * - Filtrado por nombre, email y rol
+ * - Exclusión automática de colaboradores ya seleccionados
+ * - Indicador visual cuando no hay resultados
+ * 
+ * @example
+ * ```tsx
+ * <CollaboratorSelector
+ *   availableCollaborators={projectCollaborators}
+ *   selectedCollaborators={selectedTeam}
+ *   onSelectionChange={handleTeamChange}
+ *   placeholder="Buscar colaboradores..."
+ *   maxVisibleChips={3}
+ *   maxSelectable={5}
+ * />
+ * ```
  * 
  * @param {CollaboratorSelectorProps} props - Props del componente
  * @returns {JSX.Element} Selector de colaboradores
@@ -63,26 +88,29 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
   onSelectionChange,
   placeholder = "Buscar colaboradores...",
   maxVisibleChips = 3,
-  disabled = false
+  maxSelectable = 5,
+  disabled = false,
+  className = ''
 }) => {
   // @state: Control del dropdown
   const [isOpen, setIsOpen] = useState(false);
   
-  // @state: Término de búsqueda
+  // @state: Término de búsqueda para filtrado incremental
   const [searchTerm, setSearchTerm] = useState('');
   
-  // @state: Control del tooltip
+  // @state: Control del tooltip con lista completa
   const [showTooltip, setShowTooltip] = useState(false);
   
   // @ref: Referencia al contenedor para detectar clics fuera
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // @ref: Referencia al input de búsqueda
+  // @ref: Referencia al input de búsqueda para enfoque automático
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Filtra colaboradores basado en el término de búsqueda
    * @function filteredCollaborators
+   * @description Implementa búsqueda incremental en nombre, email y rol
    * @returns {Collaborator[]} Lista filtrada de colaboradores
    */
   const filteredCollaborators = availableCollaborators.filter(collaborator => {
@@ -97,6 +125,7 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
   /**
    * Colaboradores disponibles para seleccionar (no seleccionados)
    * @function availableForSelection
+   * @description Excluye colaboradores ya seleccionados de las opciones
    * @returns {Collaborator[]} Colaboradores no seleccionados
    */
   const availableForSelection = filteredCollaborators.filter(
@@ -122,6 +151,7 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
   /**
    * Efecto para enfocar el input cuando se abre el dropdown
    * @function useEffect
+   * @description Mejora la accesibilidad enfocando automáticamente el campo de búsqueda
    */
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -133,8 +163,15 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
    * Maneja la selección de un colaborador
    * @function handleCollaboratorSelect
    * @param {Collaborator} collaborator - Colaborador a seleccionar
+   * @description Añade colaborador si no se excede el límite máximo
    */
   const handleCollaboratorSelect = (collaborator: Collaborator) => {
+    // @validation: Verificar límite máximo de selección
+    if (selectedCollaborators.length >= maxSelectable) {
+      console.warn(`Máximo ${maxSelectable} colaboradores permitidos`);
+      return;
+    }
+
     const newSelection = [...selectedCollaborators, collaborator];
     onSelectionChange(newSelection);
     setSearchTerm('');
@@ -168,17 +205,17 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
   const visibleCollaborators = selectedCollaborators.slice(0, maxVisibleChips);
   
   /**
-   * Número de colaboradores adicionales
+   * Número de colaboradores adicionales no visibles
    * @function additionalCount
    * @returns {number} Cantidad de colaboradores no visibles
    */
   const additionalCount = Math.max(0, selectedCollaborators.length - maxVisibleChips);
 
   /**
-   * Genera las iniciales de un nombre
+   * Genera las iniciales de un nombre para avatares placeholder
    * @function getInitials
    * @param {string} name - Nombre completo
-   * @returns {string} Iniciales del nombre
+   * @returns {string} Iniciales del nombre (máximo 2 caracteres)
    */
   const getInitials = (name: string): string => {
     return name
@@ -189,8 +226,15 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
       .slice(0, 2);
   };
 
+  /**
+   * Verifica si se puede seleccionar más colaboradores
+   * @function canSelectMore
+   * @returns {boolean} true si se pueden seleccionar más colaboradores
+   */
+  const canSelectMore = selectedCollaborators.length < maxSelectable;
+
   return (
-    <div className="collaborator-selector" ref={containerRef}>
+    <div className={`collaborator-selector ${className}`} ref={containerRef}>
       {/* @section: Campo principal con chips y botón de apertura */}
       <div 
         className={`collaborator-selector-field ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
@@ -222,18 +266,20 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
                       handleCollaboratorRemove(collaborator.id);
                     }}
                     disabled={disabled}
+                    aria-label={`Eliminar ${collaborator.name}`}
                   >
                     <X size={12} />
                   </button>
                 </div>
               ))}
               
-              {/* @component: Contador de elementos adicionales */}
+              {/* @component: Contador de elementos adicionales con tooltip */}
               {additionalCount > 0 && (
                 <div 
                   className="collaborator-chip-counter"
                   onMouseEnter={() => setShowTooltip(true)}
                   onMouseLeave={() => setShowTooltip(false)}
+                  title={`${additionalCount} colaboradores más`}
                 >
                   +{additionalCount}
                   
@@ -241,7 +287,7 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
                   {showTooltip && (
                     <div className="collaborator-tooltip">
                       <div className="collaborator-tooltip-content">
-                        <h4>Todos los colaboradores:</h4>
+                        <h4>Todos los colaboradores ({selectedCollaborators.length}/{maxSelectable}):</h4>
                         {selectedCollaborators.map((collaborator) => (
                           <div key={collaborator.id} className="collaborator-tooltip-item">
                             {collaborator.avatar ? (
@@ -258,6 +304,9 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
                             <div className="collaborator-tooltip-info">
                               <span className="collaborator-tooltip-name">{collaborator.name}</span>
                               <span className="collaborator-tooltip-email">{collaborator.email}</span>
+                              {collaborator.role && (
+                                <span className="collaborator-tooltip-role">{collaborator.role}</span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -285,7 +334,7 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
       {/* @section: Dropdown con búsqueda y opciones */}
       {isOpen && (
         <div className="collaborator-dropdown">
-          {/* @section: Campo de búsqueda */}
+          {/* @section: Campo de búsqueda con typeahead */}
           <div className="collaborator-search">
             <Search size={16} className="collaborator-search-icon" />
             <input
@@ -298,9 +347,19 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
             />
           </div>
 
+          {/* @section: Indicador de límite si está cerca del máximo */}
+          {selectedCollaborators.length >= maxSelectable - 1 && (
+            <div className="collaborator-limit-warning">
+              {selectedCollaborators.length === maxSelectable 
+                ? `Máximo de ${maxSelectable} colaboradores alcanzado`
+                : `Puedes seleccionar ${maxSelectable - selectedCollaborators.length} colaborador más`
+              }
+            </div>
+          )}
+
           {/* @section: Lista de colaboradores disponibles */}
           <div className="collaborator-options">
-            {availableForSelection.length > 0 ? (
+            {availableForSelection.length > 0 && canSelectMore ? (
               availableForSelection.map((collaborator) => (
                 <div
                   key={collaborator.id}
@@ -329,7 +388,12 @@ const CollaboratorSelector: React.FC<CollaboratorSelectorProps> = ({
               ))
             ) : (
               <div className="collaborator-no-results">
-                {searchTerm ? 'No se encontraron colaboradores' : 'Todos los colaboradores están seleccionados'}
+                {!canSelectMore 
+                  ? `Máximo de ${maxSelectable} colaboradores alcanzado`
+                  : searchTerm 
+                    ? 'No se encontraron colaboradores' 
+                    : 'Todos los colaboradores están seleccionados'
+                }
               </div>
             )}
           </div>

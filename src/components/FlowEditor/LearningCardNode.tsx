@@ -8,7 +8,8 @@ import {
   FileText,
   Lightbulb,
   ExternalLink,
-  Paperclip
+  Paperclip,
+  Users
 } from 'lucide-react';
 import { LearningCardData } from './types';
 import './styles/LearningCardNode.css';
@@ -24,14 +25,48 @@ interface LearningCardNodeProps {
 }
 
 /**
+ * Mock data de colaboradores para mostrar en la card
+ * @constant mockCollaborators
+ */
+const mockCollaborators = [
+  {
+    id: '1',
+    name: 'Ana García',
+    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '2',
+    name: 'Carlos Rodríguez',
+    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '3',
+    name: 'María López',
+    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '4',
+    name: 'David Martínez',
+    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  },
+  {
+    id: '5',
+    name: 'Laura Sánchez',
+    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
+  }
+];
+
+/**
  * Componente LearningCardNode
  * 
  * Renderiza una Learning Card con diseño elegante y funcionalidad expandible.
  * Muestra resultados y hallazgos de experimentos con contenido adicional
- * que se puede mostrar/ocultar.
+ * que se puede mostrar/ocultar. Ahora incluye sección de colaboradores
+ * (co-autores) en la sección derecha superior.
  * 
  * Características:
  * - Diseño moderno con tema verde para diferenciarse de Testing Cards
+ * - Sección de co-autores en la parte superior derecha
  * - Contenido expandible con animaciones suaves
  * - Secciones diferenciadas para resultados e insights
  * - Enlaces y archivos adjuntos en contenido expandible
@@ -57,6 +92,38 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
     return text.substring(0, maxLength) + '...';
   };
 
+  /**
+   * Obtiene los colaboradores asignados basado en los IDs
+   * @function getAssignedCollaborators
+   * @returns {Array} Lista de colaboradores asignados
+   */
+  const getAssignedCollaborators = () => {
+    if (!data.collaborators || data.collaborators.length === 0) {
+      return [];
+    }
+    
+    return mockCollaborators.filter(collaborator => 
+      data.collaborators?.includes(collaborator.id)
+    );
+  };
+
+  /**
+   * Genera las iniciales de un nombre
+   * @function getInitials
+   * @param {string} name - Nombre completo
+   * @returns {string} Iniciales del nombre
+   */
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const assignedCollaborators = getAssignedCollaborators();
+
   return (
     <div className={`learning-card ${selected ? 'selected' : ''}`}>
       {/* Handle superior para conexiones desde Testing Cards */}
@@ -81,6 +148,42 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
         </div>
         <div className="card-id">#{data.id.slice(-4)}</div>
       </div>
+
+      {/* @section: Co-autores - Posición: Sección derecha superior */}
+      {assignedCollaborators.length > 0 && (
+        <div className="card-collaborators">
+          <div className="collaborators-label">
+            <Users size={12} />
+            <span>Co-autores</span>
+          </div>
+          <div className="collaborators-list">
+            {assignedCollaborators.slice(0, 3).map((collaborator) => (
+              <div key={collaborator.id} className="collaborator-avatar-container">
+                {collaborator.avatar ? (
+                  <img 
+                    src={collaborator.avatar} 
+                    alt={collaborator.name}
+                    className="collaborator-avatar"
+                    title={collaborator.name}
+                  />
+                ) : (
+                  <div 
+                    className="collaborator-avatar-placeholder"
+                    title={collaborator.name}
+                  >
+                    {getInitials(collaborator.name)}
+                  </div>
+                )}
+              </div>
+            ))}
+            {assignedCollaborators.length > 3 && (
+              <div className="collaborator-counter" title={`${assignedCollaborators.length - 3} más`}>
+                +{assignedCollaborators.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Cuerpo principal con información */}
       <div className="card-body">
