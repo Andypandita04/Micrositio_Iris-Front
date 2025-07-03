@@ -1,0 +1,154 @@
+Listado de rutas de carpetas para el volumen Datos
+El número de serie del volumen es 1E55-2F96
+E:.
+¦   App.tsx
+¦   estructura.txt
+¦   index.css
+¦   main.tsx
+¦   vite-env.d.ts
+¦   
++---api
+¦       Apiclient.js
+¦       ProyectoService.js
+¦       
++---components
+¦   +---auth
+¦   ¦       LoginModal.module.css
+¦   ¦       LoginModal.tsx
+¦   ¦       
+¦   +---cards
+¦   ¦       FeatureCard.tsx
+¦   ¦       InnovationCard.tsx
+¦   ¦       
+¦   +---FlowEditor
+¦   ¦   ¦   CustomNode.tsx
+¦   ¦   ¦   FlowEditor.tsx
+¦   ¦   ¦   LearningCardEditModal.tsx
+¦   ¦   ¦   LearningCardNode.tsx
+¦   ¦   ¦   NodeEditModal.tsx
+¦   ¦   ¦   TestingCardEditModal.tsx
+¦   ¦   ¦   TestingCardNode.tsx
+¦   ¦   ¦   types.ts
+¦   ¦   ¦   
+¦   ¦   +---components
+¦   ¦   ¦       CollaboratorSelector.css
+¦   ¦   ¦       CollaboratorSelector.tsx
+¦   ¦   ¦       DocumentationModal.css
+¦   ¦   ¦       DocumentationModal.tsx
+¦   ¦   ¦       EmptyFlowState.module.css
+¦   ¦   ¦       EmptyFlowState.tsx
+¦   ¦   ¦       
+¦   ¦   +---styles
+¦   ¦           CustomNode.css
+¦   ¦           FlowEditor.css
+¦   ¦           LearningCardEditModal.css
+¦   ¦           LearningCardNode.css
+¦   ¦           NodeEditModal.css
+¦   ¦           TestingCardEditModal.css
+¦   ¦           TestingCardNode.css
+¦   ¦           
+¦   +---layout
+¦   ¦   +---BubbleBackground
+¦   ¦   ¦       BubbleBackground.module.css
+¦   ¦   ¦       BubbleBackground.tsx
+¦   ¦   ¦       
+¦   ¦   +---Footer
+¦   ¦   ¦       Footer.module.css
+¦   ¦   ¦       Footer.tsx
+¦   ¦   ¦       
+¦   ¦   +---Header
+¦   ¦   ¦       Header.module.css
+¦   ¦   ¦       Header.tsx
+¦   ¦   ¦       
+¦   ¦   +---SearchBar
+¦   ¦   ¦       SearchBar.module.css
+¦   ¦   ¦       SearchBar.tsx
+¦   ¦   ¦       
+¦   ¦   +---Sidebar
+¦   ¦           Sidebar.module.css
+¦   ¦           Sidebar.tsx
+¦   ¦           
+¦   +---ui
+¦       +---ActionDropdown
+¦       ¦       ActionDropdown.module.css
+¦       ¦       ActionDropdown.tsx
+¦       ¦       
+¦       +---Button
+¦       ¦       Button.module.css
+¦       ¦       Button.tsx
+¦       ¦       
+¦       +---ConfirmationModal
+¦       ¦       ConfirmationModal.module.css
+¦       ¦       ConfirmationModal.tsx
+¦       ¦       
+¦       +---Modal
+¦               Modal.module.css
+¦               Modal.tsx
+¦               
++---contexts
+¦       AuthContext.tsx
+¦       
++---data
+¦       mockData.ts
+¦       secuenciasMock.ts
+¦       
++---hooks
+¦       useTheme.tsx
+¦       
++---layouts
+¦   +---MainLayout
+¦           MainLayout.module.css
+¦           MainLayout.tsx
+¦           
++---pages
+¦   ¦   Assistant.tsx
+¦   ¦   HomePage.module.css
+¦   ¦   HomePage.tsx
+¦   ¦   
+¦   +---Agentes
+¦   ¦       Agentes.module.css
+¦   ¦       Agentes.tsx
+¦   ¦       
+¦   +---Equipo
+¦   ¦       Equipo.module.css
+¦   ¦       Equipo.tsx
+¦   ¦       
+¦   +---Licencias
+¦   ¦       Licencias.module.css
+¦   ¦       Licencias.tsx
+¦   ¦       
+¦   +---Perfil
+¦   ¦       Perfil.module.css
+¦   ¦       Perfil.tsx
+¦   ¦       
+¦   +---ProyectoDetalle
+¦   ¦   ¦   ProyectoDetalle.module.css
+¦   ¦   ¦   ProyectoDetalle.tsx
+¦   ¦   ¦   
+¦   ¦   +---components
+¦   ¦           EditarProyectoModal.module.css
+¦   ¦           EditarProyectoModal.tsx
+¦   ¦           FlowEditorSection.module.css
+¦   ¦           FlowEditorSection.tsx
+¦   ¦           NuevaSecuenciaModal.module.css
+¦   ¦           NuevaSecuenciaModal.tsx
+¦   ¦           SecuenciasSection.module.css
+¦   ¦           SecuenciasSection.tsx
+¦   ¦           
+¦   +---Proyectos
+¦       ¦   Proyectos.module.css
+¦       ¦   Proyectos.tsx
+¦       ¦   
+¦       +---components
+¦               NuevoProyectoModal.module.css
+¦               NuevoProyectoModal.tsx
+¦               
++---styles
+¦       globals.css
+¦       reset.css
+¦       theme.css
+¦       
++---types
+        proyecto.ts
+        secuencia.ts
+        

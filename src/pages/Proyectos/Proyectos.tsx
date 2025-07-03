@@ -1,30 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // useEffect agregado para llamadas API
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { proyectosMock } from '../../data/mockData';
-import { Proyecto } from '../../types/proyecto';
+import { Proyecto } from '../../types/proyecto'; // tu type Proyecto definido
 import Button from '../../components/ui/Button/Button';
 import NuevoProyectoModal from './components/NuevoProyectoModal';
 import styles from './Proyectos.module.css';
+import { getProyectos } from '../../api/ProyectoService'; // import de función API real
 
+/**
+ * Componente Proyectos
+ * Lista proyectos obtenidos desde el backend y permite crear nuevos.
+ */
 const Proyectos: React.FC = () => {
   const navigate = useNavigate();
-  const [proyectos] = useState<Proyecto[]>(proyectosMock);
+
+  // Estado de proyectos inicializado como array vacío
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+
+  // Estado para controlar apertura de modal de nuevo proyecto
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleProyectoClick = (proyectoId: string) => {
-  navigate(`/proyectos/${proyectoId}`); 
-};
+  // Estado para loading y manejo de errores opcional
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Llama al endpoint GET /api/proyectos al montar el componente.
+   */
+  useEffect(() => {
+    const fetchProyectos = async () => {
+      try {
+        setLoading(true);
+        const data = await getProyectos(); // llamada a backend
+        setProyectos(data);
+      } catch (err) {
+        console.error("Error cargando proyectos:", err);
+        setError("Error cargando proyectos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProyectos();
+  }, []);
+
+  /**
+   * Navega a la vista de detalle del proyecto seleccionado.
+   * @param proyectoId ID del proyecto
+   */
+  const handleProyectoClick = (proyectoId: string) => {
+    navigate(`/proyectos/${proyectoId}`);
+  };
+
+  /**
+   * Abre el modal para crear un nuevo proyecto.
+   */
   const handleNuevoProyecto = () => {
     setIsModalOpen(true);
   };
 
+  /**
+   * Callback cuando se crea un proyecto nuevo.
+   * @param proyectoId ID del proyecto creado
+   */
   const handleProyectoCreado = (proyectoId: string) => {
     setIsModalOpen(false);
-    navigate(`/proyecto-${proyectoId}`);
+    navigate(`/proyectos/${proyectoId}`);
+
+    // Opcional: recargar lista después de crear
+    // fetchProyectos(); // si deseas actualizar listado tras crear
   };
 
+  /**
+   * Formatea fecha a un string legible.
+   * @param fecha Fecha ISO string
+   * @returns Fecha formateada en español
+   */
   const formatearFecha = (fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -47,7 +98,14 @@ const Proyectos: React.FC = () => {
           </Button>
         </div>
 
-        {proyectos.length === 0 ? (
+        {/* Loading State */}
+        {loading && <p>Cargando proyectos...</p>}
+
+        {/* Error State */}
+        {error && <p>{error}</p>}
+
+        {/* Empty State */}
+        {!loading && proyectos.length === 0 && (
           <div className={styles['empty-state']}>
             <h2 className={styles['empty-state-title']}>No hay proyectos</h2>
             <p className={styles['empty-state-description']}>
@@ -61,7 +119,10 @@ const Proyectos: React.FC = () => {
               Crear Primer Proyecto
             </Button>
           </div>
-        ) : (
+        )}
+
+        {/* Lista de proyectos */}
+        {!loading && proyectos.length > 0 && (
           <div className={styles['proyectos-grid']}>
             {proyectos.map((proyecto) => (
               <div
@@ -70,7 +131,7 @@ const Proyectos: React.FC = () => {
                 onClick={() => handleProyectoClick(proyecto.id)}
               >
                 <div className={styles['proyecto-card-header']}>
-                  <h3 className={styles['proyecto-nombre']}>{proyecto.nombre}</h3>
+                  <h3 className={styles['proyecto-nombre']}>{proyecto.titulo}</h3>
                   <p className={styles['proyecto-descripcion']}>{proyecto.descripcion}</p>
                 </div>
 
@@ -102,6 +163,7 @@ const Proyectos: React.FC = () => {
           </div>
         )}
 
+        {/* Modal para nuevo proyecto */}
         <NuevoProyectoModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

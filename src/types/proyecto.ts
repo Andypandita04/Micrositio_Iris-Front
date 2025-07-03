@@ -5,15 +5,19 @@ export interface Colaborador {
   avatar?: string;
 }
 
+
+
 export interface Proyecto {
-  id: string;
-  nombre: string;
+  id_proyecto: string;
+  titulo: string;
   descripcion: string;
-  colaboradores: Colaborador[];
-  fechaInicio: string;
-  fechaCreacion: string;
   estado: 'activo' | 'pausado' | 'completado' | 'cancelado';
+  fecha_inicio?: string; // ISO date
+  fecha_fin_estimada?: string; // ISO date
+  created_at?: string; // opcional si no la usas directamente
+  updated_at?: string; // opcional si no la usas directamente
 }
+
 
 export interface CreateProyectoData {
   nombre: string;
