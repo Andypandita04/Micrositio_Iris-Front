@@ -204,7 +204,7 @@ const Equipo: React.FC = () => {
             </div>
           </div>
 
-          {/* @component: Botón para añadir miembro */}
+          {/* @component: Botón para añadir miembro 
           <Button
             variant="primary"
             icon={<UserPlus size={16} />}
@@ -212,6 +212,7 @@ const Equipo: React.FC = () => {
           >
             Añadir Miembro
           </Button>
+          */}
         </div>
 
         {/* @section: Resultados de búsqueda */}
@@ -258,6 +259,7 @@ const Equipo: React.FC = () => {
                     <Mail size={14} />
                     <span className={styles['contact-text']}>{member.email}</span>
                   </div>
+                  {/*
                   <div className={styles['contact-item']}>
                     <MapPin size={14} />
                     <span className={styles['contact-text']}>{member.location}</span>
@@ -268,6 +270,7 @@ const Equipo: React.FC = () => {
                       Desde {formatJoinDate(member.joinDate)}
                     </span>
                   </div>
+                  */}
                 </div>
 
                 {/* @section: Métricas del miembro */}
@@ -276,13 +279,13 @@ const Equipo: React.FC = () => {
                     <span className={styles['metric-value']}>{member.projectsCount}</span>
                     <span className={styles['metric-label']}>Proyectos</span>
                   </div>
-                  <div className={styles['metric-item']}>
+                  {/*<div className={styles['metric-item']}>
                     <span className={styles['metric-value']}>{member.skills.length}</span>
                     <span className={styles['metric-label']}>Habilidades</span>
-                  </div>
+                  </div>*/}
                 </div>
 
-                {/* @section: Habilidades principales */}
+                {/* @section: Habilidades principales 
                 <div className={styles['skills-section']}>
                   <h4 className={styles['skills-title']}>Habilidades principales</h4>
                   <div className={styles['skills-list']}>
@@ -298,13 +301,13 @@ const Equipo: React.FC = () => {
                     )}
                   </div>
                 </div>
-
+                */}
                 {/* @section: Biografía */}
                 <div className={styles['bio-section']}>
                   <p className={styles['member-bio']}>{member.bio}</p>
                 </div>
 
-                {/* @section: Acciones de la tarjeta */}
+                {/* @section: Acciones de la tarjeta 
                 <div className={styles['card-actions']}>
                   <Button
                     variant="outline"
@@ -324,7 +327,7 @@ const Equipo: React.FC = () => {
                     <Briefcase size={14} />
                     Ver Proyectos
                   </Button>
-                </div>
+                </div> */}
               </div>
             ))
           ) : (
