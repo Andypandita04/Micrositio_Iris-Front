@@ -294,7 +294,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
             {errors.insight && <span className="learning-error-text">{errors.insight}</span>}
           </div>
 
-          {/* @section: Colaboradores */}
+          {/* @section: Colaboradores 
           <div className="learning-form-group">
             <label className="learning-form-label">
               <Users className="learning-form-icon" />
@@ -308,7 +308,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               maxVisibleChips={3}
             />
           </div>
-
+          */}
           {/* @section: Enlaces relacionados */}
           <div className="learning-form-group">
             <label htmlFor="links" className="learning-form-label">

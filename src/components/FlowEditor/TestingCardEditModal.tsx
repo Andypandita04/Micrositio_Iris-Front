@@ -323,6 +323,23 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
 
           {/* @section: Configuración del experimento */}
           <div className="testing-form-row">
+            
+
+            <div className="testing-form-group">
+              <label htmlFor="experimentCategory" className="testing-form-label">
+                Categoría
+              </label>
+              <select
+                id="experimentCategory"
+                value={formData.experimentCategory}
+                onChange={(e) => setFormData({...formData, experimentCategory: e.target.value as any})}
+                className="testing-input"
+              >
+                <option value="Descubrimiento">Descubrimiento</option>
+                <option value="Validación">Validación</option>
+              </select>
+            </div>
+
             <div className="testing-form-group">
               <label htmlFor="experimentType" className="testing-form-label">
                 Tipo de Experimento
@@ -337,21 +354,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 <option value="Prototipo">Prototipo</option>
                 <option value="Encuesta">Encuesta</option>
                 <option value="A/B Test">A/B Test</option>
-              </select>
-            </div>
-
-            <div className="testing-form-group">
-              <label htmlFor="experimentCategory" className="testing-form-label">
-                Categoría
-              </label>
-              <select
-                id="experimentCategory"
-                value={formData.experimentCategory}
-                onChange={(e) => setFormData({...formData, experimentCategory: e.target.value as any})}
-                className="testing-input"
-              >
-                <option value="Descubrimiento">Descubrimiento</option>
-                <option value="Validación">Validación</option>
               </select>
             </div>
           </div>
@@ -372,7 +374,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             {errors.description && <span className="testing-error-text">{errors.description}</span>}
           </div>
 
-          {/* @section: Colaboradores expandible */}
+          {/* @section: Colaboradores expandible 
           <div className="testing-form-section">
             <button 
               type="button" 
@@ -396,6 +398,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               </div>
             )}
           </div>
+          */}
 
           {/* @section: Documentación expandible */}
           <div className="testing-form-section">
