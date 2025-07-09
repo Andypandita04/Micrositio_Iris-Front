@@ -12,6 +12,8 @@ import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
 import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
 import styles from './ProyectoDetalle.module.css';
+import { eliminarSecuencia, obtenerSecuenciasPorProyecto } from '../../services/secuenciaService';
+import { obtenerProyectoPorId } from '../../services/proyectosService';
 
 /**
  * Componente ProyectoDetalle
@@ -39,17 +41,17 @@ import styles from './ProyectoDetalle.module.css';
  */
 const ProyectoDetalle: React.FC = () => {
   const { proyectoId } = useParams<{ proyectoId: string }>();
-  
+
   // @state: Datos principales
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [secuencias, setSecuencias] = useState<Secuencia[]>([]);
   const [secuenciaSeleccionada, setSecuenciaSeleccionada] = useState<Secuencia | null>(null);
-  
+
   // @state: Control de modales
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNuevaSecuenciaModalOpen, setIsNuevaSecuenciaModalOpen] = useState(false);
   const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
-  
+
   // @state: Estados de carga
   const [loading, setLoading] = useState(true);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
@@ -59,28 +61,57 @@ const ProyectoDetalle: React.FC = () => {
    * @function useEffect
    */
   useEffect(() => {
-    // @simulation: Simular carga de datos desde API
-    const timer = setTimeout(() => {
-      if (proyectoId) {
-        const id = proyectoId.replace('proyecto-', '');
-        const proyectoEncontrado = proyectosMock.find(p => p.id === id);
-        setProyecto(proyectoEncontrado || null);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (proyectoId) {
+          const id = Number(proyectoId);
 
-        // @data: Cargar secuencias del proyecto
-        if (proyectoEncontrado) {
-          const secuenciasDelProyecto = secuenciasMock.filter(s => s.proyectoId === proyectoEncontrado.id);
-          setSecuencias(secuenciasDelProyecto);
-          
-          // @selection: Seleccionar la primera secuencia por defecto si existe
-          if (secuenciasDelProyecto.length > 0) {
-            setSecuenciaSeleccionada(secuenciasDelProyecto[0]);
+          // 1. Obtener proyecto
+          const proyectoData = await obtenerProyectoPorId(id);
+          const proyectoMapeado = {
+            id: proyectoData.id.toString(),
+            nombre: proyectoData.titulo,
+            descripcion: proyectoData.descripcion,
+            estado: proyectoData.estado.toLowerCase(),
+            fechaInicio: proyectoData.fecha_inicio || proyectoData.creado,
+            fechaCreacion: proyectoData.creado,
+            colaboradores: [],
+          };
+          setProyecto(proyectoMapeado);
+
+          // 2. Obtener secuencias (ACTUALIZADO)
+          const secuenciasData = await obtenerSecuenciasPorProyecto(id);
+
+          // Asegúrate de que sea un array
+          const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+
+          const secuenciasMapeadas = secuenciasArray
+            .filter(s => s && s.id !== undefined) // filtra elementos undefined o sin id
+            .map((s: any) => ({
+              id: s.id?.toString() ?? '',
+              nombre: s.nombre ?? '',
+              descripcion: s.descripcion ?? '',
+              proyectoId: s.id_proyecto?.toString() ?? '',
+              fechaCreacion: s.created_at ?? '',
+              estado: s.estado || 'activa',
+            }));
+          setSecuencias(secuenciasMapeadas);
+
+          if (secuenciasMapeadas.length > 0) {
+            setSecuenciaSeleccionada(secuenciasMapeadas[0]);
           }
         }
+      } catch (err) {
+        console.error('Error al cargar datos:', err);
+        setProyecto(null);
+        setSecuencias([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 500);
+    };
 
-    return () => clearTimeout(timer);
+    fetchData();
   }, [proyectoId]);
 
   /**
@@ -142,10 +173,10 @@ const ProyectoDetalle: React.FC = () => {
 
     // @update: Actualizar la lista de secuencias
     setSecuencias(prev => [...prev, nuevaSecuencia]);
-    
+
     // @selection: Seleccionar la nueva secuencia automáticamente
     setSecuenciaSeleccionada(nuevaSecuencia);
-    
+
     // @cleanup: Cerrar el modal
     setIsNuevaSecuenciaModalOpen(false);
 
@@ -157,16 +188,22 @@ const ProyectoDetalle: React.FC = () => {
    * @function handleEliminarSecuencia
    * @param {string} secuenciaId - ID de la secuencia a eliminar
    */
-  const handleEliminarSecuencia = (secuenciaId: string) => {
-    // @update: Filtrar secuencias para eliminar la seleccionada
-    setSecuencias(prev => prev.filter(s => s.id !== secuenciaId));
-    
-    // @cleanup: Limpiar selección si era la secuencia eliminada
-    if (secuenciaSeleccionada?.id === secuenciaId) {
-      setSecuenciaSeleccionada(null);
-    }
+  const handleEliminarSecuencia = async (secuenciaId: string) => {
+    try {
+      await eliminarSecuencia(Number(secuenciaId));
 
-    console.log('Secuencia eliminada:', secuenciaId);
+      // Actualizar estado local
+      const nuevasSecuencias = secuencias.filter(s => s.id !== secuenciaId);
+      setSecuencias(nuevasSecuencias);
+
+      // Si la secuencia eliminada era la seleccionada, seleccionar otra
+      if (secuenciaSeleccionada?.id === secuenciaId) {
+        setSecuenciaSeleccionada(nuevasSecuencias.length > 0 ? nuevasSecuencias[0] : null);
+      }
+    } catch (error) {
+      console.error('Error al eliminar secuencia:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    }
   };
 
   /**
@@ -189,13 +226,13 @@ const ProyectoDetalle: React.FC = () => {
     try {
       // @simulation: Simular delay de API
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // @todo: Implementar eliminación real del proyecto
       console.log('Proyecto eliminado:', proyecto.id);
-      
+
       // @navigation: Redirigir a lista de proyectos
       // navigate('/proyectos');
-      
+
     } catch (error) {
       console.error('Error al eliminar proyecto:', error);
       // @todo: Mostrar mensaje de error al usuario
@@ -279,7 +316,7 @@ const ProyectoDetalle: React.FC = () => {
               <h1 className={styles['proyecto-nombre']}>{proyecto.nombre}</h1>
               <p className={styles['proyecto-descripcion']}>{proyecto.descripcion}</p>
             </div>
-            
+
             {/* @component: Dropdown de acciones reemplazando botón Editar */}
             <ActionDropdown
               actions={dropdownActions}

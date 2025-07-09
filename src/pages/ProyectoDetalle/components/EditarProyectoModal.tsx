@@ -5,6 +5,7 @@ import { Proyecto } from '../../../types/proyecto';
 import Modal from '../../../components/ui/Modal/Modal';
 import Button from '../../../components/ui/Button/Button';
 import styles from './EditarProyectoModal.module.css';
+import { actualizarProyecto } from '../../../services/proyectosService';
 
 interface EditarProyectoModalProps {
   isOpen: boolean;
@@ -28,43 +29,51 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre del proyecto es requerido';
     }
-    
+
     if (!formData.descripcion.trim()) {
       newErrors.descripcion = 'La descripción es requerida';
     }
-    
+
     if (formData.colaboradores.length === 0) {
       newErrors.colaboradores = 'Debe seleccionar al menos un colaborador';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      const colaboradoresSeleccionados = colaboradoresDisponibles.filter(
-        c => formData.colaboradores.includes(c.id)
-      );
 
-      const proyectoActualizado: Proyecto = {
-        ...proyecto,
-        nombre: formData.nombre.trim(),
-        descripcion: formData.descripcion.trim(),
-        colaboradores: colaboradoresSeleccionados
+    if (!validateForm()) return;
+
+    try {
+      // Mapea los campos al formato del backend
+      const data = {
+        titulo: formData.nombre,
+        descripcion: formData.descripcion,
+        // Puedes agregar estado, id_categoria, etc. si lo necesitas
       };
 
-      console.log('Actualizando proyecto:', proyectoActualizado);
-      onProyectoActualizado(proyectoActualizado);
+      // Actualiza el proyecto en el backend
+      const proyectoActualizado = await actualizarProyecto(Number(proyecto.id), data);
+
+      // Mapea la respuesta al tipo Proyecto del front
+      onProyectoActualizado({
+        ...proyecto,
+        nombre: proyectoActualizado.titulo,
+        descripcion: proyectoActualizado.descripcion,
+        // Actualiza otros campos si es necesario
+      });
+      onClose();
+    } catch (error) {
+      setErrors({ general: 'Error al actualizar el proyecto' });
     }
   };
-
   const handleColaboradorToggle = (colaboradorId: string) => {
     setFormData(prev => ({
       ...prev,
@@ -79,8 +88,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       <Button variant="outline" onClick={onClose}>
         Cancelar
       </Button>
-      <Button 
-        variant="primary" 
+      <Button
+        variant="primary"
         icon={<Save size={16} />}
         onClick={handleSubmit}
       >
@@ -135,9 +144,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
             {colaboradoresDisponibles.map((colaborador) => (
               <div
                 key={colaborador.id}
-                className={`${styles['colaborador-item']} ${
-                  formData.colaboradores.includes(colaborador.id) ? styles['colaborador-selected'] : ''
-                }`}
+                className={`${styles['colaborador-item']} ${formData.colaboradores.includes(colaborador.id) ? styles['colaborador-selected'] : ''
+                  }`}
                 onClick={() => handleColaboradorToggle(colaborador.id)}
               >
                 <img

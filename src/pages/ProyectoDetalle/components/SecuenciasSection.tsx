@@ -66,10 +66,10 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
 }) => {
   // @state: Control del modal de confirmación de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // @state: Secuencia pendiente de eliminación
   const [secuenciaToDelete, setSecuenciaToDelete] = useState<Secuencia | null>(null);
-  
+
   // @state: Estado de carga durante eliminación
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -111,10 +111,10 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
     try {
       // @action: Simular delay de API para mostrar estado de carga
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // @action: Ejecutar eliminación
       onEliminarSecuencia(secuenciaToDelete.id);
-      
+
       // @cleanup: Limpiar estado
       setShowDeleteModal(false);
       setSecuenciaToDelete(null);
@@ -173,16 +173,15 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
               {secuencias.map((secuencia) => (
                 <div
                   key={secuencia.id}
-                  className={`${styles['secuencia-card']} ${
-                    secuenciaSeleccionada?.id === secuencia.id ? styles['secuencia-card-selected'] : ''
-                  }`}
+                  className={`${styles['secuencia-card']} ${secuenciaSeleccionada?.id === secuencia.id ? styles['secuencia-card-selected'] : ''
+                    }`}
                   onClick={() => onSecuenciaSelect(secuencia)}
                 >
                   {/* @component: Indicador de selección */}
                   {secuenciaSeleccionada?.id === secuencia.id && (
                     <div className={styles['selected-indicator']} />
                   )}
-                  
+
                   {/* @section: Header de la card */}
                   <div className={styles['secuencia-header']}>
                     <h3 className={styles['secuencia-nombre']}>{secuencia.nombre}</h3>
@@ -191,7 +190,7 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                       <span className={`${styles['secuencia-estado']} ${styles[`estado-${secuencia.estado}`]}`}>
                         {secuencia.estado}
                       </span>
-                      
+
                       {/* @component: Botón de eliminación */}
                       {onEliminarSecuencia && (
                         <button
