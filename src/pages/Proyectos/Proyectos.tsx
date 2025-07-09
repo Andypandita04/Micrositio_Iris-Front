@@ -1,27 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { proyectosMock } from '../../data/mockData';
+
 import { Proyecto } from '../../types/proyecto';
 import Button from '../../components/ui/Button/Button';
 import NuevoProyectoModal from './components/NuevoProyectoModal';
 import styles from './Proyectos.module.css';
+import { obtenerProyectos } from '../../services/proyectosService';
 
 const Proyectos: React.FC = () => {
   const navigate = useNavigate();
-  const [proyectos] = useState<Proyecto[]>(proyectosMock);
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Cargar proyectos al montar el componente
+  useEffect(() => {
+    cargarProyectos();
+  }, []);
+
+  const cargarProyectos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const proyectosData = await obtenerProyectos();
+      
+      // Mapear datos del backend al formato que espera el frontend
+      const proyectosMapeados = proyectosData.map(proyecto => ({
+        id: proyecto.id.toString(),
+        nombre: proyecto.titulo,
+        descripcion: proyecto.descripcion || '',
+        estado: proyecto.estado.toLowerCase(),
+        fechaInicio: proyecto.fecha_inicio || proyecto.creado,
+        fechaCreacion: proyecto.creado, // Asegúrate de que 'creado' existe en el objeto del backend
+        colaboradores: [] // Por ahora vacío, después puedes agregar lógica para obtener colaboradores
+      }));
+      
+      setProyectos(proyectosMapeados);
+    } catch (err) {
+      console.error('Error al cargar proyectos:', err);
+      setError('Error al cargar los proyectos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProyectoClick = (proyectoId: string) => {
-  navigate(`/proyectos/${proyectoId}`); 
-};
+    navigate(`/proyectos/${proyectoId}`); 
+  };
 
   const handleNuevoProyecto = () => {
     setIsModalOpen(true);
   };
 
-  const handleProyectoCreado = (proyectoId: string) => {
+  const handleProyectoCreado = async (proyectoId: string) => {
     setIsModalOpen(false);
+    // Recargar la lista de proyectos para mostrar el nuevo
+    await cargarProyectos();
     navigate(`/proyecto-${proyectoId}`);
   };
 
@@ -32,6 +68,27 @@ const Proyectos: React.FC = () => {
       day: 'numeric'
     });
   };
+
+  if (loading) {
+    return (
+      <div className={styles['proyectos-container']}>
+        <div className={styles['proyectos-content']}>
+          <p>Cargando proyectos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles['proyectos-container']}>
+        <div className={styles['proyectos-content']}>
+          <p>Error: {error}</p>
+          <Button onClick={cargarProyectos}>Reintentar</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles['proyectos-container']}>

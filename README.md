@@ -42,6 +42,8 @@ cd proyecto-frontend
 # 2. Instala las dependencias
 npm install
 
+npm install axios
+
 # 3. Asegúrate de instalar reactflow si no está incluida
 npm install reactflow
 

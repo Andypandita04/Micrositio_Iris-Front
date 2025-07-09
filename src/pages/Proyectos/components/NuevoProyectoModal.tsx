@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
+
 import { colaboradoresDisponibles } from '../../../data/mockData';
 import { CreateProyectoData } from '../../../types/proyecto';
 import Modal from '../../../components/ui/Modal/Modal';
 import Button from '../../../components/ui/Button/Button';
 import styles from './NuevoProyectoModal.module.css';
+import { crearProyecto } from '../../../services/proyectosService';
 
 interface NuevoProyectoModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
     colaboradores: []
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -43,13 +46,23 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      // Simular creación del proyecto
-      const nuevoProyectoId = Date.now().toString();
-      console.log('Creando proyecto:', formData);
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+      
+      // Mapear datos del frontend al formato que espera el backend
+      const proyectoData = {
+        titulo: formData.nombre,
+        descripcion: formData.descripcion,
+        id_categoria: 1, // Por ahora hardcodeado, después puedes agregar selector
+        id_lider: 1 // Por ahora hardcodeado, después puedes agregar selector
+      };
+
+      const nuevoProyecto = await crearProyecto(proyectoData);
       
       // Reset form
       setFormData({
@@ -59,7 +72,12 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
       });
       setErrors({});
       
-      onProyectoCreado(nuevoProyectoId);
+      onProyectoCreado(nuevoProyecto.id.toString());
+    } catch (error) {
+      console.error('Error al crear proyecto:', error);
+      setErrors({ general: 'Error al crear el proyecto. Intenta nuevamente.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,15 +92,16 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
 
   const footer = (
     <>
-      <Button variant="outline" onClick={onClose}>
+      <Button variant="outline" onClick={onClose} disabled={loading}>
         Cancelar
       </Button>
       <Button 
         variant="primary" 
         icon={<Save size={16} />}
         onClick={handleSubmit}
+        disabled={loading}
       >
-        Crear Proyecto
+        {loading ? 'Creando...' : 'Crear Proyecto'}
       </Button>
     </>
   );
@@ -95,6 +114,10 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
       footer={footer}
     >
       <form onSubmit={handleSubmit} className={styles.form}>
+        {errors.general && (
+          <div className={styles.error}>{errors.general}</div>
+        )}
+        
         <div className={styles['form-group']}>
           <label htmlFor="nombre" className={styles.label}>
             Nombre del Proyecto
@@ -106,6 +129,7 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
             onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
             className={`${styles.input} ${errors.nombre ? styles['input-error'] : ''}`}
             placeholder="Ingresa el nombre del proyecto"
+            disabled={loading}
           />
           {errors.nombre && <span className={styles.error}>{errors.nombre}</span>}
         </div>
@@ -121,6 +145,7 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
             className={`${styles.input} ${styles.textarea} ${errors.descripcion ? styles['input-error'] : ''}`}
             placeholder="Describe el proyecto"
             rows={3}
+            disabled={loading}
           />
           {errors.descripcion && <span className={styles.error}>{errors.descripcion}</span>}
         </div>
@@ -136,7 +161,7 @@ const NuevoProyectoModal: React.FC<NuevoProyectoModalProps> = ({
                 className={`${styles['colaborador-item']} ${
                   formData.colaboradores.includes(colaborador.id) ? styles['colaborador-selected'] : ''
                 }`}
-                onClick={() => handleColaboradorToggle(colaborador.id)}
+                onClick={() => !loading && handleColaboradorToggle(colaborador.id)}
               >
                 <img
                   src={colaborador.avatar}
