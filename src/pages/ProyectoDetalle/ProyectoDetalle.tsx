@@ -14,6 +14,9 @@ import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
 import styles from './ProyectoDetalle.module.css';
 import { eliminarSecuencia, obtenerSecuenciasPorProyecto } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
+import { useNavigate } from 'react-router-dom';
+import { eliminarProyecto } from '../../services/proyectosService';
+
 
 /**
  * Componente ProyectoDetalle
@@ -224,18 +227,21 @@ const ProyectoDetalle: React.FC = () => {
     setIsDeletingProject(true);
 
     try {
-      // @simulation: Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // @todo: Implementar eliminación real del proyecto
-      console.log('Proyecto eliminado:', proyecto.id);
-
-      // @navigation: Redirigir a lista de proyectos
-      // navigate('/proyectos');
-
+      // Llamada al servicio de eliminación
+      await eliminarProyecto(Number(proyecto.id));
+      
+      // Feedback de éxito (podría implementarse con un toast/notificación)
+      console.log('Proyecto eliminado exitosamente');
+      
+      // Redirigir a la lista de proyectos
+      //navigator('/proyectos');
+      
     } catch (error) {
       console.error('Error al eliminar proyecto:', error);
-      // @todo: Mostrar mensaje de error al usuario
+      
+      // Mostrar feedback al usuario (podría implementarse con un modal/notificación)
+      alert('No se pudo eliminar el proyecto. Por favor intente nuevamente.');
+      
     } finally {
       setIsDeletingProject(false);
       setShowDeleteProjectModal(false);
