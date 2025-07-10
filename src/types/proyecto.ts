@@ -13,6 +13,7 @@ export interface Proyecto {
   fechaInicio: string;
   fechaCreacion: string;
   estado: 'activo' | 'pausado' | 'completado' | 'cancelado';
+  lider_id?: number; // Agregado para manejar el líder del proyecto
 }
 
 export interface CreateProyectoData {

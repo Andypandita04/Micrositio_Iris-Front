@@ -24,3 +24,4 @@ export const actualizarProyecto = async (id: number, proyecto: any): Promise<any
 export const eliminarProyecto = async (id: number): Promise<void> => {
   await apiClient.delete('/proyectos', { data: { id_proyecto: id } });
 };
+

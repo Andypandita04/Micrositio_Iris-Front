@@ -1,3 +1,4 @@
+// src/pages/Proyectos/Proyectos.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
@@ -25,18 +26,18 @@ const Proyectos: React.FC = () => {
       setLoading(true);
       setError(null);
       const proyectosData = await obtenerProyectos();
-      
+
       // Mapear datos del backend al formato que espera el frontend
       const proyectosMapeados = proyectosData.map(proyecto => ({
-        id: proyecto.id.toString(),
+        id: proyecto.id_proyecto?.toString() || proyecto.id?.toString(),
         nombre: proyecto.titulo,
         descripcion: proyecto.descripcion || '',
-        estado: proyecto.estado.toLowerCase(),
-        fechaInicio: proyecto.fecha_inicio || proyecto.creado,
-        fechaCreacion: proyecto.creado, // Asegúrate de que 'creado' existe en el objeto del backend
+        estado: proyecto.estado?.toLowerCase() || 'activo',
+        fechaInicio: proyecto.fecha_inicio || proyecto.created_at,
+        fechaCreacion: proyecto.created_at,
         colaboradores: [] // Por ahora vacío, después puedes agregar lógica para obtener colaboradores
       }));
-      
+
       setProyectos(proyectosMapeados);
     } catch (err) {
       console.error('Error al cargar proyectos:', err);
@@ -47,7 +48,7 @@ const Proyectos: React.FC = () => {
   };
 
   const handleProyectoClick = (proyectoId: string) => {
-    navigate(`/proyectos/${proyectoId}`); 
+    navigate(`/proyectos/${proyectoId}`);
   };
 
   const handleNuevoProyecto = () => {
@@ -62,6 +63,7 @@ const Proyectos: React.FC = () => {
   };
 
   const formatearFecha = (fecha: string) => {
+    if (!fecha) return 'Sin fecha';
     return new Date(fecha).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
@@ -134,15 +136,19 @@ const Proyectos: React.FC = () => {
                 <div className={styles['proyecto-colaboradores']}>
                   <p className={styles['colaboradores-label']}>Colaboradores:</p>
                   <div className={styles['colaboradores-list']}>
-                    {proyecto.colaboradores.map((colaborador) => (
-                      <img
-                        key={colaborador.id}
-                        src={colaborador.avatar}
-                        alt={colaborador.nombre}
-                        className={styles['colaborador-avatar']}
-                        title={colaborador.nombre}
-                      />
-                    ))}
+                    {proyecto.colaboradores.length > 0 ? (
+                      proyecto.colaboradores.map((colaborador) => (
+                        <img
+                          key={colaborador.id}
+                          src={colaborador.avatar}
+                          alt={colaborador.nombre}
+                          className={styles['colaborador-avatar']}
+                          title={colaborador.nombre}
+                        />
+                      ))
+                    ) : (
+                      <span className={styles['no-colaboradores']}>Sin colaboradores asignados</span>
+                    )}
                   </div>
                 </div>
 
