@@ -12,7 +12,7 @@ import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
 import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
 import styles from './ProyectoDetalle.module.css';
-import { eliminarSecuencia, obtenerSecuenciasPorProyecto } from '../../services/secuenciaService';
+import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
 
 /**
@@ -160,27 +160,44 @@ const ProyectoDetalle: React.FC = () => {
    * @function handleSecuenciaCreada
    * @param {CreateSecuenciaData} nuevaSecuenciaData - Datos de la nueva secuencia
    */
-  const handleSecuenciaCreada = (nuevaSecuenciaData: CreateSecuenciaData) => {
-    // @simulation: Simular creación de secuencia con ID único
-    const nuevaSecuencia: Secuencia = {
-      id: Date.now().toString(),
-      nombre: nuevaSecuenciaData.nombre,
-      descripcion: nuevaSecuenciaData.descripcion,
-      proyectoId: nuevaSecuenciaData.proyectoId,
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      estado: 'activa'
-    };
+  const handleSecuenciaCreada = async (nuevaSecuenciaData: CreateSecuenciaData) => {
+    try {
+      // Llamar al endpoint real para crear la secuencia
+      await crearSecuencia({
+        nombre: nuevaSecuenciaData.nombre,
+        descripcion: nuevaSecuenciaData.descripcion,
+        id_proyecto: Number(nuevaSecuenciaData.proyectoId),
+        // Puedes agregar más campos si tu backend los requiere
+      });
 
-    // @update: Actualizar la lista de secuencias
-    setSecuencias(prev => [...prev, nuevaSecuencia]);
-
-    // @selection: Seleccionar la nueva secuencia automáticamente
-    setSecuenciaSeleccionada(nuevaSecuencia);
-
-    // @cleanup: Cerrar el modal
-    setIsNuevaSecuenciaModalOpen(false);
-
-    console.log('Nueva secuencia creada:', nuevaSecuencia);
+      // Refrescar la lista de secuencias desde el backend
+      if (proyectoId) {
+        const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+        const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+        const secuenciasMapeadas = secuenciasArray
+          .filter(s => s && s.id !== undefined)
+          .map((s: any) => ({
+            id: s.id?.toString() ?? '',
+            nombre: s.nombre ?? '',
+            descripcion: s.descripcion ?? '',
+            proyectoId: s.id_proyecto?.toString() ?? '',
+            fechaCreacion: s.created_at ?? '',
+            estado: s.estado || 'activa',
+          }));
+        setSecuencias(secuenciasMapeadas);
+        // Seleccionar la última secuencia creada
+        if (secuenciasMapeadas.length > 0) {
+          setSecuenciaSeleccionada(secuenciasMapeadas[secuenciasMapeadas.length - 1]);
+        }
+      }
+      setIsNuevaSecuenciaModalOpen(false);
+    } catch (error: any) {
+      console.error('Error al crear secuencia:', error);
+      if (error.response) {
+        console.error('Backend response:', error.response.data);
+      }
+      // Aquí podrías mostrar un mensaje de error al usuario
+    }
   };
 
   /**
@@ -192,13 +209,27 @@ const ProyectoDetalle: React.FC = () => {
     try {
       await eliminarSecuencia(Number(secuenciaId));
 
-      // Actualizar estado local
-      const nuevasSecuencias = secuencias.filter(s => s.id !== secuenciaId);
-      setSecuencias(nuevasSecuencias);
-
-      // Si la secuencia eliminada era la seleccionada, seleccionar otra
-      if (secuenciaSeleccionada?.id === secuenciaId) {
-        setSecuenciaSeleccionada(nuevasSecuencias.length > 0 ? nuevasSecuencias[0] : null);
+      // Refrescar la lista de secuencias desde el backend
+      if (proyectoId) {
+        const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+        const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+        const secuenciasMapeadas = secuenciasArray
+          .filter(s => s && s.id !== undefined)
+          .map((s: any) => ({
+            id: s.id?.toString() ?? '',
+            nombre: s.nombre ?? '',
+            descripcion: s.descripcion ?? '',
+            proyectoId: s.id_proyecto?.toString() ?? '',
+            fechaCreacion: s.created_at ?? '',
+            estado: s.estado || 'activa',
+          }));
+        setSecuencias(secuenciasMapeadas);
+        // Seleccionar la primera secuencia si existe
+        if (secuenciasMapeadas.length > 0) {
+          setSecuenciaSeleccionada(secuenciasMapeadas[0]);
+        } else {
+          setSecuenciaSeleccionada(null);
+        }
       }
     } catch (error) {
       console.error('Error al eliminar secuencia:', error);
