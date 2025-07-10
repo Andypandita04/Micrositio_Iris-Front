@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 
 import { obtenerEmpleados } from '../../../services/empleadosService';
+import { obtenerTodas as obtenerCategorias } from '../../../services/categoriaService'; // Nuevo import
 import Modal from '../../../components/ui/Modal/Modal';
 import Button from '../../../components/ui/Button/Button';
 import styles from './NuevoProyectoModal.module.css';
@@ -16,6 +17,13 @@ interface Empleado {
   correo: string;
   numero_empleado: string;
   activo: boolean;
+}
+
+interface Categoria { // Nueva interfaz
+  id_categoria: number;
+  nombre: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface CreateProyectoData {
@@ -46,21 +54,24 @@ const NuevoProyectoModal: React.FC<{
   const [formData, setFormData] = useState<CreateProyectoData>({
     titulo: '',
     descripcion: '',
-    id_categoria: 1,
+    id_categoria: 1, // Cambiado a 0 para forzar selección
     id_lider: 0
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]); // Nuevo estado
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [loadingCategorias, setLoadingCategorias] = useState(false); // Nuevo estado de carga
 
   useEffect(() => {
     if (isOpen) {
       cargarEmpleados();
+      cargarCategorias(); // Nueva función
       setFormData({
         titulo: '',
         descripcion: '',
-        id_categoria: 1,
+        id_categoria: 1, // Cambiado a 0 para forzar selección
         id_lider: 0
       });
       setErrors({});
@@ -80,11 +91,26 @@ const NuevoProyectoModal: React.FC<{
     }
   };
 
+  // Nueva función para cargar categorías
+  const cargarCategorias = async () => {
+    try {
+      setLoadingCategorias(true);
+      setErrors(prev => ({ ...prev, categorias: '' }));
+      const categoriasData = await obtenerCategorias();
+      setCategorias(categoriasData);
+    } catch (error) {
+      setErrors(prev => ({ ...prev, categorias: 'Error al cargar categorías' }));
+    } finally {
+      setLoadingCategorias(false);
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.titulo.trim()) newErrors.titulo = 'El nombre del proyecto es requerido';
     if (!formData.descripcion.trim()) newErrors.descripcion = 'La descripción es requerida';
     if (!formData.id_lider || formData.id_lider === 0) newErrors.id_lider = 'Debes seleccionar un líder para el proyecto';
+    //if (!formData.id_categoria || formData.id_categoria === 0) newErrors.id_categoria = 'Debes seleccionar una categoría'; // Nueva validación
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -108,6 +134,12 @@ const NuevoProyectoModal: React.FC<{
     setFormData(prev => ({ ...prev, id_lider: empleadoId }));
   };
 
+  // Nueva función para manejar cambio de categoría
+  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id_categoria = Number(e.target.value); // Usa Number en lugar de parseInt
+    setFormData(prev => ({ ...prev, id_categoria }));
+  };
+
   const getNombreCompleto = (empleado: Empleado) =>
     `${empleado.nombre_pila} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim();
 
@@ -129,7 +161,7 @@ const NuevoProyectoModal: React.FC<{
         variant="primary"
         icon={<Save size={16} />}
         onClick={handleSubmit}
-        disabled={loading || loadingEmpleados}
+        disabled={loading || loadingEmpleados || loadingCategorias}
       >
         {loading ? 'Creando...' : 'Crear Proyecto'}
       </Button>
@@ -176,6 +208,52 @@ const NuevoProyectoModal: React.FC<{
             disabled={loading}
           />
           {errors.descripcion && <span className={styles.error}>{errors.descripcion}</span>}
+        </div>
+
+        {/* Nuevo selector de categorías */}
+        <div className={styles['form-group']}>
+          <label htmlFor="categoria" className={styles.label}>
+            Categoría *
+            {formData.id_categoria > 0 && categorias.length > 0 && (
+              <span className={styles['selected-info']}>
+                {' '}(Seleccionada: {categorias.find(cat => cat.id_categoria === formData.id_categoria)?.nombre || 'Categoría no encontrada'})
+              </span>
+            )}
+          </label>
+          {loadingCategorias ? (
+            <div className={styles['loading-empleados']}>
+              <p>Cargando categorías...</p>
+            </div>
+          ) : errors.categorias ? (
+            <div className={styles.error}>
+              {errors.categorias}
+              <Button
+                variant="outline"
+                onClick={cargarCategorias}
+                disabled={loadingCategorias}
+                style={{ marginLeft: '10px', fontSize: '12px', padding: '4px 8px' }}
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : (
+            <select
+              id="categoria"
+              value={formData.id_categoria}
+              onChange={handleCategoriaChange}
+              className={`${styles.input} ${styles.select} ${errors.id_categoria ? styles['input-error'] : ''}`}
+              disabled={loading || loadingCategorias}
+            >
+              <option value="0">Selecciona una categoría</option>
+              <option value="1" selected>Categoría A</option> {/* Valor por defecto */}
+              {categorias.filter(cat => cat.id_categoria !== 1).map(categoria => (
+                <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+          {errors.id_categoria && <span className={styles.error}>{errors.id_categoria}</span>}
         </div>
 
         {/* Selector de líder con grid bonito y colores */}

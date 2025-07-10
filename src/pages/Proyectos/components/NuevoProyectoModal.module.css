@@ -117,3 +117,32 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Estilos para el contenedor de categorías */
+.categorias-container {
+  position: relative;
+}
+
+/* Estilo para el select cuando tiene una selección */
+.select.has-selection {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+/* Indicador de selección */
+.selection-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #10b981;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* Estilo para la información de selección */
+.selected-info {
+  color: #64748b;
+  font-size: 0.9em;
+  font-weight: normal;
+}
