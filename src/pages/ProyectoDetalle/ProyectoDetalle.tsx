@@ -169,7 +169,7 @@ const ProyectoDetalle: React.FC = () => {
       await crearSecuencia({
         nombre: nuevaSecuenciaData.nombre,
         descripcion: nuevaSecuenciaData.descripcion,
-        id_proyecto: Number(nuevaSecuenciaData.proyectoId),
+        id_proyecto: nuevaSecuenciaData.id_proyecto,
         // Puedes agregar más campos si tu backend los requiere
       });
 
@@ -198,8 +198,17 @@ const ProyectoDetalle: React.FC = () => {
       console.error('Error al crear secuencia:', error);
       if (error.response) {
         console.error('Backend response:', error.response.data);
+        // Mostrar el mensaje de error del backend si existe
+        if (error.response.data && error.response.data.message) {
+          alert('Error del backend: ' + error.response.data.message);
+        } else if (typeof error.response.data === 'string') {
+          alert('Error del backend: ' + error.response.data);
+        } else {
+          alert('Error desconocido del backend. Revisa la consola para más detalles.');
+        }
+      } else {
+        alert('Error desconocido al crear la secuencia. Revisa la consola para más detalles.');
       }
-      // Aquí podrías mostrar un mensaje de error al usuario
     }
   };
 
