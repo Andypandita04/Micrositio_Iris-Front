@@ -245,7 +245,7 @@ const NuevoProyectoModal: React.FC<{
               disabled={loading || loadingCategorias}
             >
               <option value="0">Selecciona una categoría</option>
-              <option value="1" selected>Categoría A</option> {/* Valor por defecto */}
+              <option value="1" selected>Proyecto Libre</option> {/* Valor por defecto */}
               {categorias.filter(cat => cat.id_categoria !== 1).map(categoria => (
                 <option key={categoria.id_categoria} value={categoria.id_categoria}>
                   {categoria.nombre}
