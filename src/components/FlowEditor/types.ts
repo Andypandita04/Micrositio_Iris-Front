@@ -19,7 +19,7 @@ export type ExperimentCategory = 'Descubrimiento' | 'Validación';
  * Estados posibles de un experimento
  * @typedef {string} ExperimentStatus
  */
-export type ExperimentStatus = 'En desarrollo' | 'En validación' | 'En ejecución' | 'Cancelado' | 'Terminado';
+export type ExperimentStatus = 'En desarrollo' | 'En validación' | 'En proceso' | 'En ejecución' | 'Cancelado' | 'Terminado';
 
 /**
  * Estructura de datos para una métrica de Testing Card

@@ -176,9 +176,11 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
               style={{
                 backgroundColor:
                   data.status === 'En validación'
-                    ? '#2563eb' // azul
-                    : data.status === 'En ejecución'
                     ? '#facc15' // amarillo
+                    : data.status === 'En proceso'
+                    ? '#22c55e' // verde
+                    : data.status === 'En ejecución'
+                    ? '#2563eb' // azul
                     : data.status === 'Terminado'
                     ? '#ef4444' // rojo
                     : '#e5e7eb', // gris por defecto
