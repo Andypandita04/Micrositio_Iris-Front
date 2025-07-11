@@ -7,6 +7,7 @@ import Modal from '../../../components/ui/Modal/Modal';
 import Button from '../../../components/ui/Button/Button';
 import styles from './NuevoProyectoModal.module.css';
 import { crearProyecto } from '../../../services/proyectosService';
+import EmpleadoSelector from './EmpleadoSelector';
 
 interface Empleado {
   id_empleado: number;
@@ -257,76 +258,18 @@ const NuevoProyectoModal: React.FC<{
         </div>
 
         {/* Selector de líder con grid bonito y colores */}
-        <div className={styles['form-group']}>
-          <label className={styles.label}>
-            Líder del Proyecto *
-            {formData.id_lider > 0 && (
-              <span className={styles['selected-info']}>
-                {' '}(Seleccionado: {getNombreCompleto(empleados.find(emp => emp.id_empleado === formData.id_lider)!)} )
-              </span>
-            )}
-          </label>
-          {loadingEmpleados ? (
-            <div className={styles['loading-empleados']}>
-              <p>Cargando empleados...</p>
-            </div>
-          ) : errors.empleados ? (
-            <div className={styles.error}>
-              {errors.empleados}
-              <Button
-                variant="outline"
-                onClick={cargarEmpleados}
-                disabled={loadingEmpleados}
-                style={{ marginLeft: '10px', fontSize: '12px', padding: '4px 8px' }}
-              >
-                Reintentar
-              </Button>
-            </div>
-          ) : empleados.length === 0 ? (
-            <div className={styles['no-empleados']}>
-              <p>No hay empleados disponibles</p>
-            </div>
-          ) : (
-            <div className={styles['colaboradores-grid']}>
-              {empleados.map((empleado, idx) => (
-                <div
-                  key={empleado.id_empleado}
-                  className={`${styles['colaborador-item']} ${formData.id_lider === empleado.id_empleado ? styles['colaborador-selected'] : ''
-                    } ${!empleado.activo ? styles['colaborador-inactivo'] : ''}`}
-                  onClick={() => !loading && empleado.activo && handleLiderSelect(empleado.id_empleado)}
-                  title={!empleado.activo ? 'Empleado inactivo' : 'Seleccionar como líder'}
-                  style={{
-                    cursor: empleado.activo ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  <div
-                    className={styles['colaborador-avatar']}
-                    style={{
-                      background: getAvatarColor(idx),
-                      color: '#fff',
-                      border: formData.id_lider === empleado.id_empleado
-                        ? '2.5px solid #fff'
-                        : '2.5px solid #fff'
-                    }}
-                  >
-                    {getIniciales(empleado)}
-                  </div>
-                  <div className={styles['colaborador-info']}>
-                    <span className={styles['colaborador-nombre']}>
-                      {getNombreCompleto(empleado)}
-                      {!empleado.activo && <span className={styles['inactive-badge']}> (Inactivo)</span>}
-                    </span>
-                    <span className={styles['colaborador-email']}>{empleado.correo}</span>
-                  </div>
-                  {formData.id_lider === empleado.id_empleado && (
-                    <div className={styles['colaborador-check']}>✓</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
-        </div>
+        <EmpleadoSelector
+          empleados={empleados}
+          loading={loading}
+          loadingEmpleados={loadingEmpleados}
+          errors={errors}
+          selectedId={formData.id_lider}
+          onSelect={handleLiderSelect}
+          cargarEmpleados={cargarEmpleados}
+          getNombreCompleto={getNombreCompleto}
+          getIniciales={getIniciales}
+          getAvatarColor={getAvatarColor}
+        />
       </form>
     </Modal>
   );
