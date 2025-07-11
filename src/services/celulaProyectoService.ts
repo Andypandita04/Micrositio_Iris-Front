@@ -35,7 +35,7 @@ export const obtenerPorEmpleado = async (id_empleado: number): Promise<CelulaPro
  * @returns {Promise<CelulaProyecto[]>} Lista de relaciones célula-proyecto asociadas al proyecto.
  */
 export const obtenerPorProyecto = async (id_proyecto: number): Promise<CelulaProyecto[]> => {
-  const response = await apiClient.post('/celula_proyecto/p', { id_proyecto });
+  const response = await apiClient.get(`/celula_proyecto/p?id_proyecto=${id_proyecto}`);
   return response.data;
 };
 

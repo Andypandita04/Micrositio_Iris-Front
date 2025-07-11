@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import { Proyecto } from '../../types/proyecto';
 import Button from '../../components/ui/Button/Button';
 import NuevoProyectoModal from './components/NuevoProyectoModal';
+import ColaboradoresPreview from './components/ColaboradoresPreview';
 import styles from './Proyectos.module.css';
 import { obtenerProyectos } from '../../services/proyectosService';
 
@@ -135,21 +136,7 @@ const Proyectos: React.FC = () => {
 
                 <div className={styles['proyecto-colaboradores']}>
                   <p className={styles['colaboradores-label']}>Colaboradores:</p>
-                  <div className={styles['colaboradores-list']}>
-                    {proyecto.colaboradores.length > 0 ? (
-                      proyecto.colaboradores.map((colaborador) => (
-                        <img
-                          key={colaborador.id}
-                          src={colaborador.avatar}
-                          alt={colaborador.nombre}
-                          className={styles['colaborador-avatar']}
-                          title={colaborador.nombre}
-                        />
-                      ))
-                    ) : (
-                      <span className={styles['no-colaboradores']}>Sin colaboradores asignados</span>
-                    )}
-                  </div>
+                  <ColaboradoresPreview idProyecto={Number(proyecto.id)} />
                 </div>
 
                 <div className={styles['proyecto-footer']}>
