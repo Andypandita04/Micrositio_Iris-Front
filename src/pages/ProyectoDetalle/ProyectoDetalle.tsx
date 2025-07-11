@@ -404,6 +404,30 @@ const ProyectoDetalle: React.FC = () => {
           onSecuenciaSelect={handleSecuenciaSelect}
           onNuevaSecuencia={handleNuevaSecuencia}
           onEliminarSecuencia={handleEliminarSecuencia}
+          onEditarSecuencia={async () => {
+            if (proyectoId) {
+              const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+              const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+              const secuenciasMapeadas = secuenciasArray
+                .filter(s => s && s.id !== undefined)
+                .map((s: any) => ({
+                  id: s.id?.toString() ?? '',
+                  nombre: s.nombre ?? '',
+                  descripcion: s.descripcion ?? '',
+                  proyectoId: s.id_proyecto?.toString() ?? '',
+                  fechaCreacion: s.created_at ?? '',
+                  estado: s.estado || 'activa',
+                }));
+              setSecuencias(secuenciasMapeadas);
+              // Mantener la secuencia seleccionada si existe
+              if (secuenciaSeleccionada) {
+                const actualizada = secuenciasMapeadas.find(s => s.id === secuenciaSeleccionada.id);
+                setSecuenciaSeleccionada(actualizada || (secuenciasMapeadas[0] ?? null));
+              } else if (secuenciasMapeadas.length > 0) {
+                setSecuenciaSeleccionada(secuenciasMapeadas[0]);
+              }
+            }
+          }}
         />
 
         {/* @section: Editor de flujo */}

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Play, Plus, Trash2 } from 'lucide-react';
+import { Play, Plus, Trash2, Edit } from 'lucide-react';
 import { Secuencia } from '../../../types/secuencia';
 import Button from '../../../components/ui/Button/Button';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal/ConfirmationModal';
 import styles from './SecuenciasSection.module.css';
+import ActionDropdown from '../../../components/ui/ActionDropdown/ActionDropdown';
+import EditSecuenciaModal from './EditSecuenciaModal';
 
 /**
  * Props para el componente SecuenciasSection
@@ -20,6 +22,8 @@ interface SecuenciasSectionProps {
   onNuevaSecuencia?: () => void;
   /** Función callback para eliminar una secuencia */
   onEliminarSecuencia?: (secuenciaId: string) => void;
+  /** Función callback para editar una secuencia (refresca la lista) */
+  onEditarSecuencia?: () => Promise<void>;
 }
 
 /**
@@ -62,7 +66,8 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
   secuenciaSeleccionada,
   onSecuenciaSelect,
   onNuevaSecuencia,
-  onEliminarSecuencia
+  onEliminarSecuencia,
+  onEditarSecuencia
 }) => {
   // @state: Control del modal de confirmación de eliminación
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -72,6 +77,10 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
 
   // @state: Estado de carga durante eliminación
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // @state: Control del modal de edición
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [secuenciaToEdit, setSecuenciaToEdit] = useState<Secuencia | null>(null);
 
   /**
    * Formatea una fecha para mostrar en formato localizado
@@ -135,6 +144,26 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
     setSecuenciaToDelete(null);
   };
 
+  // Handler para abrir modal de edición
+  const handleEditClick = (secuencia: Secuencia) => {
+    setSecuenciaToEdit(secuencia);
+    setShowEditModal(true);
+  };
+
+  // Handler para cerrar modal de edición
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSecuenciaToEdit(null);
+  };
+
+  // Handler para cuando se edita una secuencia (refresca la lista en el padre)
+  const handleSecuenciaEditada = async () => {
+    if (typeof onEditarSecuencia === 'function') {
+      await onEditarSecuencia();
+    }
+    handleCloseEditModal();
+  };
+
   return (
     <div className={styles['secuencias-section']}>
       {/* @section: Header de la sección */}
@@ -173,8 +202,7 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
               {secuencias.map((secuencia) => (
                 <div
                   key={secuencia.id}
-                  className={`${styles['secuencia-card']} ${secuenciaSeleccionada?.id === secuencia.id ? styles['secuencia-card-selected'] : ''
-                    }`}
+                  className={`${styles['secuencia-card']} ${secuenciaSeleccionada?.id === secuencia.id ? styles['secuencia-card-selected'] : ''}`}
                   onClick={() => onSecuenciaSelect(secuencia)}
                 >
                   {/* @component: Indicador de selección */}
@@ -191,17 +219,26 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                         {secuencia.estado}
                       </span>
 
-                      {/* @component: Botón de eliminación */}
-                      {onEliminarSecuencia && (
-                        <button
-                          className={styles['delete-button']}
-                          onClick={(e) => handleDeleteClick(e, secuencia)}
-                          title="Borrar secuencia"
-                          aria-label={`Borrar secuencia ${secuencia.nombre}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                      {/* @component: Dropdown de acciones */}
+                      <ActionDropdown
+                        actions={[
+                          {
+                            id: 'edit',
+                            label: 'Editar',
+                            icon: <Edit size={16} />,
+                            onClick: () => handleEditClick(secuencia),
+                            type: 'default',
+                          },
+                          {
+                            id: 'delete',
+                            label: 'Borrar',
+                            icon: <Trash2 size={16} />,
+                            onClick: () => handleDeleteClick({ stopPropagation: () => {} } as any, secuencia),
+                            type: 'danger',
+                          },
+                        ]}
+                        position="bottom-right"
+                      />
                     </div>
                   </div>
 
@@ -245,6 +282,13 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
         cancelText="Cancelar"
         type="danger"
         isLoading={isDeleting}
+      />
+      {/* @component: Modal de edición de secuencia */}
+      <EditSecuenciaModal
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        secuencia={secuenciaToEdit}
+        onSecuenciaEditada={handleSecuenciaEditada}
       />
     </div>
   );
