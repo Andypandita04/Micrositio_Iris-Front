@@ -7,6 +7,7 @@ import { Proyecto } from '../../types/proyecto';
 import Button from '../../components/ui/Button/Button';
 import NuevoProyectoModal from './components/NuevoProyectoModal';
 import ColaboradoresPreview from './components/ColaboradoresPreview';
+import LiderProyecto from './components/LiderProyecto';
 import styles from './Proyectos.module.css';
 import { obtenerProyectos } from '../../services/proyectosService';
 
@@ -137,6 +138,10 @@ const Proyectos: React.FC = () => {
                 <div className={styles['proyecto-colaboradores']}>
                   <p className={styles['colaboradores-label']}>Colaboradores:</p>
                   <ColaboradoresPreview idProyecto={Number(proyecto.id)} />
+                </div>
+                <div className={styles['proyecto-lider']}>
+                  <p className={styles['colaboradores-label']}>Líder:</p>
+                  <LiderProyecto idProyecto={Number(proyecto.id)} />
                 </div>
 
                 <div className={styles['proyecto-footer']}>

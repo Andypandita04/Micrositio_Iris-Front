@@ -12,6 +12,7 @@ import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
 import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
 import ColaboradoresProyecto from './ColaboradoresProyecto';
+import LiderProyecto from '../Proyectos/components/LiderProyecto';
 import styles from './ProyectoDetalle.module.css';
 import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
@@ -383,6 +384,11 @@ const ProyectoDetalle: React.FC = () => {
               <span className={styles['proyecto-fecha']}>
                 {formatearFecha(proyecto.fechaInicio)}
               </span>
+            </div>
+
+            <div className={styles['meta-section']}>
+              <span className={styles['meta-label']}>Líder:</span>
+              <LiderProyecto idProyecto={Number(proyecto.id)} />
             </div>
           </div>
         </div>
