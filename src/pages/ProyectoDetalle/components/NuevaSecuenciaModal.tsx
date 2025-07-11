@@ -14,8 +14,11 @@ interface NuevaSecuenciaModalProps {
   onClose: () => void;
   /** ID del proyecto al que pertenecerá la nueva secuencia */
   proyectoId: string;
-  /** Función que se ejecuta cuando se crea exitosamente una nueva secuencia */
-  onSecuenciaCreada: (secuencia: CreateSecuenciaData) => void;
+  /**
+   * Callback asíncrono que se ejecuta cuando se crea exitosamente una nueva secuencia.
+   * Debe retornar una promesa y cerrar el modal solo cuando la operación haya terminado.
+   */
+  onSecuenciaCreada: (secuencia: CreateSecuenciaData) => Promise<void>;
 }
 
 /**
@@ -42,7 +45,7 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
   const [formData, setFormData] = useState<CreateSecuenciaData>({
     nombre: '',
     descripcion: '',
-    proyectoId: proyectoId
+    id_proyecto: Number(proyectoId)
   });
 
   // Estado para manejar errores de validación
@@ -77,7 +80,7 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
    * Actualiza el proyectoId en el formData cuando cambia la prop
    */
   useEffect(() => {
-    setFormData(prev => ({ ...prev, proyectoId }));
+    setFormData(prev => ({ ...prev, id_proyecto: Number(proyectoId) }));
   }, [proyectoId]);
 
   /**
@@ -115,30 +118,21 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       return;
     }
-
     setIsSubmitting(true);
-
     try {
-      // Simular llamada a API (aquí se integraría con Supabase)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       // Crear objeto de secuencia con datos limpios
       const nuevaSecuencia: CreateSecuenciaData = {
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim(),
-        proyectoId: proyectoId
+        id_proyecto: Number(proyectoId)
       };
-
-      // Llamar al callback con los datos de la nueva secuencia
-      onSecuenciaCreada(nuevaSecuencia);
-
-      // Resetear el formulario
+      // Esperar a que el callback termine (debe refrescar la lista y cerrar el modal)
+      await onSecuenciaCreada(nuevaSecuencia);
+      // Resetear el formulario solo si todo salió bien
       resetForm();
-      
     } catch (error) {
       console.error('Error al crear la secuencia:', error);
       // Aquí se podría mostrar un mensaje de error al usuario
@@ -154,7 +148,7 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
     setFormData({
       nombre: '',
       descripcion: '',
-      proyectoId: proyectoId
+      id_proyecto: Number(proyectoId)
     });
     setErrors({});
     setIsSubmitting(false);
@@ -214,7 +208,7 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
         {/* Cuerpo del modal con el formulario */}
         <div className={styles['modal-body']}>
           <p className={styles['modal-description']}>
-            Crea una nueva secuencia para organizar el flujo de trabajo de tu proyecto. 
+            Crea una nueva secuencia para organizar el flujo de trabajo de tu proyecto.
             Proporciona un nombre descriptivo y una breve descripción de su propósito.
           </p>
 
@@ -272,7 +266,7 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
                 {formData.descripcion.length}/200 caracteres
               </div>
               <p className={styles['form-help']}>
-                Proporciona una descripción clara que ayude a otros colaboradores a entender 
+                Proporciona una descripción clara que ayude a otros colaboradores a entender
                 el propósito de esta secuencia.
               </p>
             </div>
