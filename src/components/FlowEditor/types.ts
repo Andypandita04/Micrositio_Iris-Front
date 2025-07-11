@@ -136,6 +136,8 @@ export interface LearningCardData {
   documentationUrls?: string[];
   /** IDs de colaboradores asignados */
   collaborators?: string[];
+  /** Estado de la Learning Card */
+  status: 'En validación' | 'En proceso' | 'Terminado';
   
   // @callbacks: Funciones de acción para el nodo
   /** Callback para editar el nodo */
