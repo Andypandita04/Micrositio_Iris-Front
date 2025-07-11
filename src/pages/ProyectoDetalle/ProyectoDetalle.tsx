@@ -11,6 +11,8 @@ import EditarProyectoModal from './components/EditarProyectoModal';
 import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
 import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
+import ColaboradoresProyecto from './ColaboradoresProyecto';
+import LiderProyecto from '../Proyectos/components/LiderProyecto';
 import styles from './ProyectoDetalle.module.css';
 import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
@@ -374,18 +376,7 @@ const ProyectoDetalle: React.FC = () => {
           <div className={styles['proyecto-meta']}>
             <div className={styles['meta-section']}>
               <span className={styles['meta-label']}>Colaboradores:</span>
-              <div className={styles['colaboradores-list']}>
-                {proyecto.colaboradores.map((colaborador) => (
-                  <div key={colaborador.id} className={styles['colaborador-item']}>
-                    <img
-                      src={colaborador.avatar}
-                      alt={colaborador.nombre}
-                      className={styles['colaborador-avatar']}
-                    />
-                    <span className={styles['colaborador-nombre']}>{colaborador.nombre}</span>
-                  </div>
-                ))}
-              </div>
+              <ColaboradoresProyecto idProyecto={Number(proyecto.id)} />
             </div>
 
             <div className={styles['meta-section']}>
@@ -393,6 +384,11 @@ const ProyectoDetalle: React.FC = () => {
               <span className={styles['proyecto-fecha']}>
                 {formatearFecha(proyecto.fechaInicio)}
               </span>
+            </div>
+
+            <div className={styles['meta-section']}>
+              <span className={styles['meta-label']}>Líder:</span>
+              <LiderProyecto idProyecto={Number(proyecto.id)} />
             </div>
           </div>
         </div>
