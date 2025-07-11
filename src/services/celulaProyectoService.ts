@@ -15,7 +15,7 @@ export interface CelulaProyecto {
  * @returns {Promise<CelulaProyecto[]>} Lista de relaciones célula-proyecto.
  */
 export const obtenerTodos = async (): Promise<CelulaProyecto[]> => {
-  const response = await apiClient.get('/celula-proyecto/todos');
+  const response = await apiClient.get('/celula_proyecto');
   return response.data;
 };
 
@@ -25,7 +25,7 @@ export const obtenerTodos = async (): Promise<CelulaProyecto[]> => {
  * @returns {Promise<CelulaProyecto[]>} Lista de relaciones célula-proyecto asociadas al empleado.
  */
 export const obtenerPorEmpleado = async (id_empleado: number): Promise<CelulaProyecto[]> => {
-  const response = await apiClient.post('/celula-proyecto/por-empleado', { id_empleado });
+  const response = await apiClient.post('/celula_proyecto/e', { id_empleado });
   return response.data;
 };
 
@@ -35,17 +35,27 @@ export const obtenerPorEmpleado = async (id_empleado: number): Promise<CelulaPro
  * @returns {Promise<CelulaProyecto[]>} Lista de relaciones célula-proyecto asociadas al proyecto.
  */
 export const obtenerPorProyecto = async (id_proyecto: number): Promise<CelulaProyecto[]> => {
-  const response = await apiClient.post('/celula-proyecto/por-proyecto', { id_proyecto });
+  const response = await apiClient.post('/celula_proyecto/p', { id_proyecto });
   return response.data;
 };
 
 /**
- * Crea una nueva relación célula-proyecto.
- * @param {Omit<CelulaProyecto, 'id'>} data - Datos para crear la relación (sin el ID).
- * @returns {Promise<CelulaProyecto>} La relación creada con su ID asignado.
+ * Crea nuevas relaciones célula-proyecto para varios empleados.
+ * @param {number[]} id_empleados - Array de IDs de empleados.
+ * @param {number} id_proyecto - ID del proyecto.
+ * @param {boolean} activo - Estado activo.
+ * @returns {Promise<CelulaProyecto[]>} Las relaciones creadas.
  */
-export const crear = async (data: Omit<CelulaProyecto, 'id'>): Promise<CelulaProyecto> => {
-  const response = await apiClient.post('/celula-proyecto/crear', data);
+export const crear = async (
+  id_empleados: number[],
+  id_proyecto: number,
+  activo: boolean = true
+): Promise<CelulaProyecto[]> => {
+  const response = await apiClient.post('/celula_proyecto', {
+    id_empleados,
+    id_proyecto,
+    activo,
+  });
   return response.data;
 };
 
@@ -55,7 +65,7 @@ export const crear = async (data: Omit<CelulaProyecto, 'id'>): Promise<CelulaPro
  * @returns {Promise<void>}
  */
 export const eliminar = async (id: number): Promise<void> => {
-  await apiClient.post('/celula-proyecto/eliminar', { id });
+  await apiClient.delete('/celula_proyecto', { data: { id } });
 };
 
 /**
@@ -65,6 +75,6 @@ export const eliminar = async (id: number): Promise<void> => {
  * @returns {Promise<CelulaProyecto>} La relación actualizada.
  */
 export const actualizarActivo = async (id: number, activo: boolean): Promise<CelulaProyecto> => {
-  const response = await apiClient.post('/celula-proyecto/actualizar-activo', { id, activo });
+  const response = await apiClient.patch('/celula_proyecto', { id, activo });
   return response.data;
 };

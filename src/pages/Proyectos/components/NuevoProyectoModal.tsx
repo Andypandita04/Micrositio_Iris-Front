@@ -8,6 +8,8 @@ import Button from '../../../components/ui/Button/Button';
 import styles from './NuevoProyectoModal.module.css';
 import { crearProyecto } from '../../../services/proyectosService';
 import EmpleadoSelector from './EmpleadoSelector';
+import EquipoSelector from './EquipoSelector';
+import { crear as crearCelulaProyecto } from '../../../services/celulaProyectoService';
 
 interface Empleado {
   id_empleado: number;
@@ -64,6 +66,7 @@ const NuevoProyectoModal: React.FC<{
   const [loading, setLoading] = useState(false);
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false); // Nuevo estado de carga
+  const [equipoIds, setEquipoIds] = useState<number[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -75,6 +78,7 @@ const NuevoProyectoModal: React.FC<{
         id_categoria: 1, // Cambiado a 0 para forzar selección
         id_lider: 0
       });
+      setEquipoIds([]); // Limpiar equipo al abrir
       setErrors({});
     }
   }, [isOpen]);
@@ -121,11 +125,18 @@ const NuevoProyectoModal: React.FC<{
     if (!validateForm()) return;
     try {
       setLoading(true);
+      // 1. Crear el proyecto
       const nuevoProyecto = await crearProyecto(formData);
+      const id_proyecto = nuevoProyecto.id_proyecto || nuevoProyecto.id;
+      // 2. Crear relaciones celula-proyecto para todos los colaboradores seleccionados (nuevo backend)
+      if (equipoIds.length > 0 && id_proyecto) {
+        await crearCelulaProyecto(equipoIds, id_proyecto, true);
+      }
+      // 3. (Opcional) Puedes mostrar un mensaje de éxito aquí
       onClose();
-      onProyectoCreado(nuevoProyecto.id_proyecto?.toString() || nuevoProyecto.id?.toString());
+      onProyectoCreado(id_proyecto?.toString());
     } catch (error) {
-      setErrors({ general: 'Error al crear el proyecto. Intenta nuevamente.' });
+      setErrors({ general: 'Error al crear el proyecto y/o asignar colaboradores. Intenta nuevamente.' });
     } finally {
       setLoading(false);
     }
@@ -139,6 +150,10 @@ const NuevoProyectoModal: React.FC<{
   const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id_categoria = Number(e.target.value); // Usa Number en lugar de parseInt
     setFormData(prev => ({ ...prev, id_categoria }));
+  };
+
+  const handleEquipoChange = (ids: number[]) => {
+    setEquipoIds(ids);
   };
 
   const getNombreCompleto = (empleado: Empleado) =>
@@ -246,7 +261,7 @@ const NuevoProyectoModal: React.FC<{
               disabled={loading || loadingCategorias}
             >
               <option value="0">Selecciona una categoría</option>
-              <option value="1" selected>Proyecto Libre</option> {/* Valor por defecto */}
+              <option value="1">Proyecto Libre</option> {/* Valor por defecto */}
               {categorias.filter(cat => cat.id_categoria !== 1).map(categoria => (
                 <option key={categoria.id_categoria} value={categoria.id_categoria}>
                   {categoria.nombre}
@@ -269,6 +284,20 @@ const NuevoProyectoModal: React.FC<{
           getNombreCompleto={getNombreCompleto}
           getIniciales={getIniciales}
           getAvatarColor={getAvatarColor}
+        />
+        {/* Selector de equipo/célula */}
+        <EquipoSelector
+          empleados={empleados.filter(emp => emp.id_empleado !== formData.id_lider)}
+          loading={loading}
+          loadingEmpleados={loadingEmpleados}
+          errors={errors}
+          selectedIds={equipoIds}
+          onSelect={handleEquipoChange}
+          cargarEmpleados={cargarEmpleados}
+          getNombreCompleto={getNombreCompleto}
+          getIniciales={getIniciales}
+          getAvatarColor={getAvatarColor}
+          label="Colaboradores del Proyecto"
         />
       </form>
     </Modal>
