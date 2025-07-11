@@ -277,17 +277,50 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     <div className="testing-modal-backdrop">
       <div className="testing-modal-container">
         {/* @section: Header del modal */}
-        <div className="testing-modal-header">
-          <div className="testing-modal-icon">
-            <ClipboardList size={20} />
+        <div className="testing-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="testing-modal-icon">
+              <ClipboardList size={20} />
+            </div>
+            <h2 className="testing-modal-title">Editar Testing Card</h2>
           </div>
-          <h2 className="testing-modal-title">Editar Testing Card</h2>
           <button onClick={onClose} className="testing-modal-close-btn">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="testing-modal-form">
+          {/* @section: Estado de la Testing Card */}
+          <div className="testing-form-group">
+            <label htmlFor="status" className="testing-form-label">
+              Estado de la Testing Card
+            </label>
+            <select
+              id="status"
+              value={formData.status}
+              onChange={e => {
+                const value = e.target.value as 'En validación' | 'En proceso' | 'Terminado' | 'Escoger estado';
+                setFormData(prev => ({ ...prev, status: value as any }));
+              }}
+              className="testing-status-badge"
+              style={{
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '2px 10px',
+                minWidth: 80,
+                textAlign: 'center',
+                textTransform: 'capitalize',
+                letterSpacing: 0.5,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}
+            >
+              <option value="Escoger estado">Escoger estado</option>
+              <option value="En validación">En validación</option>
+              <option value="En proceso">En proceso</option>
+              <option value="Terminado">Terminado</option>
+            </select>
+          </div>
           {/* @section: Información básica */}
           <div className="testing-form-group">
             <label htmlFor="title" className="testing-form-label">

@@ -147,35 +147,6 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             <BookOpen size={14} />
             <span>Learning Card</span>
           </div>
-          {/* Estado visual */}
-          {data.status && (
-            <span
-              className="learning-status-badge"
-              style={{
-                backgroundColor:
-                  data.status === 'En validación'
-                    ? '#2563eb' // azul
-                    : data.status === 'En proceso'
-                    ? '#22c55e' // verde
-                    : data.status === 'Terminado'
-                    ? '#ef4444' // rojo
-                    : '#e5e7eb', // gris por defecto
-                color: '#fff',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 10px',
-                marginLeft: 8,
-                minWidth: 80,
-                textAlign: 'center',
-                textTransform: 'capitalize',
-                letterSpacing: 0.5,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-              }}
-            >
-              {data.status}
-            </span>
-          )}
         </div>
         <div className="card-id">#{data.id.slice(-4)}</div>
       </div>

@@ -162,11 +162,42 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         id="bottom"
       />
       
-      {/* Header de la card con tipo de experimento e ID */}
-      <div className="card-header">
-        <div className="experiment-type">
-          <ClipboardList size={14} />
-          <span>{data.experimentType}</span>
+      {/* Header de la card con tipo de experimento e ID y estado */}
+      <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="experiment-type">
+            <ClipboardList size={14} />
+            <span>{data.experimentType}</span>
+          </div>
+          {/* Estado visual */}
+          {data.status && (
+            <span
+              className="testing-status-badge"
+              style={{
+                backgroundColor:
+                  data.status === 'En validación'
+                    ? '#2563eb' // azul
+                    : data.status === 'En ejecución'
+                    ? '#facc15' // amarillo
+                    : data.status === 'Terminado'
+                    ? '#ef4444' // rojo
+                    : '#e5e7eb', // gris por defecto
+                color: '#fff',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '2px 10px',
+                marginLeft: 8,
+                minWidth: 80,
+                textAlign: 'center',
+                textTransform: 'capitalize',
+                letterSpacing: 0.5,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}
+            >
+              {data.status}
+            </span>
+          )}
         </div>
         <div className="card-id">#{data.id.slice(-4)}</div>
       </div>

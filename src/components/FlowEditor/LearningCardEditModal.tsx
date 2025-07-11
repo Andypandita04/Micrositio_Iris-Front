@@ -262,37 +262,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         </div>
 
         <form onSubmit={handleSubmit} className="learning-modal-form">
-          {/* @section: Estado de la Learning Card */}
-          <div className="learning-form-group">
-            <label htmlFor="status" className="learning-form-label">
-              Estado de la Learning Card
-            </label>
-            <select
-              id="status"
-              value={formData.status}
-              onChange={e => {
-                const value = e.target.value as 'En validación' | 'En proceso' | 'Terminado' | 'Escoger estado';
-                setFormData(prev => ({ ...prev, status: value as any }));
-              }}
-              className="learning-status-badge"
-              style={{
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 10px',
-                minWidth: 80,
-                textAlign: 'center',
-                textTransform: 'capitalize',
-                letterSpacing: 0.5,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-              }}
-            >
-              <option value="">Escoger estado</option>
-              <option value="En validación">En validación</option>
-              <option value="En proceso">En proceso</option>
-              <option value="Terminado">Terminado</option>
-            </select>
-          </div>
+
           {/* @section: Resultados obtenidos */}
           <div className="learning-form-group">
             <label htmlFor="result" className="learning-form-label">
