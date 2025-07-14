@@ -34,6 +34,8 @@ interface CreateProyectoData {
   descripcion: string;
   id_categoria: number;
   id_lider: number;
+  fecha_inicio?: string; // YYYY-MM-DD
+  fecha_fin_estimada?: string; // YYYY-MM-DD
 }
 
 const avatarColors = [
@@ -57,8 +59,10 @@ const NuevoProyectoModal: React.FC<{
   const [formData, setFormData] = useState<CreateProyectoData>({
     titulo: '',
     descripcion: '',
-    id_categoria: 1, // Cambiado a 0 para forzar selección
-    id_lider: 0
+    id_categoria: 1,
+    id_lider: 0,
+    fecha_inicio: '',
+    fecha_fin_estimada: ''
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]); // Nuevo estado
@@ -115,7 +119,10 @@ const NuevoProyectoModal: React.FC<{
     if (!formData.titulo.trim()) newErrors.titulo = 'El nombre del proyecto es requerido';
     if (!formData.descripcion.trim()) newErrors.descripcion = 'La descripción es requerida';
     if (!formData.id_lider || formData.id_lider === 0) newErrors.id_lider = 'Debes seleccionar un líder para el proyecto';
-    //if (!formData.id_categoria || formData.id_categoria === 0) newErrors.id_categoria = 'Debes seleccionar una categoría'; // Nueva validación
+    // Validación de fechas
+    if (formData.fecha_inicio && formData.fecha_fin_estimada && formData.fecha_inicio > formData.fecha_fin_estimada) {
+      newErrors.fecha_fin_estimada = 'La fecha estimada debe ser posterior a la fecha de inicio';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -299,6 +306,34 @@ const NuevoProyectoModal: React.FC<{
           getAvatarColor={getAvatarColor}
           label="Colaboradores del Proyecto"
         />
+
+        {/* Fechas de inicio y fin estimada */}
+        <div className={styles['form-group']}>
+          <label htmlFor="fecha_inicio" className={styles.label}>
+            Fecha de inicio
+          </label>
+          <input
+            type="date"
+            id="fecha_inicio"
+            value={formData.fecha_inicio || ''}
+            onChange={e => setFormData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
+            className={styles.input}
+            disabled={loading}
+          />
+        </div>
+        <div className={styles['form-group']}>
+          <label htmlFor="fecha_fin_estimada" className={styles.label}>
+            Fecha estimada de finalización
+          </label>
+          <input
+            type="date"
+            id="fecha_fin_estimada"
+            value={formData.fecha_fin_estimada || ''}
+            onChange={e => setFormData(prev => ({ ...prev, fecha_fin_estimada: e.target.value }))}
+            className={styles.input}
+            disabled={loading}
+          />
+        </div>
       </form>
     </Modal>
   );

@@ -48,7 +48,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
   const [formData, setFormData] = useState({
     nombre: proyecto.nombre,
     descripcion: proyecto.descripcion,
-    id_lider: 0 // Se inicializará cuando se carguen los empleados
+    id_lider: 0, // Se inicializará cuando se carguen los empleados
+    fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
+    fecha_fin_estimada: proyecto.fecha_fin_estimada || '' // <-- nuevo
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,7 +65,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       setFormData({
         nombre: proyecto.nombre,
         descripcion: proyecto.descripcion,
-        id_lider: 0 // Se actualizará cuando se carguen los empleados
+        id_lider: 0,
+        fecha_inicio: proyecto.fecha_inicio || '',
+        fecha_fin_estimada: proyecto.fecha_fin_estimada || ''
       });
       setErrors({});
     }
@@ -130,7 +134,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       const data = {
         titulo: formData.nombre,
         descripcion: formData.descripcion,
-        id_lider: formData.id_lider
+        id_lider: formData.id_lider,
+        fecha_inicio: formData.fecha_inicio || null,
+        fecha_fin_estimada: formData.fecha_fin_estimada || null
       };
 
       // Actualiza el proyecto en el backend
@@ -243,6 +249,33 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           getIniciales={getIniciales}
           getAvatarColor={getAvatarColor}
         />
+
+        <div className={styles['form-group']}>
+          <label htmlFor="fecha_inicio" className={styles.label}>
+            Fecha de inicio
+          </label>
+          <input
+            type="date"
+            id="fecha_inicio"
+            value={formData.fecha_inicio || ''}
+            onChange={e => setFormData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
+            className={styles.input}
+            disabled={loading}
+          />
+        </div>
+        <div className={styles['form-group']}>
+          <label htmlFor="fecha_fin_estimada" className={styles.label}>
+            Fecha estimada de finalización
+          </label>
+          <input
+            type="date"
+            id="fecha_fin_estimada"
+            value={formData.fecha_fin_estimada || ''}
+            onChange={e => setFormData(prev => ({ ...prev, fecha_fin_estimada: e.target.value }))}
+            className={styles.input}
+            disabled={loading}
+          />
+        </div>
       </form>
     </Modal>
   );

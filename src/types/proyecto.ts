@@ -10,8 +10,8 @@ export interface Proyecto {
   nombre: string;
   descripcion: string;
   colaboradores: Colaborador[];
-  fechaInicio: string;
-  fechaCreacion: string;
+  fecha_inicio: string;
+  fecha_fin_estimada: string;
   estado: 'activo' | 'pausado' | 'completado' | 'cancelado';
   lider_id?: number; // Agregado para manejar el líder del proyecto
 }
