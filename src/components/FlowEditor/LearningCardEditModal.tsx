@@ -4,7 +4,7 @@ import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
 //import CollaboratorSelector from './components/CollaboratorSelector';
-import './styles/LearningCardEditModal.css';
+import './styles/TestingCardEditModal.css';
 
 /**
  * Props para el componente LearningCardEditModal
@@ -103,6 +103,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [newLink, setNewLink] = useState('');
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showDocumentation, setShowDocumentation] = useState(false);
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -163,33 +164,44 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   }, [onClose]);
 
   return (
-    <div className="learning-modal-backdrop">
-      <div className="learning-modal-container">
+    <div className="testing-modal-backdrop">
+      <div className="testing-modal-container">
         {/* @section: Header del modal */}
-        <div className="learning-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="testing-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className="learning-modal-icon">
+            <div className="testing-modal-icon">
               <BookOpen size={20} />
             </div>
-            <h2 className="learning-modal-title">Editar Learning Card</h2>
+            <h2 className="testing-modal-title">Editar Learning Card</h2>
           </div>
-          <button onClick={onClose} className="learning-modal-close-btn">
+          <button onClick={onClose} className="testing-modal-close-btn">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="learning-modal-form">
+        <form onSubmit={handleSubmit} className="testing-modal-form">
 
           {/* @section: Estado de la Learning Card */}
-          <div className="learning-form-group">
-            <label htmlFor="estado" className="learning-form-label">
+          <div className="testing-form-group">
+            <label htmlFor="estado" className="testing-form-label">
               Estado de la Learning Card
             </label>
             <select
               id="estado"
               value={formData.estado ?? ''}
               onChange={e => setFormData({ ...formData, estado: e.target.value as any })}
-              className="learning-status-select"
+              className="testing-status-badge"
+              style={{
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '2px 10px',
+                minWidth: 80,
+                textAlign: 'center',
+                textTransform: 'capitalize',
+                letterSpacing: 0.5,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}
             >
               <option value="">Selecciona estado</option>
               {statusOptions.map(opt => (
@@ -199,143 +211,135 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           </div>
 
           {/* @section: Resultados obtenidos */}
-          <div className="learning-form-group">
-            <label htmlFor="result" className="learning-form-label">
-              <FileText className="learning-form-icon" />
+          <div className="testing-form-group">
+            <label htmlFor="result" className="testing-form-label">
+              <FileText className="testing-form-icon" />
               Resultados Obtenidos
             </label>
             <textarea
               id="result"
               value={formData.resultado ?? ''}
               onChange={(e) => setFormData({...formData, resultado: e.target.value})}
-              className={`learning-input textarea ${errors.resultado ? 'input-error' : ''}`}
+              className={`testing-input textarea ${errors.resultado ? 'input-error' : ''}`}
               placeholder="Describe los resultados del experimento"
               rows={3}
             />
-            {errors.resultado && <span className="learning-error-text">{errors.resultado}</span>}
+            {errors.resultado && <span className="testing-error-text">{errors.resultado}</span>}
           </div>
 
           {/* @section: Hallazgo accionable */}
-          <div className="learning-form-group">
-            <label htmlFor="insight" className="learning-form-label">
-              <FileText className="learning-form-icon" />
+          <div className="testing-form-group">
+            <label htmlFor="insight" className="testing-form-label">
+              <FileText className="testing-form-icon" />
               Hallazgo Accionable
             </label>
             <textarea
               id="insight"
               value={formData.hallazgo ?? ''}
               onChange={(e) => setFormData({ ...formData, hallazgo: e.target.value })}
-              className={`learning-input textarea ${errors.hallazgo ? 'input-error' : ''}`}
+              className={`testing-input textarea ${errors.hallazgo ? 'input-error' : ''}`}
               placeholder="¿Qué aprendizajes podemos aplicar?"
               rows={3}
             />
-            {errors.hallazgo && <span className="learning-error-text">{errors.hallazgo}</span>}
+            {errors.hallazgo && <span className="testing-error-text">{errors.hallazgo}</span>}
           </div>
 
-          {/* @section: Enlaces relacionados */}
-          <div className="learning-form-group">
-            <label className="learning-form-label">
-              <LinkIcon className="learning-form-icon" />
-              Enlaces Relacionados
-            </label>
-            <div className="learning-links-container">
-              {links.map((link, index) => (
-                <div key={index} className="learning-link-item">
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="learning-link">
-                    {link}
-                  </a>
-                  <button type="button" className="learning-remove-btn" onClick={() => removeLink(index)}>
-                    <X size={14} />
+          {/* @section: Documentación expandible */}
+          <div className="testing-form-section">
+            <button
+              type="button"
+              className="testing-form-section-toggle"
+              onClick={() => setShowDocumentation(!showDocumentation)}
+            >
+              <span className={`toggle-icon${showDocumentation ? ' open' : ''}`}>▼</span>
+              <span>Documentación</span>
+            </button>
+
+            {showDocumentation && (
+              <div className="testing-form-section-content">
+                {/* @subsection: URLs de documentación */}
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <LinkIcon size={14} />
+                    URLs de Referencia
+                  </h4>
+
+                  {documentationUrls && documentationUrls.length > 0 && (
+                    <div className="urls-list">
+                      {documentationUrls.map((url, index) => (
+                        <div key={index} className="url-item">
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {url}
+                          </a>
+                          <button
+                            type="button"
+                            className="testing-remove-btn"
+                            onClick={() => removeDocumentationUrl(index)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="testing-add-btn"
+                    onClick={() => setIsDocumentationModalOpen(true)}
+                  >
+                    <Plus size={14} />
+                    Añadir URL
                   </button>
                 </div>
-              ))}
-              <div className="learning-add-link">
-                <input
-                  type="text"
-                  value={newLink}
-                  onChange={(e) => setNewLink(e.target.value)}
-                  className="learning-input"
-                  placeholder="Añadir enlace"
-                />
-                <button type="button" className="learning-add-btn" onClick={addLink} disabled={!newLink.trim()}>
-                  Añadir
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* @section: Documentación */}
-          <div className="learning-form-group">
-            <label className="learning-form-label">
-              <Paperclip className="learning-form-icon" />
-              Documentación
-            </label>
-            {/* URLs de documentación */}
-            {documentationUrls.length > 0 && (
-              <div className="documentation-urls">
-                <h4>URLs de Referencia:</h4>
-                {documentationUrls.map((url, index) => (
-                  <div key={index} className="url-item">
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
-                      {url}
-                    </a>
-                    <button type="button" className="learning-remove-btn" onClick={() => removeDocumentationUrl(index)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                {/* @subsection: Archivos adjuntos */}
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <Upload size={14} />
+                    Archivos Adjuntos
+                  </h4>
+
+                  {attachments && attachments.length > 0 && (
+                    <div className="attachments-list">
+                      {attachments.map((file, index) => (
+                        <div key={index} className="attachment-item">
+                          <span className="file-name">{file.fileName}</span>
+                          <span className="file-size">
+                            {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
+                          </span>
+                          <button
+                            type="button"
+                            className="testing-remove-btn"
+                            onClick={() => removeAttachment(index)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="testing-add-btn"
+                    onClick={() => setIsDocumentationModalOpen(true)}
+                  >
+                    <Upload size={14} />
+                    Cargar Archivos
+                  </button>
+                </div>
               </div>
             )}
-
-            {/* Archivos adjuntos */}
-            <div className="learning-form-group">
-              <label className="learning-form-label">
-                <Paperclip className="learning-form-icon" />
-                Archivos adjuntos
-              </label>
-              <input
-                type="file"
-                multiple
-                onChange={e => {
-                  const files = Array.from(e.target.files || []);
-                  const validFiles = files.filter(file => file.size <= 10 * 1024 * 1024);
-                  if (validFiles.length < files.length) {
-                    alert('Algunos archivos superan el límite de 10MB y no se adjuntaron.');
-                  }
-                  if (validFiles.length > 0) {
-                    addDocumentationFiles(validFiles);
-                  }
-                  e.target.value = '';
-                }}
-                className="learning-input"
-                accept="*"
-              />
-              <span className="learning-file-hint">Máx. 10MB por archivo</span>
-              {attachments.length > 0 && (
-                <div className="learning-attachments-list">
-                  {attachments.map((file, index) => (
-                    <div key={index} className="learning-attachment-item">
-                      <span className="learning-file-name">{file.fileName}</span>
-                      <span className="file-size">
-                        {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
-                      </span>
-                      <button type="button" className="learning-remove-btn" onClick={() => removeAttachment(index)}>
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* @section: Botones de acción */}
-          <div className="learning-form-actions">
-            <button type="button" onClick={onClose} className="learning-btn learning-btn-secondary">
+          <div className="testing-form-actions">
+            <button type="button" onClick={onClose} className="testing-btn testing-btn-secondary">
               Cancelar
             </button>
-            <button type="submit" className="learning-btn learning-btn-primary">
-              <Save className="learning-btn-icon" />
+            <button type="submit" className="testing-btn testing-btn-primary">
+              <Save className="testing-btn-icon" />
               Guardar Cambios
             </button>
           </div>
