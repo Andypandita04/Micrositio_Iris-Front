@@ -112,41 +112,6 @@ export interface TestingCardData {
 }
 
 /**
- * Estructura de datos para una Learning Card
- * @interface LearningCardData
- * @description Contiene los resultados y hallazgos obtenidos de un experimento,
- * conectada a una Testing Card específica.
- */
-export interface LearningCardData {
-  /** Identificador único del nodo */
-  id: string;
-  /** Tipo de nodo (siempre 'learning' para Learning Cards) */
-  type: 'learning';
-  /** ID de la Testing Card asociada */
-  testingCardId: string;
-  /** Resultados obtenidos del experimento */
-  result: string;
-  /** Hallazgo accionable derivado de los resultados */
-  actionableInsight: string;
-  /** Enlaces relacionados con los resultados */
-  links: string[];
-  /** Archivos adjuntos con evidencia */
-  attachments: Attachment[];
-  /** URLs de documentación de referencia */
-  documentationUrls?: string[];
-  /** IDs de colaboradores asignados */
-  collaborators?: string[];
-  /** Estado de la Learning Card */
-  status: 'En validación' | 'En proceso' | 'Terminado';
-  
-  // @callbacks: Funciones de acción para el nodo
-  /** Callback para editar el nodo */
-  onEdit: () => void;
-  /** Callback para eliminar el nodo */
-  onDelete: () => void;
-}
-
-/**
  * Tipo unificado para los datos de nodo
  * @typedef {TestingCardData | LearningCardData} NodeData
  * @description Union type que permite manejar ambos tipos de nodos de forma unificada
@@ -247,4 +212,40 @@ export interface NodeLevelInfo {
   parentIds: string[];
   /** IDs de nodos hijo */
   childIds: string[];
+}
+
+/**
+ * Estructura de datos para una Learning Card
+ * @interface LearningCardData
+ * @description Contiene los resultados y hallazgos obtenidos de un experimento,
+ * conectada a una Testing Card específica.
+ */
+export interface LearningCardData {
+  /** Identificador único del nodo */
+  id: string | null;
+  /** ID de la secuencia */
+  id_secuencia?: string | null;
+  /** ID de la Testing Card asociada */
+  id_testing_card?: string | null;
+  /** Resultados obtenidos del experimento */
+  resultado: string | null;
+  /** Hallazgo accionable derivado de los resultados */
+  hallazgo: string | null;
+  /** Estado de la Learning Card */
+  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR';
+  /** Fecha de creación */
+  created_at: Date;
+  /** Fecha de actualización */
+  updated_at: Date;
+  /** Enlaces relacionados con los resultados */
+  //links?: string[];
+  /** Archivos adjuntos con evidencia */
+  attachments?: Attachment[];
+  /** URLs de documentación de referencia */
+  //documentationUrls?: string[];
+  /** IDs de colaboradores asignados */
+  //collaborators?: string[];
+  // Callbacks (si los necesitas en frontend)
+  onEdit?: () => void;
+  onDelete?: () => void;
 }

@@ -3,7 +3,7 @@ import { X, Save, FileText, BookOpen, Link as LinkIcon, Paperclip, Users, Upload
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
-import CollaboratorSelector from './components/CollaboratorSelector';
+//import CollaboratorSelector from './components/CollaboratorSelector';
 import './styles/LearningCardEditModal.css';
 
 /**
@@ -22,19 +22,19 @@ interface LearningCardEditModalProps {
 /**
  * Interfaz para colaboradores (mock data)
  * @interface Collaborator
- */
+ 
 interface Collaborator {
   id: string;
   name: string;
   email: string;
   avatar?: string;
   role?: string;
-}
+}*/
 
 /**
  * Mock data de colaboradores disponibles
  * @constant mockCollaborators
- */
+ 
 const mockCollaborators: Collaborator[] = [
   {
     id: '1',
@@ -71,19 +71,18 @@ const mockCollaborators: Collaborator[] = [
     avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
     role: 'QA Engineer'
   }
-];
+]; */
 
 /**
- * Modal para editar Learning Cards con sistema completo de documentación y colaboradores
+ * Modal para editar Learning Cards con sistema completo de documentación
  * 
  * @component LearningCardEditModal
  * @description Componente modal que permite editar todos los aspectos de una Learning Card,
- * incluyendo resultados, hallazgos, colaboradores y documentación (URLs y archivos).
+ * incluyendo resultados, hallazgos y documentación (URLs y archivos).
  * Replica la funcionalidad completa del TestingCardEditModal adaptada para Learning Cards.
  * 
  * Características principales:
  * - Formulario completo con validación
- * - Sistema de colaboradores con búsqueda typeahead
  * - Sistema de documentación con URLs y archivos (reutiliza componentes)
  * - Drag & Drop para archivos
  * - Límite de 10MB por archivo
@@ -94,8 +93,16 @@ const mockCollaborators: Collaborator[] = [
  * @returns {JSX.Element} Modal de edición de Learning Card
  */
 const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onSave, onClose }) => {
-  // @state: Datos del formulario
+  // Solo datos principales en formData
   const [formData, setFormData] = useState<LearningCardData>(node.data);
+
+  // Estados locales para links, documentación y archivos adjuntos
+  const [links, setLinks] = useState<string[]>([]);
+  const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [newLink, setNewLink] = useState('');
+  const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -103,32 +110,45 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     { value: 'rechazado', label: 'Rechazado' },
     { value: 'repetir', label: 'Repetir' },
   ];
-  
-  // @state: Errores de validación
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // @state: Control del modal de documentación
-  const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
-  
-  // @state: Colaboradores seleccionados (convertir IDs a objetos)
-  const [selectedCollaborators, setSelectedCollaborators] = useState<Collaborator[]>([]);
-  
-  // @state: Nuevo enlace para añadir
-  const [newLink, setNewLink] = useState('');
 
-  /**
-   * Efecto para inicializar colaboradores seleccionados
-   * @function useEffect
-   */
-  useEffect(() => {
-    // @logic: Convertir IDs de colaboradores a objetos completos
-    if (formData.collaborators) {
-      const collaboratorObjects = mockCollaborators.filter(
-        collaborator => formData.collaborators?.includes(collaborator.id)
-      );
-      setSelectedCollaborators(collaboratorObjects);
+  // Funciones para manejar links/documentos/archivos SOLO en el modal
+  const addLink = () => {
+    if (newLink.trim() && !links.includes(newLink.trim())) {
+      setLinks([...links, newLink.trim()]);
+      setNewLink('');
     }
-  }, [formData.collaborators]);
+  };
+  const removeLink = (index: number) => setLinks(links.filter((_, i) => i !== index));
+
+  const addDocumentationUrl = (url: string) => {
+    if (!documentationUrls.includes(url)) setDocumentationUrls([...documentationUrls, url]);
+  };
+  const removeDocumentationUrl = (index: number) => setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
+
+  const addDocumentationFiles = (files: File[]) => {
+    const newAttachments = files.map(file => ({
+      fileName: file.name,
+      fileUrl: URL.createObjectURL(file),
+      fileSize: file.size
+    }));
+    setAttachments([...attachments, ...newAttachments]);
+  };
+  const removeAttachment = (index: number) => setAttachments(attachments.filter((_, i) => i !== index));
+
+  // Validación y submit
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      // Por ahora, solo mandas formData (sin links ni archivos)
+      onSave(formData);
+    }
+  };
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -141,116 +161,6 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
-
-  /**
-   * Valida todos los campos del formulario
-   * @function validateForm
-   * @returns {boolean} true si el formulario es válido
-   */
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.result.trim()) newErrors.result = 'El resultado es requerido';
-    if (!formData.actionableInsight.trim()) newErrors.insight = 'El hallazgo accionable es requerido';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  /**
-   * Maneja el envío del formulario
-   * @function handleSubmit
-   * @param {React.FormEvent} e - Evento del formulario
-   */
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSave(formData);
-    }
-  };
-
-  /**
-   * Maneja el cambio de colaboradores seleccionados
-   * @function handleCollaboratorsChange
-   * @param {Collaborator[]} collaborators - Nuevos colaboradores seleccionados
-   */
-  const handleCollaboratorsChange = (collaborators: Collaborator[]) => {
-    setSelectedCollaborators(collaborators);
-    setFormData({
-      ...formData,
-      collaborators: collaborators.map(c => c.id)
-    });
-  };
-
-  /**
-   * Añade un nuevo enlace a la lista
-   * @function addLink
-   */
-  const addLink = () => {
-    if (newLink.trim() && !formData.links.includes(newLink.trim())) {
-      setFormData({
-        ...formData,
-        links: [...formData.links, newLink.trim()]
-      });
-      setNewLink('');
-    }
-  };
-
-  /**
-   * Elimina un enlace de la lista
-   * @function removeLink
-   * @param {number} index - Índice del enlace a eliminar
-   */
-  const removeLink = (index: number) => {
-    const updatedLinks = formData.links.filter((_, i) => i !== index);
-    setFormData({ ...formData, links: updatedLinks });
-  };
-
-  /**
-   * Añade una nueva URL de documentación
-   * @function addDocumentationUrl
-   * @param {string} url - URL a añadir
-   */
-  const addDocumentationUrl = (url: string) => {
-    if (!formData.documentationUrls) {
-      setFormData({ ...formData, documentationUrls: [url] });
-    } else {
-      setFormData({ 
-        ...formData, 
-        documentationUrls: [...formData.documentationUrls, url] 
-      });
-    }
-  };
-
-  /**
-   * Elimina una URL de documentación
-   * @function removeDocumentationUrl
-   * @param {number} index - Índice de la URL a eliminar
-   */
-  const removeDocumentationUrl = (index: number) => {
-    if (formData.documentationUrls) {
-      const updatedUrls = formData.documentationUrls.filter((_, i) => i !== index);
-      setFormData({ ...formData, documentationUrls: updatedUrls });
-    }
-  };
-
-  /**
-   * Añade archivos de documentación
-   * @function addDocumentationFiles
-   * @param {File[]} files - Archivos a añadir
-   */
-  const addDocumentationFiles = (files: File[]) => {
-    const newAttachments = files.map(file => ({
-      fileName: file.name,
-      fileUrl: URL.createObjectURL(file),
-      fileSize: file.size
-    }));
-
-    setFormData({
-      ...formData,
-      attachments: [...formData.attachments, ...newAttachments]
-    });
-  };
 
   return (
     <div className="learning-modal-backdrop">
@@ -272,13 +182,13 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
           {/* @section: Estado de la Learning Card */}
           <div className="learning-form-group">
-            <label htmlFor="status" className="learning-form-label">
+            <label htmlFor="estado" className="learning-form-label">
               Estado de la Learning Card
             </label>
             <select
-              id="status"
-              value={formData.status || ''}
-              onChange={e => setFormData({ ...formData, status: e.target.value })}
+              id="estado"
+              value={formData.estado ?? ''}
+              onChange={e => setFormData({ ...formData, estado: e.target.value as any })}
               className="learning-status-select"
             >
               <option value="">Selecciona estado</option>
@@ -296,13 +206,13 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
             </label>
             <textarea
               id="result"
-              value={formData.result}
-              onChange={(e) => setFormData({...formData, result: e.target.value})}
-              className={`learning-input textarea ${errors.result ? 'input-error' : ''}`}
+              value={formData.resultado ?? ''}
+              onChange={(e) => setFormData({...formData, resultado: e.target.value})}
+              className={`learning-input textarea ${errors.resultado ? 'input-error' : ''}`}
               placeholder="Describe los resultados del experimento"
               rows={3}
             />
-            {errors.result && <span className="learning-error-text">{errors.result}</span>}
+            {errors.resultado && <span className="learning-error-text">{errors.resultado}</span>}
           </div>
 
           {/* @section: Hallazgo accionable */}
@@ -313,47 +223,28 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
             </label>
             <textarea
               id="insight"
-              value={formData.actionableInsight}
-              onChange={(e) => setFormData({...formData, actionableInsight: e.target.value})}
-              className={`learning-input textarea ${errors.insight ? 'input-error' : ''}`}
+              value={formData.hallazgo ?? ''}
+              onChange={(e) => setFormData({ ...formData, hallazgo: e.target.value })}
+              className={`learning-input textarea ${errors.hallazgo ? 'input-error' : ''}`}
               placeholder="¿Qué aprendizajes podemos aplicar?"
               rows={3}
             />
-            {errors.insight && <span className="learning-error-text">{errors.insight}</span>}
+            {errors.hallazgo && <span className="learning-error-text">{errors.hallazgo}</span>}
           </div>
 
-          {/* @section: Colaboradores 
-          <div className="learning-form-group">
-            <label className="learning-form-label">
-              <Users className="learning-form-icon" />
-              Colaboradores
-            </label>
-            <CollaboratorSelector
-              availableCollaborators={mockCollaborators}
-              selectedCollaborators={selectedCollaborators}
-              onSelectionChange={handleCollaboratorsChange}
-              placeholder="Buscar colaboradores..."
-              maxVisibleChips={3}
-            />
-          </div>
-          */}
           {/* @section: Enlaces relacionados */}
           <div className="learning-form-group">
-            <label htmlFor="links" className="learning-form-label">
+            <label className="learning-form-label">
               <LinkIcon className="learning-form-icon" />
               Enlaces Relacionados
             </label>
             <div className="learning-links-container">
-              {formData.links.map((link, index) => (
+              {links.map((link, index) => (
                 <div key={index} className="learning-link-item">
                   <a href={link} target="_blank" rel="noopener noreferrer" className="learning-link">
                     {link}
                   </a>
-                  <button 
-                    type="button" 
-                    className="learning-remove-btn"
-                    onClick={() => removeLink(index)}
-                  >
+                  <button type="button" className="learning-remove-btn" onClick={() => removeLink(index)}>
                     <X size={14} />
                   </button>
                 </div>
@@ -366,12 +257,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                   className="learning-input"
                   placeholder="Añadir enlace"
                 />
-                <button 
-                  type="button" 
-                  className="learning-add-btn"
-                  onClick={addLink}
-                  disabled={!newLink.trim()}
-                >
+                <button type="button" className="learning-add-btn" onClick={addLink} disabled={!newLink.trim()}>
                   Añadir
                 </button>
               </div>
@@ -384,21 +270,16 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               <Paperclip className="learning-form-icon" />
               Documentación
             </label>
-            
-            {/* @subsection: URLs de documentación */}
-            {formData.documentationUrls && formData.documentationUrls.length > 0 && (
+            {/* URLs de documentación */}
+            {documentationUrls.length > 0 && (
               <div className="documentation-urls">
                 <h4>URLs de Referencia:</h4>
-                {formData.documentationUrls.map((url, index) => (
+                {documentationUrls.map((url, index) => (
                   <div key={index} className="url-item">
                     <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
                       {url}
                     </a>
-                    <button 
-                      type="button" 
-                      className="learning-remove-btn"
-                      onClick={() => removeDocumentationUrl(index)}
-                    >
+                    <button type="button" className="learning-remove-btn" onClick={() => removeDocumentationUrl(index)}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -406,42 +287,45 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               </div>
             )}
 
-            {/* @subsection: Archivos adjuntos */}
-            {formData.attachments.length > 0 && (
-              <div className="learning-attachments-list">
-                <h4>Archivos Adjuntos:</h4>
-                {formData.attachments.map((file, index) => (
-                  <div key={index} className="learning-attachment-item">
-                    <span className="learning-file-name">{file.fileName}</span>
-                    <span className="file-size">
-                      {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
-                    </span>
-                    <button 
-                      type="button" 
-                      className="learning-remove-btn"
-                      onClick={() => {
-                        const updatedAttachments = formData.attachments.filter((_, i) => i !== index);
-                        setFormData({ ...formData, attachments: updatedAttachments });
-                      }}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* @component: Botón para abrir modal de documentación */}
-            <div className="learning-file-upload">
-              <button 
-                type="button" 
-                className="learning-upload-btn"
-                onClick={() => setIsDocumentationModalOpen(true)}
-              >
-                <Upload size={16} />
-                Gestionar Documentación
-              </button>
-              <span className="learning-file-hint">Añadir URLs y archivos de referencia</span>
+            {/* Archivos adjuntos */}
+            <div className="learning-form-group">
+              <label className="learning-form-label">
+                <Paperclip className="learning-form-icon" />
+                Archivos adjuntos
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={e => {
+                  const files = Array.from(e.target.files || []);
+                  const validFiles = files.filter(file => file.size <= 10 * 1024 * 1024);
+                  if (validFiles.length < files.length) {
+                    alert('Algunos archivos superan el límite de 10MB y no se adjuntaron.');
+                  }
+                  if (validFiles.length > 0) {
+                    addDocumentationFiles(validFiles);
+                  }
+                  e.target.value = '';
+                }}
+                className="learning-input"
+                accept="*"
+              />
+              <span className="learning-file-hint">Máx. 10MB por archivo</span>
+              {attachments.length > 0 && (
+                <div className="learning-attachments-list">
+                  {attachments.map((file, index) => (
+                    <div key={index} className="learning-attachment-item">
+                      <span className="learning-file-name">{file.fileName}</span>
+                      <span className="file-size">
+                        {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
+                      </span>
+                      <button type="button" className="learning-remove-btn" onClick={() => removeAttachment(index)}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
