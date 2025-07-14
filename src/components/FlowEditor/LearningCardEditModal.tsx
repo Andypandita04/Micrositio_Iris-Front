@@ -96,6 +96,13 @@ const mockCollaborators: Collaborator[] = [
 const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onSave, onClose }) => {
   // @state: Datos del formulario
   const [formData, setFormData] = useState<LearningCardData>(node.data);
+
+  // Opciones de estado para la Learning Card
+  const statusOptions = [
+    { value: 'cumplido', label: 'Cumplido' },
+    { value: 'rechazado', label: 'Rechazado' },
+    { value: 'repetir', label: 'Repetir' },
+  ];
   
   // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -262,6 +269,24 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         </div>
 
         <form onSubmit={handleSubmit} className="learning-modal-form">
+
+          {/* @section: Estado de la Learning Card */}
+          <div className="learning-form-group">
+            <label htmlFor="status" className="learning-form-label">
+              Estado de la Learning Card
+            </label>
+            <select
+              id="status"
+              value={formData.status || ''}
+              onChange={e => setFormData({ ...formData, status: e.target.value })}
+              className="learning-status-select"
+            >
+              <option value="">Selecciona estado</option>
+              {statusOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
 
           {/* @section: Resultados obtenidos */}
           <div className="learning-form-group">
