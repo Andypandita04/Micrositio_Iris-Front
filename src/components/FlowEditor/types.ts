@@ -67,6 +67,7 @@ export interface Attachment {
  * incluyendo hipótesis, métricas, documentación y callbacks de acción.
  */
 export interface TestingCardData {
+  onStatusChange(): unknown;
   /** Identificador único del nodo */
   id: string;
   /** Tipo de nodo (siempre 'testing' para Testing Cards) */

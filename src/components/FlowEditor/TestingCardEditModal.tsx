@@ -314,8 +314,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 letterSpacing: 0.5,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
               }}
-            >
-              <option value="Escoger estado">Escoger estado</option>
+            >              
               <option value="En validación">En validación</option>
               <option value="En proceso">En proceso</option>
               <option value="Terminado">Terminado</option>
