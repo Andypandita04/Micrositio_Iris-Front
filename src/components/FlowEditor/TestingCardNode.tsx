@@ -168,40 +168,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           <div className="experiment-type">
             <ClipboardList size={14} />
             <span>{data.experimentType}</span>
-          </div>
-          {/* Estado visual */}
-          {data.status && (
-            <span
-              className="testing-status-badge"
-              style={{
-                backgroundColor:
-                  data.status === 'En validación'
-                    ? '#facc15' // amarillo
-                    : data.status === 'En proceso'
-                    ? '#22c55e' // verde
-                    : data.status === 'En ejecución'
-                    ? '#2563eb' // azul
-                    : data.status === 'Terminado'
-                    ? '#ef4444' // rojo
-                    : '#e5e7eb', // gris por defecto
-                color: '#fff',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '2px 10px',
-                marginLeft: 8,
-                minWidth: 80,
-                textAlign: 'center',
-                textTransform: 'capitalize',
-                letterSpacing: 0.5,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-              }}
-            >
-              {data.status}
-            </span>
-          )}
-        </div>
-        <div className="card-id">#{data.id.slice(-4)}</div>
+          </div>                    
+        </div>        
       </div>
 
       {/* Cuerpo principal con información básica */}
@@ -311,11 +279,43 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         
         {/* Información de fechas y estado */}
         <div className="card-dates">
-          <span className="dates-text">
-            <Calendar size={12} style={{ marginRight: '4px' }} />
-            {formatDate(data.startDate)} - {formatDate(data.endDate)}
-          </span>
-          <span className={`status-badge ${data.status.toLowerCase().replace(' ', '-')}`}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Calendar size={12} />
+            <span className="dates-text">
+              {formatDate(data.startDate)} - {formatDate(data.endDate)}
+            </span>
+          </div>
+          <span
+            className={`status-badge ${data.status.toLowerCase().replace(' ', '-')}`}
+            style={{
+              backgroundColor:
+                data.status === 'En validación'
+                  ? '#facc15' // amarillo
+                  : data.status === 'En proceso'
+                  ? '#22c55e' // verde
+                  : data.status === 'En ejecución'
+                  ? '#2563eb' // azul
+                  : data.status === 'Terminado'
+                  ? '#ef4444' // rojo
+                  : '#e5e7eb', // gris por defecto
+              color: '#fff',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '2px 10px',
+              marginLeft: 8,
+              minWidth: 80,
+              textAlign: 'center',
+              textTransform: 'capitalize',
+              letterSpacing: 0.5,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              data.onStatusChange(); // Llama al dropdown desde TestingCardEditModal
+            }}
+          >
             {data.status}
           </span>
         </div>
