@@ -17,6 +17,7 @@ import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
+import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -69,9 +70,10 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     attachments: node.data.attachments || [],
     collaborators: node.data.collaborators || [],
   });
-  
-  // @state: Errores de validación
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // @state: Loading y feedback
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   
   // @state: Control de secciones expandibles
   const [showMetrics, setShowMetrics] = useState(false);
@@ -86,6 +88,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
   // @state: Error al cargar empleados
   const [empleadosError, setEmpleadosError] = useState<string | null>(null);
+
+  // @state: Errores de validación
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -108,6 +113,23 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   }, []);
 
   /**
+   * Efecto para cargar datos reales de la BD al abrir el modal
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (node.data.id_testing_card) {
+      setLoading(true);
+      obtenerTestingCardPorId(node.data.id_testing_card)
+        .then((data) => {
+          setFormData({ ...formData, ...data });
+        })
+        .catch(() => setErrorMsg('Error al cargar datos de la BD'))
+        .finally(() => setLoading(false));
+    }
+    // eslint-disable-next-line
+  }, [node.data.id_testing_card]);
+
+  /**
    * Valida todos los campos del formulario
    * @function validateForm
    * @returns {boolean} true si el formulario es válido
@@ -127,10 +149,21 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @function handleSubmit
    * @param {React.FormEvent} e - Evento del formulario
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSave(formData);
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+      try {
+        await actualizarTestingCard(formData.id_testing_card, formData);
+        setSuccessMsg('¡Guardado exitosamente!');
+        onSave(formData); // Notifica al padre
+      } catch (err) {
+        setErrorMsg('Error al guardar en la base de datos');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -266,6 +299,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         </div>
 
         <form onSubmit={handleSubmit} className="testing-modal-form">
+          {loading && <div className="testing-form-loading">Cargando...</div>}
+          {successMsg && <div className="testing-form-success">{successMsg}</div>}
+          {errorMsg && <div className="testing-form-error">{errorMsg}</div>}
           {/* @section: Estado de la Testing Card */}
           <div className="testing-form-group">
             <label htmlFor="status" className="testing-form-label">
