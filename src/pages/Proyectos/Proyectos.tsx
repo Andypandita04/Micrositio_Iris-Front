@@ -1,37 +1,98 @@
-import React, { useState } from 'react';
+// src/pages/Proyectos/Proyectos.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { proyectosMock } from '../../data/mockData';
+
 import { Proyecto } from '../../types/proyecto';
 import Button from '../../components/ui/Button/Button';
 import NuevoProyectoModal from './components/NuevoProyectoModal';
+import ColaboradoresPreview from './components/ColaboradoresPreview';
+import LiderProyecto from './components/LiderProyecto';
 import styles from './Proyectos.module.css';
+import { obtenerProyectos } from '../../services/proyectosService';
 
 const Proyectos: React.FC = () => {
   const navigate = useNavigate();
-  const [proyectos] = useState<Proyecto[]>(proyectosMock);
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Cargar proyectos al montar el componente
+  useEffect(() => {
+    cargarProyectos();
+  }, []);
+
+  const cargarProyectos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const proyectosData = await obtenerProyectos();
+
+      // Mapear datos del backend al formato que espera el frontend
+      const proyectosMapeados = proyectosData.map(proyecto => ({
+        id: proyecto.id_proyecto?.toString() || proyecto.id?.toString(),
+        nombre: proyecto.titulo,
+        descripcion: proyecto.descripcion || '',
+        estado: proyecto.estado?.toLowerCase() || 'activo',
+        fechaInicio: proyecto.fecha_inicio || proyecto.created_at,
+        fechaCreacion: proyecto.created_at,
+        colaboradores: [] // Por ahora vacío, después puedes agregar lógica para obtener colaboradores
+      }));
+
+      setProyectos(proyectosMapeados);
+    } catch (err) {
+      console.error('Error al cargar proyectos:', err);
+      setError('Error al cargar los proyectos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProyectoClick = (proyectoId: string) => {
-  navigate(`/proyectos/${proyectoId}`); 
-};
+    navigate(`/proyectos/${proyectoId}`);
+  };
 
   const handleNuevoProyecto = () => {
     setIsModalOpen(true);
   };
 
-  const handleProyectoCreado = (proyectoId: string) => {
+  const handleProyectoCreado = async (proyectoId: string) => {
     setIsModalOpen(false);
+    // Recargar la lista de proyectos para mostrar el nuevo
+    await cargarProyectos();
     navigate(`/proyecto-${proyectoId}`);
   };
 
   const formatearFecha = (fecha: string) => {
+    if (!fecha) return 'Sin fecha';
     return new Date(fecha).toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   };
+
+  if (loading) {
+    return (
+      <div className={styles['proyectos-container']}>
+        <div className={styles['proyectos-content']}>
+          <p>Cargando proyectos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles['proyectos-container']}>
+        <div className={styles['proyectos-content']}>
+          <p>Error: {error}</p>
+          <Button onClick={cargarProyectos}>Reintentar</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles['proyectos-container']}>
@@ -76,17 +137,11 @@ const Proyectos: React.FC = () => {
 
                 <div className={styles['proyecto-colaboradores']}>
                   <p className={styles['colaboradores-label']}>Colaboradores:</p>
-                  <div className={styles['colaboradores-list']}>
-                    {proyecto.colaboradores.map((colaborador) => (
-                      <img
-                        key={colaborador.id}
-                        src={colaborador.avatar}
-                        alt={colaborador.nombre}
-                        className={styles['colaborador-avatar']}
-                        title={colaborador.nombre}
-                      />
-                    ))}
-                  </div>
+                  <ColaboradoresPreview idProyecto={Number(proyecto.id)} />
+                </div>
+                <div className={styles['proyecto-lider']}>
+                  <p className={styles['colaboradores-label']}>Líder:</p>
+                  <LiderProyecto idProyecto={Number(proyecto.id)} />
                 </div>
 
                 <div className={styles['proyecto-footer']}>

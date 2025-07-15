@@ -41,12 +41,7 @@ const EmptyFlowState: React.FC<EmptyFlowStateProps> = ({ onCreateFirstNode }) =>
       {/* Contenedor principal del contenido */}
       <div className={styles['content-container']}>
         {/* Icono principal con efectos visuales */}
-        <div className={styles['icon-container']}>
-          <div className={styles['icon-ring']}></div>
-          <div className={styles['main-icon']}>
-            <Sparkles size={32} />
-          </div>
-        </div>
+        {/* Icono principal eliminado */}
 
         {/* Título principal */}
         <h2 className={styles.title}>
@@ -71,7 +66,7 @@ const EmptyFlowState: React.FC<EmptyFlowStateProps> = ({ onCreateFirstNode }) =>
           </button>
         </div>
 
-        {/* Lista de características y beneficios */}
+        {/* Lista de características y beneficios 
         <div className={styles['features-list']}>
           <div className={styles['feature-item']}>
             <CheckCircle size={16} className={styles['feature-icon']} />
@@ -101,6 +96,7 @@ const EmptyFlowState: React.FC<EmptyFlowStateProps> = ({ onCreateFirstNode }) =>
             </span>
           </div>
         </div>
+        */}
       </div>
     </div>
   );

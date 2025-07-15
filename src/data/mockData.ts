@@ -55,7 +55,7 @@ export const proyectosMock: Proyecto[] = [
   {
     id: '3',
     nombre: 'App Móvil de Delivery',
-    descripción: 'Aplicación móvil para pedidos de comida con geolocalización, pagos integrados y seguimiento de entregas.',
+    descripcion: 'Aplicación móvil para pedidos de comida con geolocalización, pagos integrados y seguimiento de entregas.',
     colaboradores: [colaboradoresDisponibles[1], colaboradoresDisponibles[4]],
     fechaInicio: '2023-11-20',
     fechaCreacion: '2023-11-15',

@@ -34,8 +34,8 @@
 
 /* Contenedor del contenido principal */
 .content-container {
-  background: var(--theme-bg-primary);
-  padding: var(--spacing-3xl);
+background: var(--theme-bg-primary);
+padding: 5rem;
   border-radius: var(--border-radius-2xl);
   box-shadow: var(--shadow-xl);
   backdrop-filter: blur(10px);
