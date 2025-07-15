@@ -70,8 +70,18 @@
 }
 
 /* Estilos personalizados para los controles de React Flow */
-.react-flow__controls {
+
+.react-flow__controls,
+.rf-controls-light.react-flow__controls {
   background: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(8px);
+}
+
+.rf-controls-dark.react-flow__controls {
+  background: #353a40;
   border: 1px solid var(--theme-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-md);

@@ -72,7 +72,8 @@
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-fast);
-  border: 1px solid transparent;
+  background-color: var(--theme-bg-primary);
+  border-color: var(--theme-border);
 }
 
 .colaborador-item:hover {
@@ -85,11 +86,16 @@
 }
 
 .colaborador-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-color: var(--theme-bg-primary);
 }
 
 .colaborador-info {
@@ -110,4 +116,33 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Estilos para el contenedor de categorías */
+.categorias-container {
+  position: relative;
+}
+
+/* Estilo para el select cuando tiene una selección */
+.select.has-selection {
+  border-color: #10b981;
+  background-color: #f0fdf4;
+}
+
+/* Indicador de selección */
+.selection-indicator {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #10b981;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* Estilo para la información de selección */
+.selected-info {
+  color: #64748b;
+  font-size: 0.9em;
+  font-weight: normal;
 }

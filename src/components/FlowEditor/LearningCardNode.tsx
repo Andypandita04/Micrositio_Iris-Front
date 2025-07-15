@@ -74,6 +74,14 @@ const mockCollaborators = [
  * - Responsive y compatible con modo oscuro
  */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
+  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir
+  const statusMap: Record<string, { label: string; className: string }> = {
+    'cumplido': { label: 'Cumplido', className: 'learning-status-cumplido' },
+    'rechazado': { label: 'Rechazado', className: 'learning-status-rechazado' },
+    'repetir': { label: 'Repetir', className: 'learning-status-repetir' },
+  };
+  const statusKey = (data.status || '').toLowerCase();
+  const statusInfo = statusMap[statusKey];
   // Estado para controlar si el contenido está expandido
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -140,11 +148,17 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
         className="node-handle" 
       />
       
-      {/* Header de la card con tipo e ID */}
+      {/* Header de la card con tipo, estado e ID */}
       <div className="card-header">
-        <div className="card-type">
-          <BookOpen size={14} />
-          <span>Learning Card</span>
+        <div className="card-header-left">
+          <div className="card-type">
+            <BookOpen size={14} />
+            <span>Learning Card</span>
+          </div>
+          {/* Estado visual */}
+          {statusInfo && (
+            <span className={`learning-status-badge ${statusInfo.className}`}>{statusInfo.label}</span>
+          )}
         </div>
         <div className="card-id">#{data.id.slice(-4)}</div>
       </div>

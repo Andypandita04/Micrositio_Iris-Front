@@ -65,8 +65,8 @@ const Header: React.FC = () => {
             <span className={styles['logo-text']}>IR</span>
           </div>
           <h1 className={styles['logo-title']}>
-            <span className={styles['logo-innovative']}>Innovative</span>
-            <span className={styles['logo-repository']}>Repository</span>
+            <span className={styles['logo-innovative']}>Iris </span>
+            <span className={styles['logo-repository']}>Start up Lab</span>
           </h1>
         </Link>
 

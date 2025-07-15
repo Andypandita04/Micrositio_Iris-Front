@@ -22,6 +22,8 @@ import EmptyFlowState from './components/EmptyFlowState';
 import { TestingCardData, LearningCardData, NodeData } from './types';
 import './styles/FlowEditor.css';
 
+import { useTheme } from '../../hooks/useTheme';
+
 /**
  * Tipos de nodos disponibles en el FlowEditor
  * @constant nodeTypes
@@ -52,6 +54,7 @@ const nodeTypes = {
  * @returns {JSX.Element} Editor de flujo completo
  */
 const FlowEditor: React.FC = () => {
+  const { isDarkMode } = useTheme();
   // @state: Estados principales del editor
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -211,7 +214,7 @@ const FlowEditor: React.FC = () => {
         documentationUrls: [],
         responsible: '',
         experimentCategory: 'Descubrimiento',
-        status: 'En desarrollo',
+        status: 'En validación',
         collaborators: [],
         onAddTesting: () => createChildNode(newNodeId, 'testing'),
         onAddLearning: () => createChildNode(newNodeId, 'learning'),
@@ -262,7 +265,7 @@ const FlowEditor: React.FC = () => {
           documentationUrls: [],
           responsible: '',
           experimentCategory: 'Descubrimiento',
-          status: 'En desarrollo',
+          status: 'En validación',
           collaborators: [],
           onAddTesting: () => createChildNode(newNodeId, 'testing'),
           onAddLearning: () => createChildNode(newNodeId, 'learning'),
@@ -421,11 +424,12 @@ const FlowEditor: React.FC = () => {
           />
           
           {/* @component: Controles de zoom y navegación */}
-          <Controls 
+          <Controls
             position="top-right"
             showZoom={true}
             showFitView={true}
             showInteractive={true}
+            className={isDarkMode ? 'rf-controls-dark' : 'rf-controls-light'}
           />
         </ReactFlow>
 

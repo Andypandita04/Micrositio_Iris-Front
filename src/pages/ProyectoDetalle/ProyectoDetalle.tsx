@@ -11,7 +11,14 @@ import EditarProyectoModal from './components/EditarProyectoModal';
 import SecuenciasSection from './components/SecuenciasSection';
 import FlowEditorSection from './components/FlowEditorSection';
 import NuevaSecuenciaModal from './components/NuevaSecuenciaModal';
+import ColaboradoresProyecto from './ColaboradoresProyecto';
+import LiderProyecto from '../Proyectos/components/LiderProyecto';
 import styles from './ProyectoDetalle.module.css';
+import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
+import { obtenerProyectoPorId } from '../../services/proyectosService';
+import { useNavigate } from 'react-router-dom';
+import { eliminarProyecto } from '../../services/proyectosService';
+
 
 /**
  * Componente ProyectoDetalle
@@ -39,17 +46,17 @@ import styles from './ProyectoDetalle.module.css';
  */
 const ProyectoDetalle: React.FC = () => {
   const { proyectoId } = useParams<{ proyectoId: string }>();
-  
+
   // @state: Datos principales
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [secuencias, setSecuencias] = useState<Secuencia[]>([]);
   const [secuenciaSeleccionada, setSecuenciaSeleccionada] = useState<Secuencia | null>(null);
-  
+
   // @state: Control de modales
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNuevaSecuenciaModalOpen, setIsNuevaSecuenciaModalOpen] = useState(false);
   const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
-  
+
   // @state: Estados de carga
   const [loading, setLoading] = useState(true);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
@@ -59,28 +66,57 @@ const ProyectoDetalle: React.FC = () => {
    * @function useEffect
    */
   useEffect(() => {
-    // @simulation: Simular carga de datos desde API
-    const timer = setTimeout(() => {
-      if (proyectoId) {
-        const id = proyectoId.replace('proyecto-', '');
-        const proyectoEncontrado = proyectosMock.find(p => p.id === id);
-        setProyecto(proyectoEncontrado || null);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        if (proyectoId) {
+          const id = Number(proyectoId);
 
-        // @data: Cargar secuencias del proyecto
-        if (proyectoEncontrado) {
-          const secuenciasDelProyecto = secuenciasMock.filter(s => s.proyectoId === proyectoEncontrado.id);
-          setSecuencias(secuenciasDelProyecto);
-          
-          // @selection: Seleccionar la primera secuencia por defecto si existe
-          if (secuenciasDelProyecto.length > 0) {
-            setSecuenciaSeleccionada(secuenciasDelProyecto[0]);
+          // 1. Obtener proyecto
+          const proyectoData = await obtenerProyectoPorId(id);
+          const proyectoMapeado = {
+            id: proyectoData.id.toString(),
+            nombre: proyectoData.titulo,
+            descripcion: proyectoData.descripcion,
+            estado: proyectoData.estado.toLowerCase(),
+            fechaInicio: proyectoData.fecha_inicio || proyectoData.creado,
+            fechaCreacion: proyectoData.creado,
+            colaboradores: [],
+          };
+          setProyecto(proyectoMapeado);
+
+          // 2. Obtener secuencias (ACTUALIZADO)
+          const secuenciasData = await obtenerSecuenciasPorProyecto(id);
+
+          // Asegúrate de que sea un array
+          const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+
+          const secuenciasMapeadas = secuenciasArray
+            .filter(s => s && s.id !== undefined) // filtra elementos undefined o sin id
+            .map((s: any) => ({
+              id: s.id?.toString() ?? '',
+              nombre: s.nombre ?? '',
+              descripcion: s.descripcion ?? '',
+              proyectoId: s.id_proyecto?.toString() ?? '',
+              fechaCreacion: s.created_at ?? '',
+              estado: s.estado || 'activa',
+            }));
+          setSecuencias(secuenciasMapeadas);
+
+          if (secuenciasMapeadas.length > 0) {
+            setSecuenciaSeleccionada(secuenciasMapeadas[0]);
           }
         }
+      } catch (err) {
+        console.error('Error al cargar datos:', err);
+        setProyecto(null);
+        setSecuencias([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 500);
+    };
 
-    return () => clearTimeout(timer);
+    fetchData();
   }, [proyectoId]);
 
   /**
@@ -129,27 +165,53 @@ const ProyectoDetalle: React.FC = () => {
    * @function handleSecuenciaCreada
    * @param {CreateSecuenciaData} nuevaSecuenciaData - Datos de la nueva secuencia
    */
-  const handleSecuenciaCreada = (nuevaSecuenciaData: CreateSecuenciaData) => {
-    // @simulation: Simular creación de secuencia con ID único
-    const nuevaSecuencia: Secuencia = {
-      id: Date.now().toString(),
-      nombre: nuevaSecuenciaData.nombre,
-      descripcion: nuevaSecuenciaData.descripcion,
-      proyectoId: nuevaSecuenciaData.proyectoId,
-      fechaCreacion: new Date().toISOString().split('T')[0],
-      estado: 'activa'
-    };
+  const handleSecuenciaCreada = async (nuevaSecuenciaData: CreateSecuenciaData) => {
+    try {
+      // Llamar al endpoint real para crear la secuencia
+      await crearSecuencia({
+        nombre: nuevaSecuenciaData.nombre,
+        descripcion: nuevaSecuenciaData.descripcion,
+        id_proyecto: nuevaSecuenciaData.id_proyecto,
+        // Puedes agregar más campos si tu backend los requiere
+      });
 
-    // @update: Actualizar la lista de secuencias
-    setSecuencias(prev => [...prev, nuevaSecuencia]);
-    
-    // @selection: Seleccionar la nueva secuencia automáticamente
-    setSecuenciaSeleccionada(nuevaSecuencia);
-    
-    // @cleanup: Cerrar el modal
-    setIsNuevaSecuenciaModalOpen(false);
-
-    console.log('Nueva secuencia creada:', nuevaSecuencia);
+      // Refrescar la lista de secuencias desde el backend
+      if (proyectoId) {
+        const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+        const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+        const secuenciasMapeadas = secuenciasArray
+          .filter(s => s && s.id !== undefined)
+          .map((s: any) => ({
+            id: s.id?.toString() ?? '',
+            nombre: s.nombre ?? '',
+            descripcion: s.descripcion ?? '',
+            proyectoId: s.id_proyecto?.toString() ?? '',
+            fechaCreacion: s.created_at ?? '',
+            estado: s.estado || 'activa',
+          }));
+        setSecuencias(secuenciasMapeadas);
+        // Seleccionar la última secuencia creada
+        if (secuenciasMapeadas.length > 0) {
+          setSecuenciaSeleccionada(secuenciasMapeadas[secuenciasMapeadas.length - 1]);
+        }
+      }
+      setIsNuevaSecuenciaModalOpen(false);
+    } catch (error: any) {
+      console.error('Error al crear secuencia:', error);
+      if (error.response) {
+        console.error('Backend response:', error.response.data);
+        // Mostrar el mensaje de error del backend si existe
+        if (error.response.data && error.response.data.message) {
+          alert('Error del backend: ' + error.response.data.message);
+        } else if (typeof error.response.data === 'string') {
+          alert('Error del backend: ' + error.response.data);
+        } else {
+          alert('Error desconocido del backend. Revisa la consola para más detalles.');
+        }
+      } else {
+        alert('Error desconocido al crear la secuencia. Revisa la consola para más detalles.');
+      }
+    }
   };
 
   /**
@@ -157,16 +219,36 @@ const ProyectoDetalle: React.FC = () => {
    * @function handleEliminarSecuencia
    * @param {string} secuenciaId - ID de la secuencia a eliminar
    */
-  const handleEliminarSecuencia = (secuenciaId: string) => {
-    // @update: Filtrar secuencias para eliminar la seleccionada
-    setSecuencias(prev => prev.filter(s => s.id !== secuenciaId));
-    
-    // @cleanup: Limpiar selección si era la secuencia eliminada
-    if (secuenciaSeleccionada?.id === secuenciaId) {
-      setSecuenciaSeleccionada(null);
-    }
+  const handleEliminarSecuencia = async (secuenciaId: string) => {
+    try {
+      await eliminarSecuencia(Number(secuenciaId));
 
-    console.log('Secuencia eliminada:', secuenciaId);
+      // Refrescar la lista de secuencias desde el backend
+      if (proyectoId) {
+        const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+        const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+        const secuenciasMapeadas = secuenciasArray
+          .filter(s => s && s.id !== undefined)
+          .map((s: any) => ({
+            id: s.id?.toString() ?? '',
+            nombre: s.nombre ?? '',
+            descripcion: s.descripcion ?? '',
+            proyectoId: s.id_proyecto?.toString() ?? '',
+            fechaCreacion: s.created_at ?? '',
+            estado: s.estado || 'activa',
+          }));
+        setSecuencias(secuenciasMapeadas);
+        // Seleccionar la primera secuencia si existe
+        if (secuenciasMapeadas.length > 0) {
+          setSecuenciaSeleccionada(secuenciasMapeadas[0]);
+        } else {
+          setSecuenciaSeleccionada(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error al eliminar secuencia:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    }
   };
 
   /**
@@ -187,18 +269,21 @@ const ProyectoDetalle: React.FC = () => {
     setIsDeletingProject(true);
 
     try {
-      // @simulation: Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Llamada al servicio de eliminación
+      await eliminarProyecto(Number(proyecto.id));
       
-      // @todo: Implementar eliminación real del proyecto
-      console.log('Proyecto eliminado:', proyecto.id);
+      // Feedback de éxito (podría implementarse con un toast/notificación)
+      console.log('Proyecto eliminado exitosamente');
       
-      // @navigation: Redirigir a lista de proyectos
-      // navigate('/proyectos');
+      // Redirigir a la lista de proyectos
+      //navigator('/proyectos');
       
     } catch (error) {
       console.error('Error al eliminar proyecto:', error);
-      // @todo: Mostrar mensaje de error al usuario
+      
+      // Mostrar feedback al usuario (podría implementarse con un modal/notificación)
+      alert('No se pudo eliminar el proyecto. Por favor intente nuevamente.');
+      
     } finally {
       setIsDeletingProject(false);
       setShowDeleteProjectModal(false);
@@ -279,7 +364,7 @@ const ProyectoDetalle: React.FC = () => {
               <h1 className={styles['proyecto-nombre']}>{proyecto.nombre}</h1>
               <p className={styles['proyecto-descripcion']}>{proyecto.descripcion}</p>
             </div>
-            
+
             {/* @component: Dropdown de acciones reemplazando botón Editar */}
             <ActionDropdown
               actions={dropdownActions}
@@ -291,18 +376,7 @@ const ProyectoDetalle: React.FC = () => {
           <div className={styles['proyecto-meta']}>
             <div className={styles['meta-section']}>
               <span className={styles['meta-label']}>Colaboradores:</span>
-              <div className={styles['colaboradores-list']}>
-                {proyecto.colaboradores.map((colaborador) => (
-                  <div key={colaborador.id} className={styles['colaborador-item']}>
-                    <img
-                      src={colaborador.avatar}
-                      alt={colaborador.nombre}
-                      className={styles['colaborador-avatar']}
-                    />
-                    <span className={styles['colaborador-nombre']}>{colaborador.nombre}</span>
-                  </div>
-                ))}
-              </div>
+              <ColaboradoresProyecto idProyecto={Number(proyecto.id)} />
             </div>
 
             <div className={styles['meta-section']}>
@@ -310,6 +384,11 @@ const ProyectoDetalle: React.FC = () => {
               <span className={styles['proyecto-fecha']}>
                 {formatearFecha(proyecto.fechaInicio)}
               </span>
+            </div>
+
+            <div className={styles['meta-section']}>
+              <span className={styles['meta-label']}>Líder:</span>
+              <LiderProyecto idProyecto={Number(proyecto.id)} />
             </div>
           </div>
         </div>
@@ -321,6 +400,30 @@ const ProyectoDetalle: React.FC = () => {
           onSecuenciaSelect={handleSecuenciaSelect}
           onNuevaSecuencia={handleNuevaSecuencia}
           onEliminarSecuencia={handleEliminarSecuencia}
+          onEditarSecuencia={async () => {
+            if (proyectoId) {
+              const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+              const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+              const secuenciasMapeadas = secuenciasArray
+                .filter(s => s && s.id !== undefined)
+                .map((s: any) => ({
+                  id: s.id?.toString() ?? '',
+                  nombre: s.nombre ?? '',
+                  descripcion: s.descripcion ?? '',
+                  proyectoId: s.id_proyecto?.toString() ?? '',
+                  fechaCreacion: s.created_at ?? '',
+                  estado: s.estado || 'activa',
+                }));
+              setSecuencias(secuenciasMapeadas);
+              // Mantener la secuencia seleccionada si existe
+              if (secuenciaSeleccionada) {
+                const actualizada = secuenciasMapeadas.find(s => s.id === secuenciaSeleccionada.id);
+                setSecuenciaSeleccionada(actualizada || (secuenciasMapeadas[0] ?? null));
+              } else if (secuenciasMapeadas.length > 0) {
+                setSecuenciaSeleccionada(secuenciasMapeadas[0]);
+              }
+            }
+          }}
         />
 
         {/* @section: Editor de flujo */}

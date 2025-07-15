@@ -10,5 +10,5 @@ export interface Secuencia {
 export interface CreateSecuenciaData {
   nombre: string;
   descripcion: string;
-  proyectoId: string;
+  id_proyecto: number;
 }
