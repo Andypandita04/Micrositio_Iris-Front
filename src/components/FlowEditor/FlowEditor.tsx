@@ -28,7 +28,7 @@ import { useTheme } from '../../hooks/useTheme';
  * Tipos de nodos disponibles en el FlowEditor
  * @constant nodeTypes
  */
-const nodeTypes = {
+const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
@@ -192,38 +192,36 @@ const FlowEditor: React.FC = () => {
    * @function createFirstNode
    */
   const createFirstNode = useCallback(() => {
-    const newNodeId = `node-${nodeIdCounter.current++}`;
-    
+    const newNodeId = nodeIdCounter.current++;
     const newNode: Node<TestingCardData> = {
-      id: newNodeId,
+      id: `node-${newNodeId}`,
       type: 'testing',
-      position: { x: 250, y: 100 }, // @position: Posición central inicial
-      style: { zIndex: 1000 }, // @z-index: Nodo raíz
+      position: { x: 250, y: 100 },
+      style: { zIndex: 1000 },
       data: {
-        id: newNodeId,
-        type: 'testing',
-        title: `Testing Card ${nodeIdCounter.current - 1}`,
-        hypothesis: 'Creemos que...',
-        experimentType: 'Entrevista',
-        description: 'Descripción del experimento',
-        metrics: [],
-        criteria: [],
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        attachments: [],
-        documentationUrls: [],
-        responsible: '',
-        experimentCategory: 'Descubrimiento',
+        id_testing_card: newNodeId,
+        id_secuencia: 0,
+        titulo: `Testing Card ${newNodeId}`,
+        hipotesis: 'Creemos que...',
+        id_experimento_tipo: 1,
+        descripcion: 'Descripción del experimento',
+        dia_inicio: new Date().toISOString().split('T')[0],
+        dia_fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        anexo_url: null,
+        id_responsable: 0,
         status: 'En validación',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        metricas: [],
+        documentationUrls: [],
+        attachments: [],
         collaborators: [],
-        onAddTesting: () => createChildNode(newNodeId, 'testing'),
-        onAddLearning: () => createChildNode(newNodeId, 'learning'),
-        onEdit: () => openEditModal(newNodeId),
-        onDelete: () => deleteNode(newNodeId),
+        onAddTesting: () => createChildNode(`node-${newNodeId}`, 'testing'),
+        onAddLearning: () => createChildNode(`node-${newNodeId}`, 'learning'),
+        onEdit: () => openEditModal(`node-${newNodeId}`),
+        onDelete: () => deleteNode(`node-${newNodeId}`),
       },
     };
-    
-    // @action: Resetear niveles y añadir nodo
     nodeLevels.current.clear();
     setNodes([newNode]);
   }, [setNodes]);
@@ -237,83 +235,74 @@ const FlowEditor: React.FC = () => {
   const createChildNode = useCallback((parentId: string, childType: 'testing' | 'learning') => {
     const parentNode = nodes.find(node => node.id === parentId);
     if (!parentNode) return;
-
-    const newNodeId = `node-${nodeIdCounter.current++}`;
+    const newNodeId = nodeIdCounter.current++;
     const newPosition = getNodePosition(parentNode, childType, nodes);
     const parentLevel = calculateNodeLevel(parentId, nodes, edges);
     const newZIndex = 1000 + parentLevel + 1;
-
     if (childType === 'testing') {
-      // @creation: Crear nueva Testing Card
       const newNode: Node<TestingCardData> = {
-        id: newNodeId,
+        id: `node-${newNodeId}`,
         type: 'testing',
         position: newPosition,
         style: { zIndex: newZIndex },
         data: {
-          id: newNodeId,
-          type: 'testing',
-          title: `Testing Card ${nodeIdCounter.current - 1}`,
-          hypothesis: 'Creemos que...',
-          experimentType: 'Entrevista',
-          description: 'Descripción del experimento',
-          metrics: [],
-          criteria: [],
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          attachments: [],
-          documentationUrls: [],
-          responsible: '',
-          experimentCategory: 'Descubrimiento',
+          id_testing_card: newNodeId,
+          id_secuencia: 0,
+          titulo: `Testing Card ${newNodeId}`,
+          hipotesis: 'Creemos que...',
+          id_experimento_tipo: 1,
+          descripcion: 'Descripción del experimento',
+          dia_inicio: new Date().toISOString().split('T')[0],
+          dia_fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          anexo_url: null,
+          id_responsable: 0,
           status: 'En validación',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metricas: [],
+          documentationUrls: [],
+          attachments: [],
           collaborators: [],
-          onAddTesting: () => createChildNode(newNodeId, 'testing'),
-          onAddLearning: () => createChildNode(newNodeId, 'learning'),
-          onEdit: () => openEditModal(newNodeId),
-          onDelete: () => deleteNode(newNodeId),
+          onAddTesting: () => createChildNode(`node-${newNodeId}`, 'testing'),
+          onAddLearning: () => createChildNode(`node-${newNodeId}`, 'learning'),
+          onEdit: () => openEditModal(`node-${newNodeId}`),
+          onDelete: () => deleteNode(`node-${newNodeId}`),
         },
       };
       setNodes((nds) => [...nds, newNode]);
-      
-      // @connection: Crear conexión desde el handle derecho del padre
       const newEdge: Edge = {
-        id: `edge-${parentId}-${newNodeId}`,
+        id: `edge-${parentId}-node-${newNodeId}`,
         source: parentId,
-        target: newNodeId,
+        target: `node-${newNodeId}`,
         sourceHandle: 'right',
         targetHandle: 'left',
         style: { stroke: 'var(--color-primary-purple)', strokeWidth: 2 }
       };
       setEdges((eds) => [...eds, newEdge]);
-      
     } else {
-      // @creation: Crear nueva Learning Card
       const newNode: Node<LearningCardData> = {
-        id: newNodeId,
+        id: `node-${newNodeId}`,
         type: 'learning',
         position: newPosition,
         style: { zIndex: newZIndex },
         data: {
           id: newNodeId,
-          type: 'learning',
-          testingCardId: parentId,
-          result: '',
-          actionableInsight: '',
-          links: [],
+          id_testing_card: 0,
+          resultado: '',
+          hallazgo: '',
+          estado: 'CUMPLIDO',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
           attachments: [],
-          documentationUrls: [],
-          collaborators: [],
-          onEdit: () => openEditModal(newNodeId),
-          onDelete: () => deleteNode(newNodeId),
+          onEdit: () => openEditModal(`node-${newNodeId}`),
+          onDelete: () => deleteNode(`node-${newNodeId}`),
         },
       };
       setNodes((nds) => [...nds, newNode]);
-      
-      // @connection: Crear conexión desde el handle inferior del padre
       const newEdge: Edge = {
-        id: `edge-${parentId}-${newNodeId}`,
+        id: `edge-${parentId}-node-${newNodeId}`,
         source: parentId,
-        target: newNodeId,
+        target: `node-${newNodeId}`,
         sourceHandle: 'bottom',
         targetHandle: 'top',
         style: { stroke: 'var(--color-success)', strokeWidth: 2 }
@@ -359,14 +348,12 @@ const FlowEditor: React.FC = () => {
       const sourceNode = nodes.find(n => n.id === params.source);
       const targetNode = nodes.find(n => n.id === params.target);
       
-      let edgeStyle = { strokeWidth: 2 };
-      
+      let edgeStyle: any = { strokeWidth: 2 };
       if (sourceNode?.type === 'testing' && targetNode?.type === 'learning') {
         edgeStyle = { ...edgeStyle, stroke: 'var(--color-success)' };
       } else if (sourceNode?.type === 'testing' && targetNode?.type === 'testing') {
         edgeStyle = { ...edgeStyle, stroke: 'var(--color-primary-purple)' };
       }
-      
       const newEdge = { ...params, style: edgeStyle };
       setEdges((eds) => addEdge(newEdge, eds));
     },

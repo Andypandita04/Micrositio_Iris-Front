@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, FileText, BookOpen, Link as LinkIcon, Paperclip, Users, Upload, Plus, Trash2 } from 'lucide-react';
+import { X, Save, FileText, BookOpen, Link as LinkIcon, Upload, Plus, Trash2 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
-//import CollaboratorSelector from './components/CollaboratorSelector';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -18,60 +17,6 @@ interface LearningCardEditModalProps {
   /** Función callback para cerrar el modal */
   onClose: () => void;
 }
-
-/**
- * Interfaz para colaboradores (mock data)
- * @interface Collaborator
- 
-interface Collaborator {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role?: string;
-}*/
-
-/**
- * Mock data de colaboradores disponibles
- * @constant mockCollaborators
- 
-const mockCollaborators: Collaborator[] = [
-  {
-    id: '1',
-    name: 'Ana García',
-    email: 'ana.garcia@empresa.com',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Product Manager'
-  },
-  {
-    id: '2',
-    name: 'Carlos Rodríguez',
-    email: 'carlos.rodriguez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'UX Designer'
-  },
-  {
-    id: '3',
-    name: 'María López',
-    email: 'maria.lopez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Developer'
-  },
-  {
-    id: '4',
-    name: 'David Martínez',
-    email: 'david.martinez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Data Analyst'
-  },
-  {
-    id: '5',
-    name: 'Laura Sánchez',
-    email: 'laura.sanchez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'QA Engineer'
-  }
-]; */
 
 /**
  * Modal para editar Learning Cards con sistema completo de documentación
@@ -97,10 +42,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [formData, setFormData] = useState<LearningCardData>(node.data);
 
   // Estados locales para links, documentación y archivos adjuntos
-  const [links, setLinks] = useState<string[]>([]);
   const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
-  const [newLink, setNewLink] = useState('');
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDocumentation, setShowDocumentation] = useState(false);
@@ -113,14 +56,6 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   ];
 
   // Funciones para manejar links/documentos/archivos SOLO en el modal
-  const addLink = () => {
-    if (newLink.trim() && !links.includes(newLink.trim())) {
-      setLinks([...links, newLink.trim()]);
-      setNewLink('');
-    }
-  };
-  const removeLink = (index: number) => setLinks(links.filter((_, i) => i !== index));
-
   const addDocumentationUrl = (url: string) => {
     if (!documentationUrls.includes(url)) setDocumentationUrls([...documentationUrls, url]);
   };
