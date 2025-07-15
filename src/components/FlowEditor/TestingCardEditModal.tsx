@@ -10,13 +10,11 @@ import {
   Link as LinkIcon,
   Upload,
   Plus,
-  Trash2,
-  Users
+  Trash2
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
-import CollaboratorSelector from './components/CollaboratorSelector';
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import './styles/TestingCardEditModal.css';
@@ -33,60 +31,6 @@ interface TestingCardEditModalProps {
   /** Función callback para cerrar el modal */
   onClose: () => void;
 }
-
-/**
- * Interfaz para colaboradores (mock data)
- * @interface Collaborator
- */
-interface Collaborator {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role?: string;
-}
-
-/**
- * Mock data de colaboradores disponibles
- * @constant mockCollaborators
- */
-const mockCollaborators: Collaborator[] = [
-  {
-    id: '1',
-    name: 'Ana García',
-    email: 'ana.garcia@empresa.com',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Product Manager'
-  },
-  {
-    id: '2',
-    name: 'Carlos Rodríguez',
-    email: 'carlos.rodriguez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'UX Designer'
-  },
-  {
-    id: '3',
-    name: 'María López',
-    email: 'maria.lopez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Developer'
-  },
-  {
-    id: '4',
-    name: 'David Martínez',
-    email: 'david.martinez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Data Analyst'
-  },
-  {
-    id: '5',
-    name: 'Laura Sánchez',
-    email: 'laura.sanchez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'QA Engineer'
-  }
-];
 
 /**
  * Modal para editar Testing Cards con sistema de documentación completo
@@ -120,36 +64,17 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   
   // @state: Control de secciones expandibles
   const [showMetrics, setShowMetrics] = useState(false);
-  const [showCriteria, setShowCriteria] = useState(false);
-  const [showCollaborators, setShowCollaborators] = useState(false);
   const [showDocumentation, setShowDocumentation] = useState(false);
   
   // @state: Control del modal de documentación
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   
-  // @state: Colaboradores seleccionados (convertir IDs a objetos)
-  const [selectedCollaborators, setSelectedCollaborators] = useState<Collaborator[]>([]);
-
   // @state: Lista de empleados para el selector de líder
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   // @state: Loading para empleados
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
   // @state: Error al cargar empleados
   const [empleadosError, setEmpleadosError] = useState<string | null>(null);
-
-  /**
-   * Efecto para inicializar colaboradores seleccionados
-   * @function useEffect
-   */
-  useEffect(() => {
-    // @logic: Convertir IDs de colaboradores a objetos completos
-    if (formData.collaborators) {
-      const collaboratorObjects = mockCollaborators.filter(
-        collaborator => formData.collaborators?.includes(collaborator.id)
-      );
-      setSelectedCollaborators(collaboratorObjects);
-    }
-  }, [formData.collaborators]);
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -232,19 +157,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const removeMetric = (index: number) => {
     const updatedMetrics = formData.metrics.filter((_, i) => i !== index);
     setFormData({ ...formData, metrics: updatedMetrics });
-  };
-
-  /**
-   * Maneja el cambio de colaboradores seleccionados
-   * @function handleCollaboratorsChange
-   * @param {Collaborator[]} collaborators - Nuevos colaboradores seleccionados
-   */
-  const handleCollaboratorsChange = (collaborators: Collaborator[]) => {
-    setSelectedCollaborators(collaborators);
-    setFormData({
-      ...formData,
-      collaborators: collaborators.map(c => c.id)
-    });
   };
 
   /**
@@ -474,32 +386,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             />
             {errors.description && <span className="testing-error-text">{errors.description}</span>}
           </div>
-
-          {/* @section: Colaboradores expandible 
-          <div className="testing-form-section">
-            <button 
-              type="button" 
-              className="testing-form-section-toggle"
-              onClick={() => setShowCollaborators(!showCollaborators)}
-            >
-              <ChevronDown className={`toggle-icon ${showCollaborators ? 'open' : ''}`} />
-              <Users className="testing-form-icon" />
-              <span>Colaboradores</span>
-            </button>
-            
-            {showCollaborators && (
-              <div className="testing-form-section-content">
-                <CollaboratorSelector
-                  availableCollaborators={mockCollaborators}
-                  selectedCollaborators={selectedCollaborators}
-                  onSelectionChange={handleCollaboratorsChange}
-                  placeholder="Buscar colaboradores..."
-                  maxVisibleChips={3}
-                />
-              </div>
-            )}
-          </div>
-          */}
 
           {/* @section: Documentación expandible */}
           <div className="testing-form-section">
