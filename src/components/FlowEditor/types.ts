@@ -93,7 +93,7 @@ export interface TestingCardData {
   /** URLs de documentación de referencia */
   documentationUrls?: string[];
   /** Responsable del experimento */
-  responsible: string;
+  responsible: number;
   /** Categoría del experimento */
   experimentCategory: ExperimentCategory;
   /** Estado actual del experimento */

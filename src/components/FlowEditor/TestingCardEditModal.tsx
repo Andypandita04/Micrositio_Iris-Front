@@ -17,6 +17,8 @@ import { Node } from 'reactflow';
 import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
 import CollaboratorSelector from './components/CollaboratorSelector';
+import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
+import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -108,7 +110,10 @@ const mockCollaborators: Collaborator[] = [
  */
 const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose }) => {
   // @state: Datos del formulario
-  const [formData, setFormData] = useState<TestingCardData>(node.data);
+  const [formData, setFormData] = useState<TestingCardData>({
+    ...node.data,
+    responsible: typeof node.data.responsible === 'number' ? node.data.responsible : 0
+  });
   
   // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -124,6 +129,13 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   
   // @state: Colaboradores seleccionados (convertir IDs a objetos)
   const [selectedCollaborators, setSelectedCollaborators] = useState<Collaborator[]>([]);
+
+  // @state: Lista de empleados para el selector de líder
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  // @state: Loading para empleados
+  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  // @state: Error al cargar empleados
+  const [empleadosError, setEmpleadosError] = useState<string | null>(null);
 
   /**
    * Efecto para inicializar colaboradores seleccionados
@@ -150,6 +162,14 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  /**
+   * Efecto para cargar empleados al montar el componente
+   * @function useEffect
+   */
+  useEffect(() => {
+    cargarEmpleados();
+  }, []);
 
   /**
    * Valida todos los campos del formulario
@@ -272,6 +292,55 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       attachments: [...formData.attachments, ...newAttachments]
     });
   };
+
+  /**
+   * Carga la lista de empleados
+   * @function cargarEmpleados
+   */
+  const cargarEmpleados = async () => {
+    setLoadingEmpleados(true);
+    setEmpleadosError(null);
+    try {
+      const data = await obtenerEmpleados();
+      setEmpleados(data);
+    } catch (error: any) {
+      setEmpleadosError('Error al cargar empleados');
+    } finally {
+      setLoadingEmpleados(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo de un empleado
+   * @function getNombreCompleto
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Nombre completo del empleado
+   */
+  const getNombreCompleto = (empleado: Empleado) => {
+    return `${empleado.nombre_pila} ${empleado.apellido_paterno}${empleado.apellido_materno ? ' ' + empleado.apellido_materno : ''}`;
+  };
+
+  /**
+   * Obtiene las iniciales de un empleado
+   * @function getIniciales
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Iniciales del empleado
+   */
+  const getIniciales = (empleado: Empleado) => {
+    const nombres = [empleado.nombre_pila, empleado.apellido_paterno, empleado.apellido_materno].filter(Boolean);
+    return nombres.map(n => (n ? n[0] : '')).join('').toUpperCase();
+  };
+
+  const avatarColors = [
+    '#6C63FF', '#FF6584', '#43E6FC', '#FFD166', '#06D6A0', '#FFB5E8', '#B5FFFC', '#B5FFD6', '#B5B5FF', '#FFB5B5'
+  ];
+  /**
+   * Obtiene el color del avatar según el índice
+   * @function getAvatarColor
+   * @param {number} index - Índice del empleado
+   * @returns {string} Color del avatar
+   */
+  const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
 
   return (
     <div className="testing-modal-backdrop">
@@ -617,14 +686,29 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           <div className="testing-form-group">
             <label htmlFor="responsible" className="testing-form-label">
               Responsable
+              {empleados.length > 0 && formData.responsible ? (
+                (() => {
+                  const emp = empleados.find(e => e.id_empleado === formData.responsible);
+                  return emp ? (
+                    <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
+                      (Seleccionado: {getNombreCompleto(emp)})
+                    </span>
+                  ) : null;
+                })()
+              ) : null}
             </label>
-            <input
-              type="text"
-              id="responsible"
-              value={formData.responsible}
-              onChange={(e) => setFormData({...formData, responsible: e.target.value})}
-              className="testing-input"
-              placeholder="Nombre del responsable"
+            {/* Selector de líder (empleado) */}
+            <EmpleadoSelector
+              empleados={empleados}
+              loading={loadingEmpleados}
+              loadingEmpleados={loadingEmpleados}
+              errors={{...errors, empleados: empleadosError || ''}}
+              selectedId={formData.responsible}
+              onSelect={(id: number) => setFormData({ ...formData, responsible: id })}
+              cargarEmpleados={cargarEmpleados}
+              getNombreCompleto={getNombreCompleto}
+              getIniciales={getIniciales}
+              getAvatarColor={getAvatarColor}
             />
           </div>
 
