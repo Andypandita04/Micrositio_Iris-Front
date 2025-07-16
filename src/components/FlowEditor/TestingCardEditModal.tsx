@@ -155,12 +155,62 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       setLoading(true);
       setErrorMsg('');
       setSuccessMsg('');
+      // Validación y limpieza extra del payload
+      // Limpiar payload: solo enviar campos válidos al backend
+      const {
+        id_testing_card,
+        titulo,
+        hipotesis,
+        descripcion,
+        dia_inicio,
+        dia_fin,
+        id_responsable,
+        id_experimento_tipo,
+        status,
+        metricas,
+        documentationUrls,
+        attachments,
+        collaborators,
+        id_secuencia,
+        padre_id,
+        anexo_url,
+        // creado, actualizado, id eliminados por tipado
+      } = formData;
+      const payload = {
+        id_testing_card,
+        titulo: titulo.trim(),
+        hipotesis: hipotesis.trim(),
+        descripcion: descripcion.trim(),
+        dia_inicio: dia_inicio || '',
+        dia_fin: dia_fin || '',
+        id_responsable: Number(id_responsable) || -1,
+        id_experimento_tipo: Number(id_experimento_tipo) || 1,
+        status: status || 'En validación',
+        metricas: Array.isArray(metricas) ? metricas : [],
+        documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
+        attachments: Array.isArray(attachments) ? attachments : [],
+        collaborators: Array.isArray(collaborators) ? collaborators : [],
+        id_secuencia,
+        padre_id,
+        anexo_url,
+      };
+      // Log para depuración
+      console.log('[TestingCardEditModal] Payload enviado:', payload);
       try {
-        await actualizarTestingCard(formData.id_testing_card, formData);
+        await actualizarTestingCard(payload.id_testing_card, payload);
         setSuccessMsg('¡Guardado exitosamente!');
-        onSave(formData); // Notifica al padre
-      } catch (err) {
-        setErrorMsg('Error al guardar en la base de datos');
+        onSave(payload); // Notifica al padre
+      } catch (err: any) {
+        // Mostrar mensaje detallado del backend si existe
+        let backendMsg = 'Error al guardar en la base de datos';
+        if (err?.response?.data?.detail) {
+          backendMsg = err.response.data.detail;
+        } else if (err?.message) {
+          backendMsg = err.message;
+        }
+        setErrorMsg(backendMsg);
+        // Log para depuración
+        console.error('[TestingCardEditModal] Error al actualizar:', err);
       } finally {
         setLoading(false);
       }
