@@ -8,9 +8,16 @@ export const obtenerTestingCardPorId = async (id_testing_card: string | number) 
 
 // Obtener Testing Cards por Secuencia
 export const obtenerTestingCardsPorSecuencia = async (id_secuencia: string | number) => {
-  const response = await apiClient.get(`/testing-card/s`, { params: { id_secuencia } });
+  const response = await apiClient.request({
+    method: 'POST',
+    url: '/testing_card/s', 
+    data: { id_secuencia }, // <- Esto es lo inusual
+    headers: { 'Content-Type': 'application/json' }
+  });
   return response.data;
 };
+
+
 
 // Obtener Testing Cards por Padre
 export const obtenerTestingCardsPorPadre = async (padre_id: string | number) => {
