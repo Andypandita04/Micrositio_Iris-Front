@@ -37,7 +37,7 @@ interface FlowEditorProps {
   idSecuencia?: string | number;
 }
 
-const nodeTypes: any = {
+const nodeTypes = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
@@ -51,12 +51,44 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const nodeIdCounter = useRef(1);
   const nodeLevels = useRef<Map<string, number>>(new Map());
 
-  useEffect(() => {
-    if (!idSecuencia) return;
+  const handleCreateFirstTestingCard = useCallback(async () => {
+    try {
+      if (!idSecuencia) return;
+      
+      const nuevaCard = await crearTestingCard({
+        titulo: `Testing Card Inicial`,
+        status: 'En validación',
+        id_secuencia: Number(idSecuencia)
+      });
 
+      const nuevoNodo = {
+        id: `testing-${nuevaCard.id_testing_card}`,
+        type: 'testing',
+        position: { x: 250, y: 100 },
+        data: {
+          ...nuevaCard,
+          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+        },
+      };
+
+      setNodes([nuevoNodo]);
+    } catch (error) {
+      console.error('Error creando primera Testing Card:', error);
+    }
+  }, [idSecuencia, setNodes]);
+
+  useEffect(() => {
     const fetchInitialData = async () => {
       try {
+        if (!idSecuencia) return;
+
         const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
+        
+        if (testingCards.length === 0) {
+          // No hay cards, se mostrará EmptyFlowState
+          return;
+        }
 
         const nodesAccum: Node[] = [];
         for (const card of testingCards) {
@@ -101,6 +133,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         padre_id: parseInt(padreId, 10),
         titulo: `Nueva Testing Card ${Date.now()}`,
         status: 'En validación',
+        id_secuencia: Number(idSecuencia)
       });
 
       const nuevoNodo = {
@@ -199,6 +232,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         >
           <Background variant={BackgroundVariant.Dots} />
           <Controls />
+          
+          {nodes.length === 0 && (
+            <EmptyFlowState onCreateFirstNode={handleCreateFirstTestingCard} />
+          )}
         </ReactFlow>
       </ReactFlowProvider>
     </div>
