@@ -69,8 +69,11 @@ export interface TestingCardData {
   status: 'En desarrollo' | 'En validación' | 'En ejecución' | 'Cancelado' | 'Terminado';
   created_at?: string;
   updated_at?: string;
-
-  
+  // Opcionales para frontend
+  metricas?: MetricaTestingCard[];
+  documentationUrls?: string[];
+  attachments?: Attachment[];
+  collaborators?: string[];
   // @callbacks: Funciones de acción para el nodo
   /** Callback para añadir una Testing Card conectada */
   onAddTesting?: () => void;

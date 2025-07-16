@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -6,8 +6,6 @@ import ReactFlow, {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge,
-  Connection,
   ReactFlowProvider,
   BackgroundVariant,
 } from 'reactflow';
@@ -21,8 +19,6 @@ import EmptyFlowState from './components/EmptyFlowState';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
 import './styles/FlowEditor.css';
-
-import { useTheme } from '../../hooks/useTheme';
 
 import {
   obtenerTestingCardsPorSecuencia,
@@ -43,67 +39,79 @@ const nodeTypes: any = {
 };
 
 const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
-  const { isDarkMode } = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
-  const nodeIdCounter = useRef(1);
-  const nodeLevels = useRef<Map<string, number>>(new Map());
+
+  const fetchInitialData = async () => {
+    if (!idSecuencia) return;
+    try {
+      console.log('[FlowEditor] Solicitando Testing Cards con idSecuencia:', idSecuencia);
+      const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
+      console.log('[FlowEditor] Respuesta de obtenerTestingCardsPorSecuencia:', testingCards);
+
+      const nodesAccum: Node[] = [];
+      for (const card of testingCards) {
+        const learningCards = card.learning_cards || [];
+
+        const testingNode: Node = {
+          id: `testing-${card.id_testing_card}`,
+          type: 'testing',
+          position: { x: 250, y: 100 + nodesAccum.length * 100 },
+          data: {
+            ...card,
+            onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
+            onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+          },
+        };
+
+        nodesAccum.push(testingNode);
+
+        for (const lc of learningCards) {
+          nodesAccum.push({
+            id: `learning-${lc.id}`,
+            type: 'learning',
+            position: { x: 250, y: testingNode.position.y + 200 },
+            data: { ...lc },
+          });
+        }
+      }
+
+      setNodes(nodesAccum);
+      generarConexiones(testingCards, nodesAccum);
+    } catch (error) {
+      console.error('[FlowEditor] Error cargando datos:', error);
+    }
+  };
 
   useEffect(() => {
-    if (!idSecuencia) return;
-
-    const fetchInitialData = async () => {
-      try {
-        const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
-
-        const nodesAccum: Node[] = [];
-        for (const card of testingCards) {
-          const learningCards = card.learning_cards || [];
-
-          const testingNode: Node = {
-            id: `testing-${card.id_testing_card}`,
-            type: 'testing',
-            position: { x: 250, y: 100 + nodesAccum.length * 100 },
-            data: {
-              ...card,
-              onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
-              onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
-            },
-          };
-
-          nodesAccum.push(testingNode);
-
-          for (const lc of learningCards) {
-            nodesAccum.push({
-              id: `learning-${lc.id}`,
-              type: 'learning',
-              position: { x: 250, y: testingNode.position.y + 200 },
-              data: { ...lc },
-            });
-          }
-        }
-
-        setNodes(nodesAccum);
-        generarConexiones(testingCards, nodesAccum);
-      } catch (error) {
-        console.error('[FlowEditor] Error cargando datos:', error);
-      }
-    };
-
-    fetchInitialData();
+    // Solo intenta cargar datos si no acabas de crear la primera Testing Card
+    if (nodes.length === 0) {
+      fetchInitialData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idSecuencia]);
 
   const crearPrimeraTestingCard = async () => {
     if (!idSecuencia) return;
     try {
-      const nuevaCard = await crearTestingCard({
-        id_secuencia: idSecuencia,
-        titulo: 'titulodefault',
-      });
-
-      const nuevoNodo: Node = {
+      const payload = {
+        id_secuencia: Number(idSecuencia),
+        titulo: 'Primer experimento', // >= 3 caracteres
+        hipotesis: 'Hipótesis inicial de prueba', // >= 10 caracteres
+        id_experimento_tipo: 2, // Debe existir en tu catálogo
+        descripcion: 'Descripción inicial de prueba', // >= 10 caracteres
+        dia_inicio: new Date().toISOString().slice(0, 10),
+        dia_fin: new Date().toISOString().slice(0, 10),
+        id_responsable: 1, // Cambia por el id de usuario real si lo tienes
+        status: 'En desarrollo'
+      };
+      console.log('[FlowEditor] Enviando payload para crear Testing Card:', payload);
+      const nuevaCard = await crearTestingCard(payload);
+      console.log('[FlowEditor] Respuesta al crear Testing Card:', nuevaCard);
+      // En vez de fetchInitialData, agrega el nodo directamente
+      const testingNode = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
         position: { x: 250, y: 100 },
@@ -113,8 +121,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
         },
       };
-
-      setNodes([nuevoNodo]);
+      setNodes([testingNode]);
+      setEdges([]); // Sin conexiones al inicio
     } catch (error) {
       console.error('[FlowEditor] Error creando primera Testing Card:', error);
     }
