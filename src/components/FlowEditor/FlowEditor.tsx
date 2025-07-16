@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -24,442 +24,183 @@ import './styles/FlowEditor.css';
 
 import { useTheme } from '../../hooks/useTheme';
 
-/**
- * Tipos de nodos disponibles en el FlowEditor
- * @constant nodeTypes
- */
+import {
+  obtenerTestingCardsPorSecuencia,
+  crearTestingCard,
+} from '../../services/testingCardService';
+
+import {
+  crear as crearLearningCard,
+} from '../../services/learningCardService';
+
+interface FlowEditorProps {
+  idSecuencia?: string | number;
+}
+
 const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
 
-/**
- * Componente FlowEditor
- * 
- * @component FlowEditor
- * @description Editor de flujo principal que maneja Testing Cards y Learning Cards.
- * Incluye funcionalidades de creación, edición, eliminación y conexión de nodos
- * con posicionamiento automático y z-index dinámico.
- * 
- * Características principales:
- * - Posicionamiento automático de nodos basado en tipo de conexión
- * - Testing Cards se conectan horizontalmente (derecha)
- * - Learning Cards se conectan verticalmente (abajo)
- * - Z-index dinámico para evitar superposiciones
- * - Estado vacío atractivo cuando no hay nodos
- * - Modales de edición para ambos tipos de cards
- * - Gestión completa del estado de nodos y conexiones
- * - useLayoutEffect para cálculos previos al renderizado
- * 
- * @returns {JSX.Element} Editor de flujo completo
- */
-const FlowEditor: React.FC = () => {
+const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const { isDarkMode } = useTheme();
-  // @state: Estados principales del editor
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
-  
-  // @ref: Contador para generar IDs únicos de nodos
   const nodeIdCounter = useRef(1);
-  
-  // @ref: Mapa de niveles de nodos para z-index dinámico
   const nodeLevels = useRef<Map<string, number>>(new Map());
 
-  /**
-   * Calcula el nivel de profundidad de un nodo en el árbol
-   * @function calculateNodeLevel
-   * @param {string} nodeId - ID del nodo
-   * @param {Node[]} allNodes - Todos los nodos disponibles
-   * @param {Edge[]} allEdges - Todas las conexiones disponibles
-   * @returns {number} Nivel de profundidad del nodo
-   */
-  const calculateNodeLevel = useCallback((nodeId: string, allNodes: Node[], allEdges: Edge[]): number => {
-    if (nodeLevels.current.has(nodeId)) {
-      return nodeLevels.current.get(nodeId)!;
-    }
+  useEffect(() => {
+    if (!idSecuencia) return;
 
-    // @logic: Buscar nodos padre
-    const parentEdges = allEdges.filter(edge => edge.target === nodeId);
-    
-    if (parentEdges.length === 0) {
-      // @case: Nodo raíz
-      nodeLevels.current.set(nodeId, 0);
-      return 0;
-    }
+    const fetchInitialData = async () => {
+      try {
+        const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
 
-    // @logic: Calcular nivel basado en el padre más profundo
-    const maxParentLevel = Math.max(
-      ...parentEdges.map(edge => calculateNodeLevel(edge.source, allNodes, allEdges))
-    );
-    
-    const level = maxParentLevel + 1;
-    nodeLevels.current.set(nodeId, level);
-    return level;
-  }, []);
+        const nodesAccum: Node[] = [];
+        for (const card of testingCards) {
+          const learningCards = card.learning_cards || [];
 
-  /**
-   * Calcula la posición automática para un nuevo nodo basado en su padre y tipo
-   * @function getNodePosition
-   * @param {Node} parentNode - Nodo padre desde el cual se crea la conexión
-   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo
-   * @param {Node[]} existingNodes - Nodos existentes para evitar superposiciones
-   * @returns {Object} Posición calculada para el nuevo nodo
-   */
-  const getNodePosition = useCallback((
-    parentNode: Node, 
-    childType: 'testing' | 'learning',
-    existingNodes: Node[]
-  ) => {
-    const baseOffset = 350; // @config: Distancia base entre nodos
-    const verticalOffset = 200; // @config: Offset vertical para Learning Cards
-    const collisionPadding = 50; // @config: Padding para evitar superposiciones
-    
-    let newPosition = {
-      x: parentNode.position.x,
-      y: parentNode.position.y
-    };
+          const testingNode: Node = {
+            id: `testing-${card.id_testing_card}`,
+            type: 'testing',
+            position: { x: 250, y: 100 + nodesAccum.length * 100 },
+            data: {
+              ...card,
+              onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
+              onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+            },
+          };
 
-    if (childType === 'testing') {
-      // @positioning: Testing Cards se posicionan a la derecha del padre
-      newPosition.x = parentNode.position.x + baseOffset;
-      newPosition.y = parentNode.position.y;
-    } else {
-      // @positioning: Learning Cards se posicionan debajo del padre
-      newPosition.x = parentNode.position.x;
-      newPosition.y = parentNode.position.y + verticalOffset;
-    }
+          nodesAccum.push(testingNode);
 
-    // @collision-detection: Verificar superposiciones y ajustar posición
-    const checkCollision = (pos: { x: number; y: number }) => {
-      return existingNodes.some(node => {
-        const distance = Math.sqrt(
-          Math.pow(node.position.x - pos.x, 2) + 
-          Math.pow(node.position.y - pos.y, 2)
-        );
-        return distance < collisionPadding;
-      });
-    };
-
-    // @adjustment: Ajustar posición si hay colisión
-    let attempts = 0;
-    while (checkCollision(newPosition) && attempts < 10) {
-      if (childType === 'testing') {
-        newPosition.x += collisionPadding;
-      } else {
-        newPosition.y += collisionPadding;
-      }
-      attempts++;
-    }
-
-    return newPosition;
-  }, []);
-
-  /**
-   * Actualiza los z-index de todos los nodos basado en su nivel
-   * @function updateNodeZIndex
-   */
-  const updateNodeZIndex = useCallback(() => {
-    setNodes(currentNodes => {
-      return currentNodes.map(node => {
-        const level = calculateNodeLevel(node.id, currentNodes, edges);
-        const zIndex = 1000 + level; // @z-index: Base 1000 + nivel
-        
-        return {
-          ...node,
-          style: {
-            ...node.style,
-            zIndex
+          for (const lc of learningCards) {
+            nodesAccum.push({
+              id: `learning-${lc.id}`,
+              type: 'learning',
+              position: { x: 250, y: testingNode.position.y + 200 },
+              data: { ...lc },
+            });
           }
-        };
+        }
+
+        setNodes(nodesAccum);
+        generarConexiones(testingCards, nodesAccum);
+      } catch (error) {
+        console.error('[FlowEditor] Error cargando datos:', error);
+      }
+    };
+
+    fetchInitialData();
+  }, [idSecuencia]);
+
+  const handleAddTestingChild = async (padreId: string) => {
+    try {
+      const nuevaCard = await crearTestingCard({
+        padre_id: parseInt(padreId, 10),
+        titulo: `Nueva Testing Card ${Date.now()}`,
+        status: 'En validación',
+      });
+
+      const nuevoNodo = {
+        id: `testing-${nuevaCard.id_testing_card}`,
+        type: 'testing',
+        position: { x: 250, y: 100 + nodes.length * 100 },
+        data: {
+          ...nuevaCard,
+          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+        },
+      };
+
+      setNodes(nds => [...nds, nuevoNodo]);
+    } catch (error) {
+      console.error('[FlowEditor] Error creando Testing Card:', error);
+    }
+  };
+
+  const handleAddLearningChild = async (testingCardId: string) => {
+    try {
+      const testingCardIdNumber = parseInt(testingCardId, 10);
+      const nuevaLC = await crearLearningCard({
+        id_testing_card: testingCardIdNumber,
+        resultado: 'Nuevo aprendizaje',
+        estado: 'CUMPLIDO',
+      });
+
+      const nuevoNodo: Node = {
+        id: `learning-${nuevaLC.id}`,
+        type: 'learning',
+        position: { x: 250, y: 300 + nodes.length * 100 },
+        data: { ...nuevaLC },
+      };
+
+      setNodes(nds => [...nds, nuevoNodo]);
+      setEdges(eds => [
+        ...eds,
+        {
+          id: `edge-${testingCardId}-to-learning-${nuevaLC.id}`,
+          source: `testing-${testingCardId}`,
+          target: `learning-${nuevaLC.id}`,
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+        },
+      ]);
+    } catch (error) {
+      console.error('Error creando Learning Card:', error);
+    }
+  };
+
+  const generarConexiones = (testingCards: any[], allNodes: Node[]) => {
+    const edges: Edge[] = [];
+
+    testingCards.forEach(card => {
+      if (card.padre_id) {
+        edges.push({
+          id: `edge-testing-${card.padre_id}-to-${card.id_testing_card}`,
+          source: `testing-${card.padre_id}`,
+          target: `testing-${card.id_testing_card}`,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          style: { stroke: '#6C63FF' },
+        });
+      }
+
+      const learningCards = allNodes.filter(n =>
+        n.type === 'learning' && n.data.id_testing_card === card.id_testing_card
+      );
+
+      learningCards.forEach(lc => {
+        edges.push({
+          id: `edge-testing-${card.id_testing_card}-to-learning-${lc.data.id}`,
+          source: `testing-${card.id_testing_card}`,
+          target: lc.id,
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+          style: { stroke: '#06D6A0' },
+        });
       });
     });
-  }, [edges, calculateNodeLevel]);
 
-  /**
-   * Efecto para actualizar z-index cuando cambian nodos o conexiones
-   * @function useLayoutEffect
-   */
-  useLayoutEffect(() => {
-    if (nodes.length > 0) {
-      updateNodeZIndex();
-    }
-  }, [nodes.length, edges.length, updateNodeZIndex]);
-
-  /**
-   * Crea el primer nodo Testing Card en el centro del canvas
-   * @function createFirstNode
-   */
-  const createFirstNode = useCallback(() => {
-    const newNodeId = nodeIdCounter.current++;
-    const newNode: Node<TestingCardData> = {
-      id: `node-${newNodeId}`,
-      type: 'testing',
-      position: { x: 250, y: 100 },
-      style: { zIndex: 1000 },
-      data: {
-        id_testing_card: newNodeId,
-        id_secuencia: 0,
-        titulo: `Testing Card ${newNodeId}`,
-        hipotesis: 'Creemos que...',
-        id_experimento_tipo: 1,
-        descripcion: 'Descripción del experimento',
-        dia_inicio: new Date().toISOString().split('T')[0],
-        dia_fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        anexo_url: null,
-        id_responsable: 0,
-        status: 'En validación',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        metricas: [],
-        documentationUrls: [],
-        attachments: [],
-        collaborators: [],
-        onAddTesting: () => createChildNode(`node-${newNodeId}`, 'testing'),
-        onAddLearning: () => createChildNode(`node-${newNodeId}`, 'learning'),
-        onEdit: () => openEditModal(`node-${newNodeId}`),
-        onDelete: () => deleteNode(`node-${newNodeId}`),
-      },
-    };
-    nodeLevels.current.clear();
-    setNodes([newNode]);
-  }, [setNodes]);
-
-  /**
-   * Crea un nodo hijo conectado a un nodo padre
-   * @function createChildNode
-   * @param {string} parentId - ID del nodo padre
-   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo a crear
-   */
-  const createChildNode = useCallback((parentId: string, childType: 'testing' | 'learning') => {
-    const parentNode = nodes.find(node => node.id === parentId);
-    if (!parentNode) return;
-    const newNodeId = nodeIdCounter.current++;
-    const newPosition = getNodePosition(parentNode, childType, nodes);
-    const parentLevel = calculateNodeLevel(parentId, nodes, edges);
-    const newZIndex = 1000 + parentLevel + 1;
-    if (childType === 'testing') {
-      const newNode: Node<TestingCardData> = {
-        id: `node-${newNodeId}`,
-        type: 'testing',
-        position: newPosition,
-        style: { zIndex: newZIndex },
-        data: {
-          id_testing_card: newNodeId,
-          id_secuencia: 0,
-          titulo: `Testing Card ${newNodeId}`,
-          hipotesis: 'Creemos que...',
-          id_experimento_tipo: 1,
-          descripcion: 'Descripción del experimento',
-          dia_inicio: new Date().toISOString().split('T')[0],
-          dia_fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          anexo_url: null,
-          id_responsable: 0,
-          status: 'En validación',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          metricas: [],
-          documentationUrls: [],
-          attachments: [],
-          collaborators: [],
-          onAddTesting: () => createChildNode(`node-${newNodeId}`, 'testing'),
-          onAddLearning: () => createChildNode(`node-${newNodeId}`, 'learning'),
-          onEdit: () => openEditModal(`node-${newNodeId}`),
-          onDelete: () => deleteNode(`node-${newNodeId}`),
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
-      const newEdge: Edge = {
-        id: `edge-${parentId}-node-${newNodeId}`,
-        source: parentId,
-        target: `node-${newNodeId}`,
-        sourceHandle: 'right',
-        targetHandle: 'left',
-        style: { stroke: 'var(--color-primary-purple)', strokeWidth: 2 }
-      };
-      setEdges((eds) => [...eds, newEdge]);
-    } else {
-      const newNode: Node<LearningCardData> = {
-        id: `node-${newNodeId}`,
-        type: 'learning',
-        position: newPosition,
-        style: { zIndex: newZIndex },
-        data: {
-          id: newNodeId,
-          id_testing_card: 0,
-          resultado: '',
-          hallazgo: '',
-          estado: 'CUMPLIDO',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          attachments: [],
-          onEdit: () => openEditModal(`node-${newNodeId}`),
-          onDelete: () => deleteNode(`node-${newNodeId}`),
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
-      const newEdge: Edge = {
-        id: `edge-${parentId}-node-${newNodeId}`,
-        source: parentId,
-        target: `node-${newNodeId}`,
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
-        style: { stroke: 'var(--color-success)', strokeWidth: 2 }
-      };
-      setEdges((eds) => [...eds, newEdge]);
-    }
-  }, [nodes, setNodes, setEdges, getNodePosition, calculateNodeLevel, edges]);
-
-  /**
-   * Elimina un nodo y todas sus conexiones
-   * @function deleteNode
-   * @param {string} nodeId - ID del nodo a eliminar
-   */
-  const deleteNode = useCallback((nodeId: string) => {
-    // @cleanup: Limpiar niveles del nodo eliminado
-    nodeLevels.current.delete(nodeId);
-    
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-  }, [setNodes, setEdges]);
-
-  /**
-   * Abre el modal de edición para un nodo específico
-   * @function openEditModal
-   * @param {string} nodeId - ID del nodo a editar
-   */
-  const openEditModal = useCallback((nodeId: string) => {
-    const node = nodes.find((n) => n.id === nodeId);
-    if (node) {
-      setEditingNode(node);
-      setIsModalOpen(true);
-    }
-  }, [nodes]);
-
-  /**
-   * Maneja las conexiones manuales entre nodos
-   * @function onConnect
-   * @param {Connection} params - Parámetros de la conexión
-   */
-  const onConnect = useCallback(
-    (params: Connection) => {
-      // @styling: Personalizar el estilo de la conexión basado en los tipos de nodos
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const targetNode = nodes.find(n => n.id === params.target);
-      
-      let edgeStyle: any = { strokeWidth: 2 };
-      if (sourceNode?.type === 'testing' && targetNode?.type === 'learning') {
-        edgeStyle = { ...edgeStyle, stroke: 'var(--color-success)' };
-      } else if (sourceNode?.type === 'testing' && targetNode?.type === 'testing') {
-        edgeStyle = { ...edgeStyle, stroke: 'var(--color-primary-purple)' };
-      }
-      const newEdge = { ...params, style: edgeStyle };
-      setEdges((eds) => addEdge(newEdge, eds));
-    },
-    [setEdges, nodes]
-  );
-
-  /**
-   * Actualiza los nodos con los handlers correctos
-   * @function nodesWithHandlers
-   * @description Esto es necesario para mantener las referencias de funciones actualizadas
-   */
-  const nodesWithHandlers = nodes.map((node) => {
-    if (node.type === 'testing') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onAddTesting: () => createChildNode(node.id, 'testing'),
-          onAddLearning: () => createChildNode(node.id, 'learning'),
-          onEdit: () => openEditModal(node.id),
-          onDelete: () => deleteNode(node.id),
-        },
-      };
-    } else {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onEdit: () => openEditModal(node.id),
-          onDelete: () => deleteNode(node.id),
-        },
-      };
-    }
-  });
+    setEdges(edges);
+  };
 
   return (
     <div className="flow-editor">
       <ReactFlowProvider>
         <ReactFlow
-          nodes={nodesWithHandlers}
+          nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
-          attributionPosition="bottom-left"
         >
-          {/* @component: Fondo con patrón de puntos */}
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={20} 
-            size={1} 
-            color="var(--theme-text-tertiary)"
-          />
-          
-          {/* @component: Controles de zoom y navegación */}
-          <Controls
-            position="top-right"
-            showZoom={true}
-            showFitView={true}
-            showInteractive={true}
-            className={isDarkMode ? 'rf-controls-dark' : 'rf-controls-light'}
-          />
+          <Background variant={BackgroundVariant.Dots} />
+          <Controls />
         </ReactFlow>
-
-        {/* @component: Mostrar EmptyFlowState solo cuando no hay nodos */}
-        {nodes.length === 0 && (
-          <EmptyFlowState onCreateFirstNode={createFirstNode} />
-        )}
       </ReactFlowProvider>
-
-      {/* @component: Modales de edición condicionales */}
-      {isModalOpen && editingNode && (
-        editingNode.type === 'testing' ? (
-          <TestingCardEditModal
-            node={editingNode as Node<TestingCardData>}
-            onSave={(updatedData) => {
-              setNodes((nds) =>
-                nds.map((node) =>
-                  node.id === editingNode.id
-                    ? { ...node, data: { ...node.data, ...updatedData } }
-                    : node
-                )
-              );
-              setIsModalOpen(false);
-            }}
-            onClose={() => setIsModalOpen(false)}
-          />
-        ) : (
-          <LearningCardEditModal
-            node={editingNode as Node<LearningCardData>}
-            onSave={(updatedData) => {
-              setNodes((nds) =>
-                nds.map((node) =>
-                  node.id === editingNode.id
-                    ? { ...node, data: { ...node.data, ...updatedData } }
-                    : node
-                )
-              );
-              setIsModalOpen(false);
-            }}
-            onClose={() => setIsModalOpen(false)}
-          />
-        )
-      )}
     </div>
   );
 };
