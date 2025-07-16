@@ -37,7 +37,7 @@ interface FlowEditorProps {
   idSecuencia?: string | number;
 }
 
-const nodeTypes = {
+const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
@@ -51,44 +51,12 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const nodeIdCounter = useRef(1);
   const nodeLevels = useRef<Map<string, number>>(new Map());
 
-  const handleCreateFirstTestingCard = useCallback(async () => {
-    try {
-      if (!idSecuencia) return;
-      
-      const nuevaCard = await crearTestingCard({
-        titulo: `Testing Card Inicial`,
-        status: 'En validación',
-        id_secuencia: Number(idSecuencia)
-      });
-
-      const nuevoNodo = {
-        id: `testing-${nuevaCard.id_testing_card}`,
-        type: 'testing',
-        position: { x: 250, y: 100 },
-        data: {
-          ...nuevaCard,
-          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
-          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
-        },
-      };
-
-      setNodes([nuevoNodo]);
-    } catch (error) {
-      console.error('Error creando primera Testing Card:', error);
-    }
-  }, [idSecuencia, setNodes]);
-
   useEffect(() => {
+    if (!idSecuencia) return;
+
     const fetchInitialData = async () => {
       try {
-        if (!idSecuencia) return;
-
         const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
-        
-        if (testingCards.length === 0) {
-          // No hay cards, se mostrará EmptyFlowState
-          return;
-        }
 
         const nodesAccum: Node[] = [];
         for (const card of testingCards) {
@@ -127,13 +95,37 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
     fetchInitialData();
   }, [idSecuencia]);
 
+  const crearPrimeraTestingCard = async () => {
+    if (!idSecuencia) return;
+    try {
+      const nuevaCard = await crearTestingCard({
+        id_secuencia: idSecuencia,
+        titulo: 'titulodefault',
+      });
+
+      const nuevoNodo: Node = {
+        id: `testing-${nuevaCard.id_testing_card}`,
+        type: 'testing',
+        position: { x: 250, y: 100 },
+        data: {
+          ...nuevaCard,
+          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+        },
+      };
+
+      setNodes([nuevoNodo]);
+    } catch (error) {
+      console.error('[FlowEditor] Error creando primera Testing Card:', error);
+    }
+  };
+
   const handleAddTestingChild = async (padreId: string) => {
     try {
       const nuevaCard = await crearTestingCard({
         padre_id: parseInt(padreId, 10),
         titulo: `Nueva Testing Card ${Date.now()}`,
         status: 'En validación',
-        id_secuencia: Number(idSecuencia)
       });
 
       const nuevoNodo = {
@@ -232,12 +224,46 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         >
           <Background variant={BackgroundVariant.Dots} />
           <Controls />
-          
-          {nodes.length === 0 && (
-            <EmptyFlowState onCreateFirstNode={handleCreateFirstTestingCard} />
-          )}
         </ReactFlow>
+
+        {nodes.length === 0 && (
+          <EmptyFlowState onCreateFirstNode={crearPrimeraTestingCard} />
+        )}
       </ReactFlowProvider>
+
+      {isModalOpen && editingNode && (
+        editingNode.type === 'testing' ? (
+          <TestingCardEditModal
+            node={editingNode as Node<TestingCardData>}
+            onSave={(updatedData) => {
+              setNodes((nds) =>
+                nds.map((node) =>
+                  node.id === editingNode.id
+                    ? { ...node, data: { ...node.data, ...updatedData } }
+                    : node
+                )
+              );
+              setIsModalOpen(false);
+            }}
+            onClose={() => setIsModalOpen(false)}
+          />
+        ) : (
+          <LearningCardEditModal
+            node={editingNode as Node<LearningCardData>}
+            onSave={(updatedData) => {
+              setNodes((nds) =>
+                nds.map((node) =>
+                  node.id === editingNode.id
+                    ? { ...node, data: { ...node.data, ...updatedData } }
+                    : node
+                )
+              );
+              setIsModalOpen(false);
+            }}
+            onClose={() => setIsModalOpen(false)}
+          />
+        )
+      )}
     </div>
   );
 };
