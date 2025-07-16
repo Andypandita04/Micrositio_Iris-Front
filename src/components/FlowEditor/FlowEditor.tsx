@@ -63,6 +63,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             ...card,
             onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
             onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+            onEdit: () => {
+              setEditingNode({
+                ...testingNode,
+                data: {
+                  ...testingNode.data,
+                  onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
+                  onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+                  onEdit: () => {},
+                  onDelete: () => handleDeleteTestingCard(card.id_testing_card.toString()),
+                  onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
+                }
+              });
+              setIsModalOpen(true);
+            },
+            onDelete: () => handleDeleteTestingCard(card.id_testing_card.toString()),
+            onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
           },
         };
 
@@ -119,6 +135,24 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
           onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+          onEdit: () => {
+            setEditingNode({
+              id: `testing-${nuevaCard.id_testing_card}`,
+              type: 'testing',
+              position: { x: 250, y: 100 },
+              data: {
+                ...nuevaCard,
+                onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+                onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+                onEdit: () => {},
+                onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+                onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+              }
+            });
+            setIsModalOpen(true);
+          },
+          onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+          onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
         },
       };
       setNodes([testingNode]);
@@ -144,6 +178,24 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
           onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+          onEdit: () => {
+            setEditingNode({
+              id: `testing-${nuevaCard.id_testing_card}`,
+              type: 'testing',
+              position: { x: 250, y: 100 },
+              data: {
+                ...nuevaCard,
+                onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+                onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+                onEdit: () => {},
+                onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+                onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+              }
+            });
+            setIsModalOpen(true);
+          },
+          onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+          onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
         },
       };
 
@@ -217,6 +269,32 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
     });
 
     setEdges(edges);
+  };
+
+  // Métodos de acción para nodos (implementaciones mínimas)
+  const handleDeleteTestingCard = (id: string) => {
+    // Aquí puedes implementar la lógica real de borrado
+    console.log('[FlowEditor] Eliminar Testing Card:', id);
+    setNodes(nds => nds.filter(node => node.id !== `testing-${id}`));
+    setEdges(eds => eds.filter(edge => edge.source !== `testing-${id}` && edge.target !== `testing-${id}`));
+  };
+
+  const handleStatusChange = (id: string) => {
+    // Aquí puedes implementar la lógica real de cambio de estado
+    console.log('[FlowEditor] Cambiar status de Testing Card:', id);
+    setNodes(nds => nds.map(node => {
+      if (node.id === `testing-${id}` && node.type === 'testing' && 'status' in node.data) {
+        const currentStatus = (node.data as TestingCardData).status;
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            status: currentStatus === 'En desarrollo' ? 'En validación' : 'En desarrollo',
+          },
+        };
+      }
+      return node;
+    }));
   };
 
   return (
