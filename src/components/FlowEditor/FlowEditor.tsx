@@ -16,6 +16,7 @@ import LearningCardNode from './LearningCardNode';
 import LearningCardEditModal from './LearningCardEditModal';
 import TestingCardEditModal from './TestingCardEditModal';
 import EmptyFlowState from './components/EmptyFlowState';
+import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
 import './styles/FlowEditor.css';
@@ -24,6 +25,7 @@ import {
   obtenerTestingCardsPorSecuencia,
   crearTestingCard,
   actualizarTestingCard,
+  eliminarTestingCard 
 } from '../../services/testingCardService';
 
 import {
@@ -44,6 +46,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [testingCardToDelete, setTestingCardToDelete] = useState<Node<TestingCardData> | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchInitialData = async () => {
     if (!idSecuencia) return;
@@ -74,13 +79,27 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
                   onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
                   onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
                   onEdit: () => {},
-                  onDelete: () => handleDeleteTestingCard(card.id_testing_card.toString()),
+                  onDelete: () => {
+                    const id = card.id_testing_card ?? card.id;
+                    if (id !== undefined && id !== null) {
+                      handleDeleteTestingCard(id.toString());
+                    } else {
+                      console.error('No se encontró id_testing_card ni id para eliminar');
+                    }
+                  },
                   onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
                 }
               });
               setIsModalOpen(true);
             },
-            onDelete: () => handleDeleteTestingCard(card.id_testing_card.toString()),
+            onDelete: () => {
+              const id = card.id_testing_card ?? card.id;
+              if (id !== undefined && id !== null) {
+                handleDeleteTestingCard(id.toString());
+              } else {
+                console.error('No se encontró id_testing_card ni id para eliminar');
+              }
+            },
             onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
           },
         };
@@ -275,11 +294,41 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   };
 
   // Métodos de acción para nodos (implementaciones mínimas)
-  const handleDeleteTestingCard = (id: string) => {
-    // Aquí puedes implementar la lógica real de borrado
-    console.log('[FlowEditor] Eliminar Testing Card:', id);
-    setNodes(nds => nds.filter(node => node.id !== `testing-${id}`));
-    setEdges(eds => eds.filter(edge => edge.source !== `testing-${id}` && edge.target !== `testing-${id}`));
+  const handleDeleteTestingCard = (id?: string) => {
+    if (!id) {
+      console.error('ID de Testing Card no definido');
+      return;
+    }
+    const node = nodes.find(n => n.id === `testing-${id}`);
+    console.log('[FlowEditor] Nodo seleccionado para eliminar:', node);
+    if (node) {
+      console.log('[FlowEditor] id_testing_card del nodo:', (node.data as TestingCardData).id_testing_card);
+      console.log('[FlowEditor] titulo del nodo:', (node.data as TestingCardData).titulo);
+    }
+    setTestingCardToDelete(node || null);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!testingCardToDelete) return;
+    setIsDeleting(true);
+    try {
+      //await eliminarTestingCard((testingCardToDelete.data as TestingCardData).id_testing_card);
+      await eliminarTestingCard((testingCardToDelete.data as TestingCardData).id);
+      setNodes(nds => nds.filter(node => node.id !== testingCardToDelete.id));
+      setEdges(eds => eds.filter(edge => edge.source !== testingCardToDelete.id && edge.target !== testingCardToDelete.id));
+      setShowDeleteModal(false);
+      setTestingCardToDelete(null);
+    } catch (error) {
+      // Manejo de error si lo deseas
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setTestingCardToDelete(null);
   };
 
   const handleStatusChange = (id: string) => {
@@ -358,6 +407,18 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           />
         )
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Testing Card"
+        message={`¿Eliminar la Testing Card "${testingCardToDelete?.data?.titulo}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
