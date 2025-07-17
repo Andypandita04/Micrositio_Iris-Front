@@ -55,7 +55,7 @@ export interface MetricaTestingCard {
  * incluyendo hipótesis, métricas, documentación y callbacks de acción.
  */
 export interface TestingCardData {
-  id_testing_card: number;
+  id: number;
   id_secuencia: number;
   padre_id?: number | null;
   titulo: string;

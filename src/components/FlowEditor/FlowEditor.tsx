@@ -23,6 +23,7 @@ import './styles/FlowEditor.css';
 import {
   obtenerTestingCardsPorSecuencia,
   crearTestingCard,
+  actualizarTestingCard,
 } from '../../services/testingCardService';
 
 import {
@@ -56,7 +57,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         const learningCards = card.learning_cards || [];
 
         const testingNode: Node = {
-          id: `testing-${card.id_testing_card}`,
+          id: `testing-${card.id}`, // <-- Usa card.id, que es el mismo que data.id
           type: 'testing',
           position: { x: 250, y: 100 + nodesAccum.length * 100 },
           data: {
@@ -64,6 +65,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
             onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
             onEdit: () => {
+              // Log para ver el id cuando se edita
+              console.log('[FlowEditor] Editar Testing Card id:', card.id_testing_card);
               setEditingNode({
                 ...testingNode,
                 data: {
@@ -171,7 +174,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       });
 
       const nuevoNodo = {
-        id: `testing-${nuevaCard.id_testing_card}`,
+        id: `testing-${nuevaCard.id}`,
         type: 'testing',
         position: { x: 250, y: 100 + nodes.length * 100 },
         data: {
@@ -180,7 +183,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
           onEdit: () => {
             setEditingNode({
-              id: `testing-${nuevaCard.id_testing_card}`,
+              id: `testing-${nuevaCard.id}`,
               type: 'testing',
               position: { x: 250, y: 100 },
               data: {
@@ -307,6 +310,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           fitView
+          onNodeClick={(event, node) => {
+            console.log('Click en nodo:', node);
+          }}
         >
           <Background variant={BackgroundVariant.Dots} />
           <Controls />
@@ -321,7 +327,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         editingNode.type === 'testing' ? (
           <TestingCardEditModal
             node={editingNode as Node<TestingCardData>}
+            editingId={(editingNode.data as TestingCardData).id} // <-- Aquí debe ir el id
             onSave={(updatedData) => {
+              console.log('[FlowEditor] Objeto enviado para actualizar:', updatedData);
               setNodes((nds) =>
                 nds.map((node) =>
                   node.id === editingNode.id

@@ -31,6 +31,7 @@ interface TestingCardEditModalProps {
   onSave: (data: TestingCardData) => void;
   /** Función callback para cerrar el modal */
   onClose: () => void;
+  editingId: number; // <-- Nuevo prop
 }
 
 /**
@@ -53,7 +54,7 @@ interface TestingCardEditModalProps {
  * @param {TestingCardEditModalProps} props - Props del componente
  * @returns {JSX.Element} Modal de edición de Testing Card
  */
-const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose }) => {
+const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose, editingId }) => {
   // @state: Datos del formulario
   const [formData, setFormData] = useState<TestingCardData>({
     ...node.data,
@@ -117,9 +118,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @function useEffect
    */
   useEffect(() => {
-    if (node.data.id_testing_card) {
+    if (node.data.id) {
       setLoading(true);
-      obtenerTestingCardPorId(node.data.id_testing_card)
+      obtenerTestingCardPorId(node.data.id)
         .then((data) => {
           setFormData({ ...formData, ...data });
         })
@@ -127,7 +128,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line
-  }, [node.data.id_testing_card]);
+  }, [node.data.id]);
 
   /**
    * Valida todos los campos del formulario
@@ -158,7 +159,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       // Validación y limpieza extra del payload
       // Limpiar payload: solo enviar campos válidos al backend
       const {
-        id_testing_card,
+        id,
         titulo,
         hipotesis,
         descripcion,
@@ -177,7 +178,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
-        id_testing_card,
+        id,
         titulo: titulo.trim(),
         hipotesis: hipotesis.trim(),
         descripcion: descripcion.trim(),
@@ -195,9 +196,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         anexo_url,
       };
       // Log para depuración
-      console.log('[TestingCardEditModal] Payload enviado:', payload);
+      console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
       try {
-        await actualizarTestingCard(payload.id_testing_card, payload);
+        await actualizarTestingCard(editingId, payload); // <-- Aquí usas editingId
         setSuccessMsg('¡Guardado exitosamente!');
         onSave(payload); // Notifica al padre
       } catch (err: any) {
@@ -228,7 +229,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const addMetric = () => {
     setFormData({
       ...formData,
-      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id_testing_card, nombre: '', operador: '', criterio: '' }]
+      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id, nombre: '', operador: '', criterio: '' }]
     });
   };
 
@@ -331,6 +332,10 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @returns {string} Color del avatar
    */
   const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
+
+  useEffect(() => {
+    console.log('[TestingCardEditModal] editingId recibido:', editingId);
+  }, [editingId]);
 
   return (
     <div className="testing-modal-backdrop">
