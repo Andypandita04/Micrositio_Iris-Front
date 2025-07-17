@@ -124,7 +124,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .then((data) => {
           setFormData({ ...formData, ...data });
         })
-        .catch(() => setErrorMsg('Error al cargar datos de la BD'))
+        //.catch(() => setErrorMsg('Error al cargar datos de la BD'))
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line
@@ -178,7 +178,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
-        id,
+        id_testing_card: id , 
         titulo: titulo.trim(),
         hipotesis: hipotesis.trim(),
         descripcion: descripcion.trim(),
@@ -187,13 +187,12 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         id_responsable: Number(id_responsable) || -1,
         id_experimento_tipo: Number(id_experimento_tipo) || 1,
         status: status || 'En validación',
-        metricas: Array.isArray(metricas) ? metricas : [],
-        documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
-        attachments: Array.isArray(attachments) ? attachments : [],
-        collaborators: Array.isArray(collaborators) ? collaborators : [],
+        //metricas: Array.isArray(metricas) ? metricas : [],
+        //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
+        //attachments: Array.isArray(attachments) ? attachments : [],
+        //collaborators: Array.isArray(collaborators) ? collaborators : [],
         id_secuencia,
-        padre_id,
-        anexo_url,
+        //anexo_url,
       };
       // Log para depuración
       console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
