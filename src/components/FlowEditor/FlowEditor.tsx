@@ -24,7 +24,6 @@ import './styles/FlowEditor.css';
 import {
   obtenerTestingCardsPorSecuencia,
   crearTestingCard,
-  actualizarTestingCard,
   eliminarTestingCard 
 } from '../../services/testingCardService';
 
@@ -47,7 +46,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [testingCardToDelete, setTestingCardToDelete] = useState<Node<TestingCardData> | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchInitialData = async () => {
@@ -56,13 +55,26 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       console.log('[FlowEditor] Solicitando Testing Cards con idSecuencia:', idSecuencia);
       const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
       console.log('[FlowEditor] Respuesta de obtenerTestingCardsPorSecuencia:', testingCards);
+      
+      // Debug: Ver estructura exacta de los datos
+      if (testingCards && testingCards.length > 0) {
+        console.log('[FlowEditor] Primera Testing Card estructura:', testingCards[0]);
+        console.log('[FlowEditor] Campos disponibles:', Object.keys(testingCards[0]));
+      }
 
       const nodesAccum: Node[] = [];
       for (const card of testingCards) {
+        console.log('[FlowEditor] Procesando card:', {
+          id: card.id,
+          id_testing_card: card.id_testing_card,
+          titulo: card.titulo,
+          padre_id: card.padre_id
+        });
+        
         const learningCards = card.learning_cards || [];
 
         const testingNode: Node = {
-          id: `testing-${card.id}`, // <-- Usa card.id, que es el mismo que data.id
+          id: `testing-${card.id_testing_card}`, // <-- Usa card.id_testing_card para consistencia
           type: 'testing',
           position: { x: 250, y: 100 + nodesAccum.length * 100 },
           data: {
@@ -71,21 +83,19 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
             onEdit: () => {
               // Log para ver el id cuando se edita
-              console.log('[FlowEditor] Editar Testing Card id:', card.id_testing_card);
+              console.log('[FlowEditor] Editar Testing Card id_testing_card:', card.id_testing_card);
               setEditingNode({
-                ...testingNode,
+                id: `testing-${card.id_testing_card}`,
+                type: 'testing',
+                position: { x: 250, y: 100 + nodesAccum.length * 100 },
                 data: {
-                  ...testingNode.data,
+                  ...card,
                   onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
                   onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
                   onEdit: () => {},
                   onDelete: () => {
-                    const id = card.id_testing_card ?? card.id;
-                    if (id !== undefined && id !== null) {
-                      handleDeleteTestingCard(id.toString());
-                    } else {
-                      console.error('No se encontró id_testing_card ni id para eliminar');
-                    }
+                    console.log('[FlowEditor] onDelete llamado con id_testing_card:', card.id_testing_card);
+                    handleDeleteTestingCard(card.id_testing_card.toString());
                   },
                   onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
                 }
@@ -93,17 +103,14 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
               setIsModalOpen(true);
             },
             onDelete: () => {
-              const id = card.id_testing_card ?? card.id;
-              if (id !== undefined && id !== null) {
-                handleDeleteTestingCard(id.toString());
-              } else {
-                console.error('No se encontró id_testing_card ni id para eliminar');
-              }
+              console.log('[FlowEditor] onDelete llamado con id_testing_card:', card.id_testing_card);
+              handleDeleteTestingCard(card.id_testing_card.toString());
             },
             onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
           },
         };
 
+        console.log('[FlowEditor] Creando nodo con ID:', testingNode.id, 'para id_testing_card:', card.id_testing_card);
         nodesAccum.push(testingNode);
 
         for (const lc of learningCards) {
@@ -193,7 +200,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       });
 
       const nuevoNodo = {
-        id: `testing-${nuevaCard.id}`,
+        id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
         position: { x: 250, y: 100 + nodes.length * 100 },
         data: {
@@ -202,7 +209,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
           onEdit: () => {
             setEditingNode({
-              id: `testing-${nuevaCard.id}`,
+              id: `testing-${nuevaCard.id_testing_card}`,
               type: 'testing',
               position: { x: 250, y: 100 },
               data: {
@@ -296,31 +303,47 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   // Métodos de acción para nodos (implementaciones mínimas)
   const handleDeleteTestingCard = (id?: string) => {
     if (!id) {
-      console.error('ID de Testing Card no definido');
+      console.error('[FlowEditor] ID de Testing Card no definido');
       return;
     }
-    const node = nodes.find(n => n.id === `testing-${id}`);
-    console.log('[FlowEditor] Nodo seleccionado para eliminar:', node);
-    if (node) {
-      console.log('[FlowEditor] id_testing_card del nodo:', (node.data as TestingCardData).id_testing_card);
-      console.log('[FlowEditor] titulo del nodo:', (node.data as TestingCardData).titulo);
-    }
-    setTestingCardToDelete(node || null);
+    
+    console.log('[FlowEditor] ==========================================');
+    console.log('[FlowEditor] INICIANDO ELIMINACIÓN');
+    console.log('[FlowEditor] ID de testing card a eliminar:', id);
+    console.log('[FlowEditor] ==========================================');
+    
+    setDeleteId(id);
     setShowDeleteModal(true);
   };
 
   const handleConfirmDelete = async () => {
-    if (!testingCardToDelete) return;
+    if (!deleteId) return;
     setIsDeleting(true);
     try {
-      //await eliminarTestingCard((testingCardToDelete.data as TestingCardData).id_testing_card);
-      await eliminarTestingCard((testingCardToDelete.data as TestingCardData).id);
-      setNodes(nds => nds.filter(node => node.id !== testingCardToDelete.id));
-      setEdges(eds => eds.filter(edge => edge.source !== testingCardToDelete.id && edge.target !== testingCardToDelete.id));
+      // Buscar el nodo a eliminar
+      const nodeToDelete = nodes.find(n => 
+        n.type === 'testing' && 
+        (n.data as TestingCardData).id_testing_card?.toString() === deleteId
+      );
+      
+      if (!nodeToDelete) {
+        console.error('[FlowEditor] No se encontró el nodo a eliminar con id:', deleteId);
+        return;
+      }
+      
+      console.log('[FlowEditor] Eliminando nodo:', nodeToDelete.id, 'con id_testing_card:', deleteId);
+      
+      // Eliminar del backend
+      await eliminarTestingCard(parseInt(deleteId, 10));
+      
+      // Eliminar del frontend
+      setNodes(nds => nds.filter(node => node.id !== nodeToDelete.id));
+      setEdges(eds => eds.filter(edge => edge.source !== nodeToDelete.id && edge.target !== nodeToDelete.id));
+      
       setShowDeleteModal(false);
-      setTestingCardToDelete(null);
+      setDeleteId(null);
     } catch (error) {
-      // Manejo de error si lo deseas
+      console.error('[FlowEditor] Error eliminando Testing Card:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -328,7 +351,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
 
   const handleCancelDelete = () => {
     setShowDeleteModal(false);
-    setTestingCardToDelete(null);
+    setDeleteId(null);
   };
 
   const handleStatusChange = (id: string) => {
@@ -359,7 +382,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           fitView
-          onNodeClick={(event, node) => {
+          onNodeClick={(_, node) => {
             console.log('Click en nodo:', node);
           }}
         >
@@ -376,7 +399,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         editingNode.type === 'testing' ? (
           <TestingCardEditModal
             node={editingNode as Node<TestingCardData>}
-            editingId={(editingNode.data as TestingCardData).id} // <-- Aquí debe ir el id
+            editingId={(editingNode.data as TestingCardData).id_testing_card} // <-- Aquí debe ir el id_testing_card
             onSave={(updatedData) => {
               console.log('[FlowEditor] Objeto enviado para actualizar:', updatedData);
               setNodes((nds) =>
@@ -413,7 +436,14 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
         title="Eliminar Testing Card"
-        message={`¿Eliminar la Testing Card "${testingCardToDelete?.data?.titulo}"? Esta acción no se puede deshacer.`}
+        message={`¿Eliminar la Testing Card "${
+          deleteId ? 
+            (nodes.find(n => 
+              n.type === 'testing' && 
+              (n.data as TestingCardData).id_testing_card?.toString() === deleteId
+            )?.data as TestingCardData)?.titulo || `con ID ${deleteId}`
+            : ''
+        }"? Esta acción no se puede deshacer.`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"

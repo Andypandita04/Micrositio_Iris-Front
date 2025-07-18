@@ -56,6 +56,7 @@ export interface MetricaTestingCard {
  */
 export interface TestingCardData {
   id: number;
+  id_testing_card: number;
   id_secuencia: number;
   padre_id?: number | null;
   titulo: string;

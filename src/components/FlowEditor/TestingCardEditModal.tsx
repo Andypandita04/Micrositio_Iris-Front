@@ -159,7 +159,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       // Validación y limpieza extra del payload
       // Limpiar payload: solo enviar campos válidos al backend
       const {
-        id,
+        id_testing_card,
         titulo,
         hipotesis,
         descripcion,
@@ -178,7 +178,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
-        id_testing_card: id , 
+        id_testing_card: id_testing_card,
         titulo: titulo.trim(),
         hipotesis: hipotesis.trim(),
         descripcion: descripcion.trim(),
