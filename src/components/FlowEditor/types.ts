@@ -93,11 +93,11 @@ export interface TestingCardData {
  * conectada a una Testing Card específica.
  */
 export interface LearningCardData {
-  id: number;
+  id_learning_card: number;
   id_testing_card: number;
   resultado: string | null;
   hallazgo: string | null;
-  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR';
+  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR' | 'VALIDADA';
   created_at: string;
   updated_at: string;
   attachments?: Attachment[];
