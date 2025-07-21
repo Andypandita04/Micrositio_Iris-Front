@@ -10,15 +10,14 @@ import {
   Link as LinkIcon,
   Upload,
   Plus,
-  Trash2,
-  Users
+  Trash2
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
-import CollaboratorSelector from './components/CollaboratorSelector';
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
+import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -32,61 +31,8 @@ interface TestingCardEditModalProps {
   onSave: (data: TestingCardData) => void;
   /** Función callback para cerrar el modal */
   onClose: () => void;
+  editingId: number; // <-- Nuevo prop
 }
-
-/**
- * Interfaz para colaboradores (mock data)
- * @interface Collaborator
- */
-interface Collaborator {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role?: string;
-}
-
-/**
- * Mock data de colaboradores disponibles
- * @constant mockCollaborators
- */
-const mockCollaborators: Collaborator[] = [
-  {
-    id: '1',
-    name: 'Ana García',
-    email: 'ana.garcia@empresa.com',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Product Manager'
-  },
-  {
-    id: '2',
-    name: 'Carlos Rodríguez',
-    email: 'carlos.rodriguez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'UX Designer'
-  },
-  {
-    id: '3',
-    name: 'María López',
-    email: 'maria.lopez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Developer'
-  },
-  {
-    id: '4',
-    name: 'David Martínez',
-    email: 'david.martinez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'Data Analyst'
-  },
-  {
-    id: '5',
-    name: 'Laura Sánchez',
-    email: 'laura.sanchez@empresa.com',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-    role: 'QA Engineer'
-  }
-];
 
 /**
  * Modal para editar Testing Cards con sistema de documentación completo
@@ -108,28 +54,35 @@ const mockCollaborators: Collaborator[] = [
  * @param {TestingCardEditModalProps} props - Props del componente
  * @returns {JSX.Element} Modal de edición de Testing Card
  */
-const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose }) => {
+const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose, editingId }) => {
   // @state: Datos del formulario
   const [formData, setFormData] = useState<TestingCardData>({
     ...node.data,
-    responsible: typeof node.data.responsible === 'number' ? node.data.responsible : 0
+    titulo: node.data.titulo || '',
+    hipotesis: node.data.hipotesis || '',
+    descripcion: node.data.descripcion || '',
+    dia_inicio: node.data.dia_inicio || '',
+    dia_fin: node.data.dia_fin || '',
+    id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
+    id_experimento_tipo: node.data.id_experimento_tipo || 1,
+    status: node.data.status || 'En validación',
+    metricas: node.data.metricas || [],
+    documentationUrls: node.data.documentationUrls || [],
+    attachments: node.data.attachments || [],
+    collaborators: node.data.collaborators || [],
   });
-  
-  // @state: Errores de validación
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // @state: Loading y feedback
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   
   // @state: Control de secciones expandibles
   const [showMetrics, setShowMetrics] = useState(false);
-  const [showCriteria, setShowCriteria] = useState(false);
-  const [showCollaborators, setShowCollaborators] = useState(false);
   const [showDocumentation, setShowDocumentation] = useState(false);
   
   // @state: Control del modal de documentación
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   
-  // @state: Colaboradores seleccionados (convertir IDs a objetos)
-  const [selectedCollaborators, setSelectedCollaborators] = useState<Collaborator[]>([]);
-
   // @state: Lista de empleados para el selector de líder
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   // @state: Loading para empleados
@@ -137,19 +90,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // @state: Error al cargar empleados
   const [empleadosError, setEmpleadosError] = useState<string | null>(null);
 
-  /**
-   * Efecto para inicializar colaboradores seleccionados
-   * @function useEffect
-   */
-  useEffect(() => {
-    // @logic: Convertir IDs de colaboradores a objetos completos
-    if (formData.collaborators) {
-      const collaboratorObjects = mockCollaborators.filter(
-        collaborator => formData.collaborators?.includes(collaborator.id)
-      );
-      setSelectedCollaborators(collaboratorObjects);
-    }
-  }, [formData.collaborators]);
+  // @state: Errores de validación
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -172,18 +114,33 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   }, []);
 
   /**
+   * Efecto para cargar datos reales de la BD al abrir el modal
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (node.data.id) {
+      setLoading(true);
+      obtenerTestingCardPorId(node.data.id)
+        .then((data) => {
+          setFormData({ ...formData, ...data });
+        })
+        //.catch(() => setErrorMsg('Error al cargar datos de la BD'))
+        .finally(() => setLoading(false));
+    }
+    // eslint-disable-next-line
+  }, [node.data.id]);
+
+  /**
    * Valida todos los campos del formulario
    * @function validateForm
    * @returns {boolean} true si el formulario es válido
    */
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
-    if (!formData.title.trim()) newErrors.title = 'El título es requerido';
-    if (!formData.hypothesis.trim()) newErrors.hypothesis = 'La hipótesis es requerida';
-    if (!formData.description.trim()) newErrors.description = 'La descripción es requerida';
-    if (!formData.startDate) newErrors.startDate = 'La fecha de inicio es requerida';
-    
+    if (!formData.titulo.trim()) newErrors.titulo = 'El título es requerido';
+    if (!formData.hipotesis.trim()) newErrors.hipotesis = 'La hipótesis es requerida';
+    if (!formData.descripcion.trim()) newErrors.descripcion = 'La descripción es requerida';
+    if (!formData.dia_inicio) newErrors.dia_inicio = 'La fecha de inicio es requerida';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -193,58 +150,92 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @function handleSubmit
    * @param {React.FormEvent} e - Evento del formulario
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSave(formData);
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+      // Validación y limpieza extra del payload
+      // Limpiar payload: solo enviar campos válidos al backend
+      const {
+        id_testing_card,
+        titulo,
+        hipotesis,
+        descripcion,
+        dia_inicio,
+        dia_fin,
+        id_responsable,
+        id_experimento_tipo,
+        status,
+        metricas,
+        documentationUrls,
+        attachments,
+        collaborators,
+        id_secuencia,
+        padre_id,
+        anexo_url,
+        // creado, actualizado, id eliminados por tipado
+      } = formData;
+      const payload = {
+        id_testing_card: id_testing_card,
+        titulo: titulo.trim(),
+        hipotesis: hipotesis.trim(),
+        descripcion: descripcion.trim(),
+        dia_inicio: dia_inicio || '',
+        dia_fin: dia_fin || '',
+        id_responsable: Number(id_responsable) || -1,
+        id_experimento_tipo: Number(id_experimento_tipo) || 1,
+        status: status || 'En validación',
+        //metricas: Array.isArray(metricas) ? metricas : [],
+        //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
+        //attachments: Array.isArray(attachments) ? attachments : [],
+        //collaborators: Array.isArray(collaborators) ? collaborators : [],
+        id_secuencia,
+        //anexo_url,
+      };
+      // Log para depuración
+      console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
+      try {
+        await actualizarTestingCard(editingId, payload); // <-- Aquí usas editingId
+        setSuccessMsg('¡Guardado exitosamente!');
+        onSave(payload); // Notifica al padre
+      } catch (err: any) {
+        // Mostrar mensaje detallado del backend si existe
+        let backendMsg = 'Error al guardar en la base de datos';
+        if (err?.response?.data?.detail) {
+          backendMsg = err.response.data.detail;
+        } else if (err?.message) {
+          backendMsg = err.message;
+        }
+        setErrorMsg(backendMsg);
+        // Log para depuración
+        console.error('[TestingCardEditModal] Error al actualizar:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  /**
-   * Actualiza una métrica específica
-   * @function handleMetricChange
-   * @param {number} index - Índice de la métrica
-   * @param {string} field - Campo a actualizar
-   * @param {string | number} value - Nuevo valor
-   */
+  // Actualiza una métrica específica
   const handleMetricChange = (index: number, field: string, value: string | number) => {
-    const updatedMetrics = [...formData.metrics];
-    updatedMetrics[index] = { ...updatedMetrics[index], [field]: value };
-    setFormData({ ...formData, metrics: updatedMetrics });
+    const updatedMetricas = [...(formData.metricas || [])];
+    updatedMetricas[index] = { ...updatedMetricas[index], [field]: value };
+    setFormData({ ...formData, metricas: updatedMetricas });
   };
 
-  /**
-   * Añade una nueva métrica vacía
-   * @function addMetric
-   */
+  // Añade una nueva métrica vacía
   const addMetric = () => {
     setFormData({
       ...formData,
-      metrics: [...formData.metrics, { metric: '', unit: '', value: 0 }]
+      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id, nombre: '', operador: '', criterio: '' }]
     });
   };
 
-  /**
-   * Elimina una métrica por índice
-   * @function removeMetric
-   * @param {number} index - Índice de la métrica a eliminar
-   */
+  // Elimina una métrica por índice
   const removeMetric = (index: number) => {
-    const updatedMetrics = formData.metrics.filter((_, i) => i !== index);
-    setFormData({ ...formData, metrics: updatedMetrics });
-  };
-
-  /**
-   * Maneja el cambio de colaboradores seleccionados
-   * @function handleCollaboratorsChange
-   * @param {Collaborator[]} collaborators - Nuevos colaboradores seleccionados
-   */
-  const handleCollaboratorsChange = (collaborators: Collaborator[]) => {
-    setSelectedCollaborators(collaborators);
-    setFormData({
-      ...formData,
-      collaborators: collaborators.map(c => c.id)
-    });
+    const updatedMetricas = (formData.metricas || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, metricas: updatedMetricas });
   };
 
   /**
@@ -286,10 +277,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       fileUrl: URL.createObjectURL(file),
       fileSize: file.size
     }));
-
     setFormData({
       ...formData,
-      attachments: [...formData.attachments, ...newAttachments]
+      attachments: [...(formData.attachments || []), ...newAttachments]
     });
   };
 
@@ -342,6 +332,10 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    */
   const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
 
+  useEffect(() => {
+    console.log('[TestingCardEditModal] editingId recibido:', editingId);
+  }, [editingId]);
+
   return (
     <div className="testing-modal-backdrop">
       <div className="testing-modal-container">
@@ -359,6 +353,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         </div>
 
         <form onSubmit={handleSubmit} className="testing-modal-form">
+          {loading && <div className="testing-form-loading">Cargando...</div>}
+          {successMsg && <div className="testing-form-success">{successMsg}</div>}
+          {errorMsg && <div className="testing-form-error">{errorMsg}</div>}
           {/* @section: Estado de la Testing Card */}
           <div className="testing-form-group">
             <label htmlFor="status" className="testing-form-label">
@@ -367,10 +364,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             <select
               id="status"
               value={formData.status}
-              onChange={e => {
-                const value = e.target.value as 'En validación' | 'En proceso' | 'Terminado' | 'Escoger estado';
-                setFormData(prev => ({ ...prev, status: value as any }));
-              }}
+              onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as any }))}
               className="testing-status-badge"
               style={{
                 borderRadius: 8,
@@ -383,123 +377,82 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 letterSpacing: 0.5,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
               }}
-            >              
+            >
+              <option value="En desarrollo">En desarrollo</option>
               <option value="En validación">En validación</option>
-              <option value="En proceso">En proceso</option>
+              <option value="En ejecución">En ejecución</option>
+              <option value="Cancelado">Cancelado</option>
               <option value="Terminado">Terminado</option>
             </select>
           </div>
           {/* @section: Información básica */}
           <div className="testing-form-group">
-            <label htmlFor="title" className="testing-form-label">
+            <label htmlFor="titulo" className="testing-form-label">
               <Tag className="testing-form-icon" />
               Título del Experimento
             </label>
             <input
               type="text"
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className={`testing-input ${errors.title ? 'input-error' : ''}`}
+              id="titulo"
+              value={formData.titulo}
+              onChange={(e) => setFormData({...formData, titulo: e.target.value})}
+              className={`testing-input ${errors.titulo ? 'input-error' : ''}`}
               placeholder="¿Qué quieres probar?"
             />
-            {errors.title && <span className="testing-error-text">{errors.title}</span>}
+            {errors.titulo && <span className="testing-error-text">{errors.titulo}</span>}
           </div>
 
           <div className="testing-form-group">
-            <label htmlFor="hypothesis" className="testing-form-label">
+            <label htmlFor="hipotesis" className="testing-form-label">
               <FileText className="testing-form-icon" />
               Hipótesis
             </label>
             <textarea
-              id="hypothesis"
-              value={formData.hypothesis}
-              onChange={(e) => setFormData({...formData, hypothesis: e.target.value})}
-              className={`testing-input textarea ${errors.hypothesis ? 'input-error' : ''}`}
+              id="hipotesis"
+              value={formData.hipotesis}
+              onChange={(e) => setFormData({...formData, hipotesis: e.target.value})}
+              className={`testing-input textarea ${errors.hipotesis ? 'input-error' : ''}`}
               placeholder="Creemos que..."
               rows={2}
             />
-            {errors.hypothesis && <span className="testing-error-text">{errors.hypothesis}</span>}
+            {errors.hipotesis && <span className="testing-error-text">{errors.hipotesis}</span>}
           </div>
 
           {/* @section: Configuración del experimento */}
           <div className="testing-form-row">
-            
-
             <div className="testing-form-group">
-              <label htmlFor="experimentCategory" className="testing-form-label">
-                Categoría
-              </label>
-              <select
-                id="experimentCategory"
-                value={formData.experimentCategory}
-                onChange={(e) => setFormData({...formData, experimentCategory: e.target.value as any})}
-                className="testing-input"
-              >
-                <option value="Descubrimiento">Descubrimiento</option>
-                <option value="Validación">Validación</option>
-              </select>
-            </div>
-
-            <div className="testing-form-group">
-              <label htmlFor="experimentType" className="testing-form-label">
+              <label htmlFor="id_experimento_tipo" className="testing-form-label">
                 Tipo de Experimento
               </label>
               <select
-                id="experimentType"
-                value={formData.experimentType}
-                onChange={(e) => setFormData({...formData, experimentType: e.target.value as any})}
+                id="id_experimento_tipo"
+                value={formData.id_experimento_tipo}
+                onChange={(e) => setFormData({...formData, id_experimento_tipo: Number(e.target.value)})}
                 className="testing-input"
               >
-                <option value="Entrevista">Entrevista</option>
-                <option value="Prototipo">Prototipo</option>
-                <option value="Encuesta">Encuesta</option>
-                <option value="A/B Test">A/B Test</option>
+                <option value={1}>Entrevista</option>
+                <option value={2}>Prototipo</option>
+                <option value={3}>Encuesta</option>
+                <option value={4}>A/B Test</option>
               </select>
             </div>
           </div>
 
           <div className="testing-form-group">
-            <label htmlFor="description" className="testing-form-label">
+            <label htmlFor="descripcion" className="testing-form-label">
               <FileText className="testing-form-icon" />
               Descripción
             </label>
             <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className={`testing-input textarea ${errors.description ? 'input-error' : ''}`}
+              id="descripcion"
+              value={formData.descripcion}
+              onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+              className={`testing-input textarea ${errors.descripcion ? 'input-error' : ''}`}
               placeholder="Describe cómo realizarás el experimento"
               rows={3}
             />
-            {errors.description && <span className="testing-error-text">{errors.description}</span>}
+            {errors.descripcion && <span className="testing-error-text">{errors.descripcion}</span>}
           </div>
-
-          {/* @section: Colaboradores expandible 
-          <div className="testing-form-section">
-            <button 
-              type="button" 
-              className="testing-form-section-toggle"
-              onClick={() => setShowCollaborators(!showCollaborators)}
-            >
-              <ChevronDown className={`toggle-icon ${showCollaborators ? 'open' : ''}`} />
-              <Users className="testing-form-icon" />
-              <span>Colaboradores</span>
-            </button>
-            
-            {showCollaborators && (
-              <div className="testing-form-section-content">
-                <CollaboratorSelector
-                  availableCollaborators={mockCollaborators}
-                  selectedCollaborators={selectedCollaborators}
-                  onSelectionChange={handleCollaboratorsChange}
-                  placeholder="Buscar colaboradores..."
-                  maxVisibleChips={3}
-                />
-              </div>
-            )}
-          </div>
-          */}
 
           {/* @section: Documentación expandible */}
           <div className="testing-form-section">
@@ -569,7 +522,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                             type="button" 
                             className="testing-remove-btn"
                             onClick={() => {
-                              const updatedAttachments = formData.attachments.filter((_, i) => i !== index);
+                              const updatedAttachments = (formData.attachments || []).filter((_, i) => i !== index);
                               setFormData({ ...formData, attachments: updatedAttachments });
                             }}
                           >
@@ -606,28 +559,28 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             
             {showMetrics && (
               <div className="testing-form-section-content">
-                {formData.metrics.map((metric, index) => (
+                {formData.metricas && formData.metricas.map((metric, index) => (
                   <div key={index} className="testing-metric-row">
                     <input
                       type="text"
-                      value={metric.metric}
-                      onChange={(e) => handleMetricChange(index, 'metric', e.target.value)}
+                      value={metric.nombre}
+                      onChange={(e) => handleMetricChange(index, 'nombre', e.target.value)}
                       className="testing-input small"
                       placeholder="Nombre métrica"
                     />
                     <input
                       type="text"
-                      value={metric.unit}
-                      onChange={(e) => handleMetricChange(index, 'unit', e.target.value)}
+                      value={metric.operador}
+                      onChange={(e) => handleMetricChange(index, 'operador', e.target.value)}
                       className="testing-input small"
-                      placeholder="Unidad"
+                      placeholder="Operador"
                     />
                     <input
-                      type="number"
-                      value={metric.value}
-                      onChange={(e) => handleMetricChange(index, 'value', parseFloat(e.target.value))}
+                      type="text"
+                      value={metric.criterio}
+                      onChange={(e) => handleMetricChange(index, 'criterio', e.target.value)}
                       className="testing-input small"
-                      placeholder="Valor"
+                      placeholder="Criterio"
                     />
                     <button 
                       type="button" 
@@ -653,42 +606,42 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           {/* @section: Fechas y responsable */}
           <div className="testing-form-row">
             <div className="testing-form-group">
-              <label htmlFor="startDate" className="testing-form-label">
+              <label htmlFor="dia_inicio" className="testing-form-label">
                 <Calendar className="testing-form-icon" />
                 Fecha Inicio
               </label>
               <input
                 type="date"
-                id="startDate"
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                className={`testing-input ${errors.startDate ? 'input-error' : ''}`}
+                id="dia_inicio"
+                value={formData.dia_inicio}
+                onChange={(e) => setFormData({...formData, dia_inicio: e.target.value})}
+                className={`testing-input ${errors.dia_inicio ? 'input-error' : ''}`}
               />
-              {errors.startDate && <span className="testing-error-text">{errors.startDate}</span>}
+              {errors.dia_inicio && <span className="testing-error-text">{errors.dia_inicio}</span>}
             </div>
 
             <div className="testing-form-group">
-              <label htmlFor="endDate" className="testing-form-label">
+              <label htmlFor="dia_fin" className="testing-form-label">
                 <Calendar className="testing-form-icon" />
                 Fecha Fin
               </label>
               <input
                 type="date"
-                id="endDate"
-                value={formData.endDate}
-                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                id="dia_fin"
+                value={formData.dia_fin}
+                onChange={(e) => setFormData({...formData, dia_fin: e.target.value})}
                 className="testing-input"
-                min={formData.startDate}
+                min={formData.dia_inicio}
               />
             </div>
           </div>
 
           <div className="testing-form-group">
-            <label htmlFor="responsible" className="testing-form-label">
+            <label htmlFor="id_responsable" className="testing-form-label">
               Responsable
-              {empleados.length > 0 && formData.responsible ? (
+              {empleados.length > 0 && formData.id_responsable ? (
                 (() => {
-                  const emp = empleados.find(e => e.id_empleado === formData.responsible);
+                  const emp = empleados.find(e => e.id_empleado === formData.id_responsable);
                   return emp ? (
                     <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
                       (Seleccionado: {getNombreCompleto(emp)})
@@ -703,8 +656,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               loading={loadingEmpleados}
               loadingEmpleados={loadingEmpleados}
               errors={{...errors, empleados: empleadosError || ''}}
-              selectedId={formData.responsible}
-              onSelect={(id: number) => setFormData({ ...formData, responsible: id })}
+              selectedId={formData.id_responsable}
+              onSelect={(id: number) => setFormData({ ...formData, id_responsable: id })}
               cargarEmpleados={cargarEmpleados}
               getNombreCompleto={getNombreCompleto}
               getIniciales={getIniciales}
