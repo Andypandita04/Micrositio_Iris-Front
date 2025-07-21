@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -6,8 +6,6 @@ import ReactFlow, {
   Background,
   useNodesState,
   useEdgesState,
-  addEdge,
-  Connection,
   ReactFlowProvider,
   BackgroundVariant,
 } from 'reactflow';
@@ -18,433 +16,467 @@ import LearningCardNode from './LearningCardNode';
 import LearningCardEditModal from './LearningCardEditModal';
 import TestingCardEditModal from './TestingCardEditModal';
 import EmptyFlowState from './components/EmptyFlowState';
+import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
 import './styles/FlowEditor.css';
 
-import { useTheme } from '../../hooks/useTheme';
+import {
+  obtenerTestingCardsPorSecuencia,
+  crearTestingCard,
+  eliminarTestingCard 
+} from '../../services/testingCardService';
 
-/**
- * Tipos de nodos disponibles en el FlowEditor
- * @constant nodeTypes
- */
-const nodeTypes = {
+import {
+  crear as crearLearningCard,
+  obtenerPorTestingCard as obtenerPorId,
+  LearningCard
+} from '../../services/learningCardService';
+
+interface FlowEditorProps {
+  idSecuencia?: string | number;
+}
+
+const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
 
-/**
- * Componente FlowEditor
- * 
- * @component FlowEditor
- * @description Editor de flujo principal que maneja Testing Cards y Learning Cards.
- * Incluye funcionalidades de creación, edición, eliminación y conexión de nodos
- * con posicionamiento automático y z-index dinámico.
- * 
- * Características principales:
- * - Posicionamiento automático de nodos basado en tipo de conexión
- * - Testing Cards se conectan horizontalmente (derecha)
- * - Learning Cards se conectan verticalmente (abajo)
- * - Z-index dinámico para evitar superposiciones
- * - Estado vacío atractivo cuando no hay nodos
- * - Modales de edición para ambos tipos de cards
- * - Gestión completa del estado de nodos y conexiones
- * - useLayoutEffect para cálculos previos al renderizado
- * 
- * @returns {JSX.Element} Editor de flujo completo
- */
-const FlowEditor: React.FC = () => {
-  const { isDarkMode } = useTheme();
-  // @state: Estados principales del editor
+const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null);
-  
-  // @ref: Contador para generar IDs únicos de nodos
-  const nodeIdCounter = useRef(1);
-  
-  // @ref: Mapa de niveles de nodos para z-index dinámico
-  const nodeLevels = useRef<Map<string, number>>(new Map());
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  /**
-   * Calcula el nivel de profundidad de un nodo en el árbol
-   * @function calculateNodeLevel
-   * @param {string} nodeId - ID del nodo
-   * @param {Node[]} allNodes - Todos los nodos disponibles
-   * @param {Edge[]} allEdges - Todas las conexiones disponibles
-   * @returns {number} Nivel de profundidad del nodo
-   */
-  const calculateNodeLevel = useCallback((nodeId: string, allNodes: Node[], allEdges: Edge[]): number => {
-    if (nodeLevels.current.has(nodeId)) {
-      return nodeLevels.current.get(nodeId)!;
-    }
-
-    // @logic: Buscar nodos padre
-    const parentEdges = allEdges.filter(edge => edge.target === nodeId);
-    
-    if (parentEdges.length === 0) {
-      // @case: Nodo raíz
-      nodeLevels.current.set(nodeId, 0);
-      return 0;
-    }
-
-    // @logic: Calcular nivel basado en el padre más profundo
-    const maxParentLevel = Math.max(
-      ...parentEdges.map(edge => calculateNodeLevel(edge.source, allNodes, allEdges))
-    );
-    
-    const level = maxParentLevel + 1;
-    nodeLevels.current.set(nodeId, level);
-    return level;
-  }, []);
-
-  /**
-   * Calcula la posición automática para un nuevo nodo basado en su padre y tipo
-   * @function getNodePosition
-   * @param {Node} parentNode - Nodo padre desde el cual se crea la conexión
-   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo
-   * @param {Node[]} existingNodes - Nodos existentes para evitar superposiciones
-   * @returns {Object} Posición calculada para el nuevo nodo
-   */
-  const getNodePosition = useCallback((
-    parentNode: Node, 
-    childType: 'testing' | 'learning',
-    existingNodes: Node[]
-  ) => {
-    const baseOffset = 350; // @config: Distancia base entre nodos
-    const verticalOffset = 200; // @config: Offset vertical para Learning Cards
-    const collisionPadding = 50; // @config: Padding para evitar superposiciones
-    
-    let newPosition = {
-      x: parentNode.position.x,
-      y: parentNode.position.y
+  // Función para convertir LearningCard del servicio a LearningCardData del componente
+  const convertToLearningCardData = (lc: LearningCard): LearningCardData => {
+    return {
+      id_learning_card: lc.id_learning_card,
+      id_testing_card: lc.id_testing_card,
+      resultado: lc.resultado || null,
+      hallazgo: lc.hallazgo || null,
+      estado: lc.estado,
+      created_at: new Date().toISOString(), // Valor por defecto
+      updated_at: new Date().toISOString(), // Valor por defecto
     };
+  };
 
-    if (childType === 'testing') {
-      // @positioning: Testing Cards se posicionan a la derecha del padre
-      newPosition.x = parentNode.position.x + baseOffset;
-      newPosition.y = parentNode.position.y;
-    } else {
-      // @positioning: Learning Cards se posicionan debajo del padre
-      newPosition.x = parentNode.position.x;
-      newPosition.y = parentNode.position.y + verticalOffset;
-    }
-
-    // @collision-detection: Verificar superposiciones y ajustar posición
-    const checkCollision = (pos: { x: number; y: number }) => {
-      return existingNodes.some(node => {
-        const distance = Math.sqrt(
-          Math.pow(node.position.x - pos.x, 2) + 
-          Math.pow(node.position.y - pos.y, 2)
-        );
-        return distance < collisionPadding;
-      });
-    };
-
-    // @adjustment: Ajustar posición si hay colisión
-    let attempts = 0;
-    while (checkCollision(newPosition) && attempts < 10) {
-      if (childType === 'testing') {
-        newPosition.x += collisionPadding;
-      } else {
-        newPosition.y += collisionPadding;
+  const fetchInitialData = async () => {
+    if (!idSecuencia) return;
+    try {
+      console.log('[FlowEditor] Solicitando Testing Cards con idSecuencia:', idSecuencia);
+      const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
+      console.log('[FlowEditor] Respuesta de obtenerTestingCardsPorSecuencia:', testingCards);
+      
+      // Debug: Ver estructura exacta de los datos
+      if (testingCards && testingCards.length > 0) {
+        console.log('[FlowEditor] Primera Testing Card estructura:', testingCards[0]);
+        console.log('[FlowEditor] Campos disponibles:', Object.keys(testingCards[0]));
       }
-      attempts++;
-    }
 
-    return newPosition;
-  }, []);
-
-  /**
-   * Actualiza los z-index de todos los nodos basado en su nivel
-   * @function updateNodeZIndex
-   */
-  const updateNodeZIndex = useCallback(() => {
-    setNodes(currentNodes => {
-      return currentNodes.map(node => {
-        const level = calculateNodeLevel(node.id, currentNodes, edges);
-        const zIndex = 1000 + level; // @z-index: Base 1000 + nivel
+      const nodesAccum: Node[] = [];
+      for (const card of testingCards) {
+        console.log('[FlowEditor] Procesando card:', {
+          id: card.id,
+          id_testing_card: card.id_testing_card,
+          titulo: card.titulo,
+          padre_id: card.padre_id
+        });
         
-        return {
-          ...node,
-          style: {
-            ...node.style,
-            zIndex
+        // Obtener Learning Cards de esta Testing Card usando el endpoint
+        let learningCards: any[] = [];
+        try {
+          console.log('[FlowEditor] Obteniendo Learning Cards para testing card:', card.id_testing_card);
+          console.log('[FlowEditor] Tipo de id_testing_card:', typeof card.id_testing_card, 'Valor:', card.id_testing_card);
+          learningCards = await obtenerPorId(card.id_testing_card);
+          console.log('[FlowEditor] Learning Cards obtenidas exitosamente:', learningCards);
+        } catch (error) {
+          console.error('[FlowEditor] Error obteniendo Learning Cards para testing card:', card.id_testing_card);
+          console.error('[FlowEditor] Error completo:', error);
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as any;
+            console.error('[FlowEditor] Response status:', axiosError.response?.status);
+            console.error('[FlowEditor] Response data:', axiosError.response?.data);
           }
+          learningCards = [];
+        }
+
+        const testingNode: Node = {
+          id: `testing-${card.id_testing_card}`, // <-- Usa card.id_testing_card para consistencia
+          type: 'testing',
+          position: { x: 250, y: 100 + nodesAccum.length * 100 },
+          data: {
+            ...card,
+            onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
+            onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+            onEdit: () => {
+              // Log para ver el id cuando se edita
+              console.log('[FlowEditor] Editar Testing Card id_testing_card:', card.id_testing_card);
+              setEditingNode({
+                id: `testing-${card.id_testing_card}`,
+                type: 'testing',
+                position: { x: 250, y: 100 + nodesAccum.length * 100 },
+                data: {
+                  ...card,
+                  onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
+                  onAddLearning: () => handleAddLearningChild(card.id_testing_card.toString()),
+                  onEdit: () => {},
+                  onDelete: () => {
+                    console.log('[FlowEditor] onDelete llamado con id_testing_card:', card.id_testing_card);
+                    handleDeleteTestingCard(card.id_testing_card.toString());
+                  },
+                  onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
+                }
+              });
+              setIsModalOpen(true);
+            },
+            onDelete: () => {
+              console.log('[FlowEditor] onDelete llamado con id_testing_card:', card.id_testing_card);
+              handleDeleteTestingCard(card.id_testing_card.toString());
+            },
+            onStatusChange: () => handleStatusChange(card.id_testing_card.toString()),
+          },
         };
+
+        console.log('[FlowEditor] Creando nodo con ID:', testingNode.id, 'para id_testing_card:', card.id_testing_card);
+        nodesAccum.push(testingNode);
+
+        // Crear nodos para Learning Cards
+        for (const lc of learningCards) {
+          const learningCardData = convertToLearningCardData(lc);
+          console.log('[FlowEditor] Creando Learning Card:', {
+            id_learning_card: learningCardData.id_learning_card,
+            id_testing_card: learningCardData.id_testing_card,
+            resultado: learningCardData.resultado
+          });
+          
+          nodesAccum.push({
+            id: `learning-${learningCardData.id_learning_card}`,
+            type: 'learning',
+            position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
+            data: { 
+              ...learningCardData,
+              onEdit: () => {
+                console.log('[FlowEditor] Editar Learning Card id_learning_card:', learningCardData.id_learning_card);
+                setEditingNode({
+                  id: `learning-${learningCardData.id_learning_card}`,
+                  type: 'learning',
+                  position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
+                  data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+                });
+                setIsModalOpen(true);
+              },
+              onDelete: () => {
+                console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
+                // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+              }
+            },
+          });
+        }
+      }
+
+      setNodes(nodesAccum);
+      generarConexiones(testingCards, nodesAccum);
+    } catch (error) {
+      console.error('[FlowEditor] Error cargando datos:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Solo intenta cargar datos si no acabas de crear la primera Testing Card
+    if (nodes.length === 0) {
+      fetchInitialData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idSecuencia]);
+
+  const crearPrimeraTestingCard = async () => {
+    if (!idSecuencia) return;
+    try {
+      const payload = {
+        id_secuencia: Number(idSecuencia),
+        titulo: 'Primer experimento', // >= 3 caracteres
+        hipotesis: 'Hipótesis inicial de prueba', // >= 10 caracteres
+        id_experimento_tipo: 2, // Debe existir en tu catálogo
+        descripcion: 'Descripción inicial de prueba', // >= 10 caracteres
+        dia_inicio: new Date().toISOString().slice(0, 10),
+        dia_fin: new Date().toISOString().slice(0, 10),
+        id_responsable: 1, // Cambia por el id de usuario real si lo tienes
+        status: 'En desarrollo'
+      };
+      console.log('[FlowEditor] Enviando payload para crear Testing Card:', payload);
+      const nuevaCard = await crearTestingCard(payload);
+      console.log('[FlowEditor] Respuesta al crear Testing Card:', nuevaCard);
+      // En vez de fetchInitialData, agrega el nodo directamente
+      const testingNode = {
+        id: `testing-${nuevaCard.id_testing_card}`,
+        type: 'testing',
+        position: { x: 250, y: 100 },
+        data: {
+          ...nuevaCard,
+          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+          onEdit: () => {
+            setEditingNode({
+              id: `testing-${nuevaCard.id_testing_card}`,
+              type: 'testing',
+              position: { x: 250, y: 100 },
+              data: {
+                ...nuevaCard,
+                onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+                onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+                onEdit: () => {},
+                onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+                onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+              }
+            });
+            setIsModalOpen(true);
+          },
+          onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+          onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+        },
+      };
+      setNodes([testingNode]);
+      setEdges([]); // Sin conexiones al inicio
+    } catch (error) {
+      console.error('[FlowEditor] Error creando primera Testing Card:', error);
+    }
+  };
+
+  const handleAddTestingChild = async (padreId: string) => {
+    try {
+      const nuevaCard = await crearTestingCard({
+        padre_id: parseInt(padreId, 10),
+        titulo: `Nueva Testing Card ${Date.now()}`,
+        status: 'En validación',
+      });
+
+      const nuevoNodo = {
+        id: `testing-${nuevaCard.id_testing_card}`,
+        type: 'testing',
+        position: { x: 250, y: 100 + nodes.length * 100 },
+        data: {
+          ...nuevaCard,
+          onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+          onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+          onEdit: () => {
+            setEditingNode({
+              id: `testing-${nuevaCard.id_testing_card}`,
+              type: 'testing',
+              position: { x: 250, y: 100 },
+              data: {
+                ...nuevaCard,
+                onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
+                onAddLearning: () => handleAddLearningChild(nuevaCard.id_testing_card.toString()),
+                onEdit: () => {},
+                onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+                onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+              }
+            });
+            setIsModalOpen(true);
+          },
+          onDelete: () => handleDeleteTestingCard(nuevaCard.id_testing_card.toString()),
+          onStatusChange: () => handleStatusChange(nuevaCard.id_testing_card.toString()),
+        },
+      };
+
+      setNodes(nds => [...nds, nuevoNodo]);
+    } catch (error) {
+      console.error('[FlowEditor] Error creando Testing Card:', error);
+    }
+  };
+
+  const handleAddLearningChild = async (testingCardId: string) => {
+    try {
+      const testingCardIdNumber = parseInt(testingCardId, 10);
+      const nuevaLC = await crearLearningCard({
+        id_testing_card: testingCardIdNumber,
+        resultado: 'Nuevo aprendizaje',
+        estado: 'CUMPLIDO',
+      });
+
+      console.log('[FlowEditor] Nueva Learning Card creada:', nuevaLC);
+      const learningCardData = convertToLearningCardData(nuevaLC);
+
+      const nuevoNodo: Node = {
+        id: `learning-${learningCardData.id_learning_card}`,
+        type: 'learning',
+        position: { x: 450, y: 300 + nodes.length * 100 },
+        data: { 
+          ...learningCardData,
+          onEdit: () => {
+            console.log('[FlowEditor] Editar Learning Card id_learning_card:', learningCardData.id_learning_card);
+            setEditingNode({
+              id: `learning-${learningCardData.id_learning_card}`,
+              type: 'learning',
+              position: { x: 450, y: 300 + nodes.length * 100 },
+              data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+            });
+            setIsModalOpen(true);
+          },
+          onDelete: () => {
+            console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
+            // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+          }
+        },
+      };
+
+      setNodes(nds => [...nds, nuevoNodo]);
+      setEdges(eds => [
+        ...eds,
+        {
+          id: `edge-${testingCardId}-to-learning-${learningCardData.id_learning_card}`,
+          source: `testing-${testingCardId}`,
+          target: `learning-${learningCardData.id_learning_card}`,
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+        },
+      ]);
+    } catch (error) {
+      console.error('Error creando Learning Card:', error);
+    }
+  };
+
+  const generarConexiones = (testingCards: any[], allNodes: Node[]) => {
+    const edges: Edge[] = [];
+
+    testingCards.forEach(card => {
+      if (card.padre_id) {
+        edges.push({
+          id: `edge-testing-${card.padre_id}-to-${card.id_testing_card}`,
+          source: `testing-${card.padre_id}`,
+          target: `testing-${card.id_testing_card}`,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          style: { stroke: '#6C63FF' },
+        });
+      }
+
+      const learningCards = allNodes.filter(n =>
+        n.type === 'learning' && 
+        (n.data as LearningCardData).id_testing_card === card.id_testing_card
+      );
+
+      learningCards.forEach(lc => {
+        edges.push({
+          id: `edge-testing-${card.id_testing_card}-to-learning-${(lc.data as LearningCardData).id_learning_card}`,
+          source: `testing-${card.id_testing_card}`,
+          target: lc.id,
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+          style: { stroke: '#06D6A0' },
+        });
       });
     });
-  }, [edges, calculateNodeLevel]);
 
-  /**
-   * Efecto para actualizar z-index cuando cambian nodos o conexiones
-   * @function useLayoutEffect
-   */
-  useLayoutEffect(() => {
-    if (nodes.length > 0) {
-      updateNodeZIndex();
+    setEdges(edges);
+  };
+
+  // Métodos de acción para nodos (implementaciones mínimas)
+  const handleDeleteTestingCard = (id?: string) => {
+    if (!id) {
+      console.error('[FlowEditor] ID de Testing Card no definido');
+      return;
     }
-  }, [nodes.length, edges.length, updateNodeZIndex]);
-
-  /**
-   * Crea el primer nodo Testing Card en el centro del canvas
-   * @function createFirstNode
-   */
-  const createFirstNode = useCallback(() => {
-    const newNodeId = `node-${nodeIdCounter.current++}`;
     
-    const newNode: Node<TestingCardData> = {
-      id: newNodeId,
-      type: 'testing',
-      position: { x: 250, y: 100 }, // @position: Posición central inicial
-      style: { zIndex: 1000 }, // @z-index: Nodo raíz
-      data: {
-        id: newNodeId,
-        type: 'testing',
-        title: `Testing Card ${nodeIdCounter.current - 1}`,
-        hypothesis: 'Creemos que...',
-        experimentType: 'Entrevista',
-        description: 'Descripción del experimento',
-        metrics: [],
-        criteria: [],
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        attachments: [],
-        documentationUrls: [],
-        responsible: '',
-        experimentCategory: 'Descubrimiento',
-        status: 'En validación',
-        collaborators: [],
-        onAddTesting: () => createChildNode(newNodeId, 'testing'),
-        onAddLearning: () => createChildNode(newNodeId, 'learning'),
-        onEdit: () => openEditModal(newNodeId),
-        onDelete: () => deleteNode(newNodeId),
-      },
-    };
+    console.log('[FlowEditor] ==========================================');
+    console.log('[FlowEditor] INICIANDO ELIMINACIÓN');
+    console.log('[FlowEditor] ID de testing card a eliminar:', id);
+    console.log('[FlowEditor] ==========================================');
     
-    // @action: Resetear niveles y añadir nodo
-    nodeLevels.current.clear();
-    setNodes([newNode]);
-  }, [setNodes]);
+    setDeleteId(id);
+    setShowDeleteModal(true);
+  };
 
-  /**
-   * Crea un nodo hijo conectado a un nodo padre
-   * @function createChildNode
-   * @param {string} parentId - ID del nodo padre
-   * @param {'testing' | 'learning'} childType - Tipo del nodo hijo a crear
-   */
-  const createChildNode = useCallback((parentId: string, childType: 'testing' | 'learning') => {
-    const parentNode = nodes.find(node => node.id === parentId);
-    if (!parentNode) return;
-
-    const newNodeId = `node-${nodeIdCounter.current++}`;
-    const newPosition = getNodePosition(parentNode, childType, nodes);
-    const parentLevel = calculateNodeLevel(parentId, nodes, edges);
-    const newZIndex = 1000 + parentLevel + 1;
-
-    if (childType === 'testing') {
-      // @creation: Crear nueva Testing Card
-      const newNode: Node<TestingCardData> = {
-        id: newNodeId,
-        type: 'testing',
-        position: newPosition,
-        style: { zIndex: newZIndex },
-        data: {
-          id: newNodeId,
-          type: 'testing',
-          title: `Testing Card ${nodeIdCounter.current - 1}`,
-          hypothesis: 'Creemos que...',
-          experimentType: 'Entrevista',
-          description: 'Descripción del experimento',
-          metrics: [],
-          criteria: [],
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          attachments: [],
-          documentationUrls: [],
-          responsible: '',
-          experimentCategory: 'Descubrimiento',
-          status: 'En validación',
-          collaborators: [],
-          onAddTesting: () => createChildNode(newNodeId, 'testing'),
-          onAddLearning: () => createChildNode(newNodeId, 'learning'),
-          onEdit: () => openEditModal(newNodeId),
-          onDelete: () => deleteNode(newNodeId),
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      // Buscar el nodo a eliminar
+      const nodeToDelete = nodes.find(n => 
+        n.type === 'testing' && 
+        (n.data as TestingCardData).id_testing_card?.toString() === deleteId
+      );
       
-      // @connection: Crear conexión desde el handle derecho del padre
-      const newEdge: Edge = {
-        id: `edge-${parentId}-${newNodeId}`,
-        source: parentId,
-        target: newNodeId,
-        sourceHandle: 'right',
-        targetHandle: 'left',
-        style: { stroke: 'var(--color-primary-purple)', strokeWidth: 2 }
-      };
-      setEdges((eds) => [...eds, newEdge]);
-      
-    } else {
-      // @creation: Crear nueva Learning Card
-      const newNode: Node<LearningCardData> = {
-        id: newNodeId,
-        type: 'learning',
-        position: newPosition,
-        style: { zIndex: newZIndex },
-        data: {
-          id: newNodeId,
-          type: 'learning',
-          testingCardId: parentId,
-          result: '',
-          actionableInsight: '',
-          links: [],
-          attachments: [],
-          documentationUrls: [],
-          collaborators: [],
-          onEdit: () => openEditModal(newNodeId),
-          onDelete: () => deleteNode(newNodeId),
-        },
-      };
-      setNodes((nds) => [...nds, newNode]);
-      
-      // @connection: Crear conexión desde el handle inferior del padre
-      const newEdge: Edge = {
-        id: `edge-${parentId}-${newNodeId}`,
-        source: parentId,
-        target: newNodeId,
-        sourceHandle: 'bottom',
-        targetHandle: 'top',
-        style: { stroke: 'var(--color-success)', strokeWidth: 2 }
-      };
-      setEdges((eds) => [...eds, newEdge]);
-    }
-  }, [nodes, setNodes, setEdges, getNodePosition, calculateNodeLevel, edges]);
-
-  /**
-   * Elimina un nodo y todas sus conexiones
-   * @function deleteNode
-   * @param {string} nodeId - ID del nodo a eliminar
-   */
-  const deleteNode = useCallback((nodeId: string) => {
-    // @cleanup: Limpiar niveles del nodo eliminado
-    nodeLevels.current.delete(nodeId);
-    
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-  }, [setNodes, setEdges]);
-
-  /**
-   * Abre el modal de edición para un nodo específico
-   * @function openEditModal
-   * @param {string} nodeId - ID del nodo a editar
-   */
-  const openEditModal = useCallback((nodeId: string) => {
-    const node = nodes.find((n) => n.id === nodeId);
-    if (node) {
-      setEditingNode(node);
-      setIsModalOpen(true);
-    }
-  }, [nodes]);
-
-  /**
-   * Maneja las conexiones manuales entre nodos
-   * @function onConnect
-   * @param {Connection} params - Parámetros de la conexión
-   */
-  const onConnect = useCallback(
-    (params: Connection) => {
-      // @styling: Personalizar el estilo de la conexión basado en los tipos de nodos
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const targetNode = nodes.find(n => n.id === params.target);
-      
-      let edgeStyle = { strokeWidth: 2 };
-      
-      if (sourceNode?.type === 'testing' && targetNode?.type === 'learning') {
-        edgeStyle = { ...edgeStyle, stroke: 'var(--color-success)' };
-      } else if (sourceNode?.type === 'testing' && targetNode?.type === 'testing') {
-        edgeStyle = { ...edgeStyle, stroke: 'var(--color-primary-purple)' };
+      if (!nodeToDelete) {
+        console.error('[FlowEditor] No se encontró el nodo a eliminar con id:', deleteId);
+        return;
       }
       
-      const newEdge = { ...params, style: edgeStyle };
-      setEdges((eds) => addEdge(newEdge, eds));
-    },
-    [setEdges, nodes]
-  );
-
-  /**
-   * Actualiza los nodos con los handlers correctos
-   * @function nodesWithHandlers
-   * @description Esto es necesario para mantener las referencias de funciones actualizadas
-   */
-  const nodesWithHandlers = nodes.map((node) => {
-    if (node.type === 'testing') {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onAddTesting: () => createChildNode(node.id, 'testing'),
-          onAddLearning: () => createChildNode(node.id, 'learning'),
-          onEdit: () => openEditModal(node.id),
-          onDelete: () => deleteNode(node.id),
-        },
-      };
-    } else {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          onEdit: () => openEditModal(node.id),
-          onDelete: () => deleteNode(node.id),
-        },
-      };
+      console.log('[FlowEditor] Eliminando nodo:', nodeToDelete.id, 'con id_testing_card:', deleteId);
+      
+      // Eliminar del backend
+      await eliminarTestingCard(parseInt(deleteId, 10));
+      
+      // Eliminar del frontend
+      setNodes(nds => nds.filter(node => node.id !== nodeToDelete.id));
+      setEdges(eds => eds.filter(edge => edge.source !== nodeToDelete.id && edge.target !== nodeToDelete.id));
+      
+      setShowDeleteModal(false);
+      setDeleteId(null);
+    } catch (error) {
+      console.error('[FlowEditor] Error eliminando Testing Card:', error);
+    } finally {
+      setIsDeleting(false);
     }
-  });
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteId(null);
+  };
+
+  const handleStatusChange = (id: string) => {
+    // Aquí puedes implementar la lógica real de cambio de estado
+    console.log('[FlowEditor] Cambiar status de Testing Card:', id);
+    setNodes(nds => nds.map(node => {
+      if (node.id === `testing-${id}` && node.type === 'testing' && 'status' in node.data) {
+        const currentStatus = (node.data as TestingCardData).status;
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            status: currentStatus === 'En desarrollo' ? 'En validación' : 'En desarrollo',
+          },
+        };
+      }
+      return node;
+    }));
+  };
 
   return (
     <div className="flow-editor">
       <ReactFlowProvider>
         <ReactFlow
-          nodes={nodesWithHandlers}
+          nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
           nodeTypes={nodeTypes}
           fitView
-          attributionPosition="bottom-left"
+          onNodeClick={(_, node) => {
+            console.log('Click en nodo:', node);
+          }}
         >
-          {/* @component: Fondo con patrón de puntos */}
-          <Background 
-            variant={BackgroundVariant.Dots} 
-            gap={20} 
-            size={1} 
-            color="var(--theme-text-tertiary)"
-          />
-          
-          {/* @component: Controles de zoom y navegación */}
-          <Controls
-            position="top-right"
-            showZoom={true}
-            showFitView={true}
-            showInteractive={true}
-            className={isDarkMode ? 'rf-controls-dark' : 'rf-controls-light'}
-          />
+          <Background variant={BackgroundVariant.Dots} />
+          <Controls />
         </ReactFlow>
 
-        {/* @component: Mostrar EmptyFlowState solo cuando no hay nodos */}
         {nodes.length === 0 && (
-          <EmptyFlowState onCreateFirstNode={createFirstNode} />
+          <EmptyFlowState onCreateFirstNode={crearPrimeraTestingCard} />
         )}
       </ReactFlowProvider>
 
-      {/* @component: Modales de edición condicionales */}
       {isModalOpen && editingNode && (
         editingNode.type === 'testing' ? (
           <TestingCardEditModal
             node={editingNode as Node<TestingCardData>}
+            editingId={(editingNode.data as TestingCardData).id_testing_card} // <-- Aquí debe ir el id_testing_card
             onSave={(updatedData) => {
+              console.log('[FlowEditor] Objeto enviado para actualizar:', updatedData);
               setNodes((nds) =>
                 nds.map((node) =>
                   node.id === editingNode.id
@@ -473,6 +505,25 @@ const FlowEditor: React.FC = () => {
           />
         )
       )}
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Testing Card"
+        message={`¿Eliminar la Testing Card "${
+          deleteId ? 
+            (nodes.find(n => 
+              n.type === 'testing' && 
+              (n.data as TestingCardData).id_testing_card?.toString() === deleteId
+            )?.data as TestingCardData)?.titulo || `con ID ${deleteId}`
+            : ''
+        }"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

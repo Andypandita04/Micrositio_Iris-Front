@@ -64,6 +64,7 @@ const EmptyFlowState: React.FC<EmptyFlowStateProps> = ({ onCreateFirstNode }) =>
             <Plus size={20} className={styles['button-icon']} />
             Crear Testing Card
           </button>
+          {/* Si ocurre un error de creación, aquí podrías mostrar un mensaje de error personalizado */}
         </div>
 
         {/* Lista de características y beneficios 

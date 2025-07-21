@@ -12,7 +12,7 @@ interface FlowEditorSectionProps {
 
 const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
   secuenciaSeleccionada,
-  onGuardarCambios
+  onGuardarCambios,
 }) => {
   if (!secuenciaSeleccionada) {
     return (
@@ -56,7 +56,7 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
             <Play size={14} />
             {secuenciaSeleccionada.nombre}
           </div>
-          
+
           {onGuardarCambios && (
             <Button
               variant="primary"
@@ -71,7 +71,10 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
       </div>
 
       <div className={styles['flow-editor-container']}>
-        <FlowEditor key={secuenciaSeleccionada.id} />
+        <FlowEditor
+          key={`flow-${secuenciaSeleccionada.id}`}
+          idSecuencia={secuenciaSeleccionada.id}
+        />
       </div>
     </div>
   );

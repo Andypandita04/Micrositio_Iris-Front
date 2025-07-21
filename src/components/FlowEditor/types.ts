@@ -22,32 +22,6 @@ export type ExperimentCategory = 'Descubrimiento' | 'Validación';
 export type ExperimentStatus = 'En desarrollo' | 'En validación' | 'En proceso' | 'En ejecución' | 'Cancelado' | 'Terminado';
 
 /**
- * Estructura de datos para una métrica de Testing Card
- * @interface Metric
- */
-export interface Metric {
-  /** Nombre de la métrica */
-  metric: string;
-  /** Unidad de medida */
-  unit: string;
-  /** Valor objetivo o actual */
-  value: number;
-}
-
-/**
- * Estructura de datos para criterios de éxito
- * @interface Criteria
- */
-export interface Criteria {
-  /** Nombre de la métrica a evaluar */
-  metric: string;
-  /** Operador de comparación */
-  operator: '=' | '>' | '<';
-  /** Valor de referencia */
-  value: number;
-}
-
-/**
  * Estructura de datos para archivos adjuntos
  * @interface Attachment
  */
@@ -61,55 +35,79 @@ export interface Attachment {
 }
 
 /**
- * Estructura de datos para una Testing Card
+ * Tipos para métricas reales de la BD
+ * @interface MetricaTestingCard
+ */
+export interface MetricaTestingCard {
+  id_metrica: number;
+  id_testing_card: number;
+  nombre: string;
+  operador: string;
+  criterio: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Ajuste de TestingCardData para coincidir con la BD
  * @interface TestingCardData
  * @description Contiene toda la información necesaria para una Testing Card,
  * incluyendo hipótesis, métricas, documentación y callbacks de acción.
  */
 export interface TestingCardData {
-  onStatusChange(): unknown;
-  /** Identificador único del nodo */
-  id: string;
-  /** Tipo de nodo (siempre 'testing' para Testing Cards) */
-  type: 'testing';
-  /** Título descriptivo del experimento */
-  title: string;
-  /** Hipótesis a validar */
-  hypothesis: string;
-  /** Tipo de experimento a realizar */
-  experimentType: ExperimentType;
-  /** Descripción detallada del experimento */
-  description: string;
-  /** Lista de métricas a medir */
-  metrics: Metric[];
-  /** Criterios de éxito del experimento */
-  criteria: Criteria[];
-  /** Fecha de inicio del experimento */
-  startDate: string;
-  /** Fecha de finalización del experimento */
-  endDate: string;
-  /** Archivos adjuntos relacionados */
-  attachments: Attachment[];
-  /** URLs de documentación de referencia */
+  id: number;
+  id_testing_card: number;
+  id_secuencia: number;
+  padre_id?: number | null;
+  titulo: string;
+  hipotesis: string;
+  id_experimento_tipo: number;
+  descripcion: string;
+  dia_inicio: string;
+  dia_fin: string;
+  anexo_url?: string | null;
+  id_responsable: number;
+  status: 'En desarrollo' | 'En validación' | 'En ejecución' | 'Cancelado' | 'Terminado';
+  created_at?: string;
+  updated_at?: string;
+  // Opcionales para frontend
+  metricas?: MetricaTestingCard[];
   documentationUrls?: string[];
-  /** Responsable del experimento */
-  responsible: number;
-  /** Categoría del experimento */
-  experimentCategory: ExperimentCategory;
-  /** Estado actual del experimento */
-  status: ExperimentStatus;
-  /** IDs de colaboradores asignados */
+  attachments?: Attachment[];
   collaborators?: string[];
-  
   // @callbacks: Funciones de acción para el nodo
   /** Callback para añadir una Testing Card conectada */
-  onAddTesting: () => void;
+  onAddTesting?: () => void;
   /** Callback para añadir una Learning Card conectada */
-  onAddLearning: () => void;
+  onAddLearning?: () => void;
   /** Callback para editar el nodo */
-  onEdit: () => void;
+  onEdit?: () => void;
   /** Callback para eliminar el nodo */
-  onDelete: () => void;
+  onDelete?: () => void;
+}
+
+/**
+ * Estructura de datos para una Learning Card
+ * @interface LearningCardData
+ * @description Contiene los resultados y hallazgos obtenidos de un experimento,
+ * conectada a una Testing Card específica.
+ */
+export interface LearningCardData {
+  id_learning_card: number;
+  id_testing_card: number;
+  resultado: string | null;
+  hallazgo: string | null;
+  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR' | 'VALIDADA';
+  created_at: string;
+  updated_at: string;
+  attachments?: Attachment[];
+  /** URLs de documentación de referencia */
+  //documentationUrls?: string[];
+  /** IDs de colaboradores asignados */
+  //collaborators?: string[];
+  // Callbacks (si los necesitas en frontend)
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 /**
@@ -213,40 +211,4 @@ export interface NodeLevelInfo {
   parentIds: string[];
   /** IDs de nodos hijo */
   childIds: string[];
-}
-
-/**
- * Estructura de datos para una Learning Card
- * @interface LearningCardData
- * @description Contiene los resultados y hallazgos obtenidos de un experimento,
- * conectada a una Testing Card específica.
- */
-export interface LearningCardData {
-  /** Identificador único del nodo */
-  id: string | null;
-  /** ID de la secuencia */
-  id_secuencia?: string | null;
-  /** ID de la Testing Card asociada */
-  id_testing_card?: string | null;
-  /** Resultados obtenidos del experimento */
-  resultado: string | null;
-  /** Hallazgo accionable derivado de los resultados */
-  hallazgo: string | null;
-  /** Estado de la Learning Card */
-  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR';
-  /** Fecha de creación */
-  created_at: Date;
-  /** Fecha de actualización */
-  updated_at: Date;
-  /** Enlaces relacionados con los resultados */
-  //links?: string[];
-  /** Archivos adjuntos con evidencia */
-  attachments?: Attachment[];
-  /** URLs de documentación de referencia */
-  //documentationUrls?: string[];
-  /** IDs de colaboradores asignados */
-  //collaborators?: string[];
-  // Callbacks (si los necesitas en frontend)
-  onEdit?: () => void;
-  onDelete?: () => void;
 }

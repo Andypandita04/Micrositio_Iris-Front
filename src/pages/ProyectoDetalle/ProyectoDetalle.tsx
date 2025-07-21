@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Edit, Trash2 } from 'lucide-react';
-import { proyectosMock } from '../../data/mockData';
-import { secuenciasMock } from '../../data/secuenciasMock';
 import { Proyecto } from '../../types/proyecto';
 import { Secuencia, CreateSecuenciaData } from '../../types/secuencia';
 import ActionDropdown from '../../components/ui/ActionDropdown/ActionDropdown';
@@ -16,7 +14,6 @@ import LiderProyecto from '../Proyectos/components/LiderProyecto';
 import styles from './ProyectoDetalle.module.css';
 import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
-import { useNavigate } from 'react-router-dom';
 import { eliminarProyecto } from '../../services/proyectosService';
 
 
@@ -74,13 +71,16 @@ const ProyectoDetalle: React.FC = () => {
 
           // 1. Obtener proyecto
           const proyectoData = await obtenerProyectoPorId(id);
-          const proyectoMapeado = {
-            id: proyectoData.id.toString(),
+          const proyectoMapeado: Proyecto = {
+            ...proyectoData,
+            // Asegura que los campos requeridos por el tipo estén presentes
+            id: proyectoData.id,
             nombre: proyectoData.titulo,
             descripcion: proyectoData.descripcion,
             estado: proyectoData.estado.toLowerCase(),
-            fechaInicio: proyectoData.fecha_inicio || proyectoData.creado,
-            fechaCreacion: proyectoData.creado,
+            fecha_inicio: proyectoData.fecha_inicio || proyectoData.creado,
+            fecha_fin_estimada: proyectoData.fecha_fin_estimada || '',
+            creado: proyectoData.creado,
             colaboradores: [],
           };
           setProyecto(proyectoMapeado);
@@ -382,7 +382,7 @@ const ProyectoDetalle: React.FC = () => {
             <div className={styles['meta-section']}>
               <span className={styles['meta-label']}>Fecha de inicio:</span>
               <span className={styles['proyecto-fecha']}>
-                {formatearFecha(proyecto.fechaInicio)}
+                {formatearFecha(proyecto.fecha_inicio)}
               </span>
             </div>
 
