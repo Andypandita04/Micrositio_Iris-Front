@@ -43,11 +43,12 @@ interface LearningCardNodeProps {
  * - Responsive y compatible con modo oscuro
  */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
-  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir
+  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir, Validada
   const statusMap: Record<string, { label: string; className: string }> = {
     'cumplido': { label: 'Cumplido', className: 'learning-status-cumplido' },
     'rechazado': { label: 'Rechazado', className: 'learning-status-rechazado' },
     'repetir': { label: 'Repetir', className: 'learning-status-repetir' },
+    'validada': { label: 'Validada', className: 'learning-status-validada' },
   };
   const statusKey = (data.estado || '').toLowerCase();
   const statusInfo = statusMap[statusKey];
@@ -240,7 +241,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
-            git(); 
+            data.onEdit(); 
           }} 
           className="card-btn edit"
           title="Editar Learning Card"

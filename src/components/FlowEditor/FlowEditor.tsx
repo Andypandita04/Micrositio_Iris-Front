@@ -585,6 +585,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         ) : (
           <LearningCardEditModal
             node={editingNode as Node<LearningCardData>}
+            editingIdLC={(editingNode.data as LearningCardData).id_learning_card}
             onSave={(updatedData) => {
               setNodes((nds) =>
                 nds.map((node) =>
