@@ -29,7 +29,7 @@ import {
 
 import {
   crear as crearLearningCard,
-  obtenerPorTestingCard as obtenerPorId,
+  obtenerPorTestingCard,
   LearningCard
 } from '../../services/learningCardService';
 
@@ -91,8 +91,23 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         try {
           console.log('[FlowEditor] Obteniendo Learning Cards para testing card:', card.id_testing_card);
           console.log('[FlowEditor] Tipo de id_testing_card:', typeof card.id_testing_card, 'Valor:', card.id_testing_card);
-          learningCards = await obtenerPorId(card.id_testing_card);
-          console.log('[FlowEditor] Learning Cards obtenidas exitosamente:', learningCards);
+          const response = await obtenerPorTestingCard(card.id_testing_card);
+          console.log('[FlowEditor] Learning Cards obtenidas exitosamente:', response);
+          console.log('[FlowEditor] Tipo de response:', typeof response, 'Es array:', Array.isArray(response));
+          
+          // Verificar si la respuesta es un array o un objeto individual
+          if (Array.isArray(response)) {
+            console.log('[FlowEditor] Response es array, asignando directamente');
+            learningCards = response;
+          } else if (response && typeof response === 'object' && 'id_learning_card' in response) {
+            // Si es un objeto individual con id_learning_card, convertirlo en array
+            console.log('[FlowEditor] Response es objeto individual, convirtiendo a array');
+            learningCards = [response];
+          } else {
+            console.log('[FlowEditor] Response no es array ni objeto válido, asignando array vacío');
+            learningCards = [];
+          }
+          console.log('[FlowEditor] Learning Cards procesadas como array:', learningCards, 'Longitud:', learningCards.length);
         } catch (error) {
           console.error('[FlowEditor] Error obteniendo Learning Cards para testing card:', card.id_testing_card);
           console.error('[FlowEditor] Error completo:', error);
@@ -100,7 +115,18 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             const axiosError = error as any;
             console.error('[FlowEditor] Response status:', axiosError.response?.status);
             console.error('[FlowEditor] Response data:', axiosError.response?.data);
+            
+            // Si es un 404, significa que no hay learning cards para esta testing card
+            if (axiosError.response?.status === 404) {
+              console.log('[FlowEditor] No hay Learning Cards para este Testing Card, continuando...');
+            }
           }
+          learningCards = [];
+        }
+        
+        // Garantizar que learningCards sea siempre un array antes de continuar
+        if (!Array.isArray(learningCards)) {
+          console.warn('[FlowEditor] FORZANDO learningCards a array vacío porque no es array:', learningCards);
           learningCards = [];
         }
 
@@ -145,6 +171,16 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         nodesAccum.push(testingNode);
 
         // Crear nodos para Learning Cards
+        console.log('[FlowEditor] Tipo de learningCards:', typeof learningCards, 'Es array:', Array.isArray(learningCards), 'Valor:', learningCards);
+        
+        // Asegurar que learningCards sea un array válido antes del bucle
+        if (!Array.isArray(learningCards)) {
+          console.warn('[FlowEditor] learningCards no es un array, convirtiendo...', learningCards);
+          learningCards = [];
+        }
+        
+        console.log('[FlowEditor] learningCards final antes del bucle:', learningCards, 'Longitud:', learningCards.length);
+        
         for (const lc of learningCards) {
           const learningCardData = convertToLearningCardData(lc);
           console.log('[FlowEditor] Creando Learning Card:', {

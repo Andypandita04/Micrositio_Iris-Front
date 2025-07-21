@@ -38,7 +38,7 @@ export const obtenerPorId = async (id_learning_card: string | number): Promise<L
  * @returns {Promise<LearningCard[]>} Lista de Learning Cards asociadas.
  */
 export const obtenerPorTestingCard = async (id_testing_card: string | number): Promise<LearningCard[]> => {
-  const response = await apiClient.post(`/learning_card/t`, { id_testing_card });
+  const response = await apiClient.get(`/learning_card/t`, { params: { id_testing_card } });
   return response.data;
 };
 
