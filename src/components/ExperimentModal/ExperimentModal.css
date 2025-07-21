@@ -1,0 +1,390 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+}
+
+.modal-overlay.light {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-overlay.dark {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 1rem;
+  position: relative;
+  padding: 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content.light {
+  background: #ffffff;
+  color: #000000;
+}
+
+.modal-content.dark {
+  background: #1e3a8a;
+  color: #ffffff;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: 2px solid #F97316;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #F97316;
+  z-index: 10;
+}
+
+.modal-close:hover {
+  background: #F97316;
+  color: white;
+  transform: scale(1.1);
+}
+
+.modal-header {
+  margin-bottom: 2rem;
+  padding-right: 4rem;
+}
+
+.modal-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+  background: linear-gradient(135deg, #8B5CF6, #F97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.modal-campo {
+  background: linear-gradient(135deg, #8B5CF6, #F97316);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+.modal-tipo {
+  border: 2px solid #8B5CF6;
+  color: #8B5CF6;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+
+.description-section {
+  margin-bottom: 2rem;
+}
+
+.modal-description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.team-skills-section {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+
+.team-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.team-icons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.team-icon {
+  color: #F97316;
+}
+
+.skills-section {
+  flex: 1;
+}
+
+.skills-text {
+  display: block;
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}
+
+.metrics-section {
+  margin-bottom: 2rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: center;
+}
+
+.status-section {
+  margin-bottom: 2rem;
+}
+
+.status-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #8B5CF6;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+}
+
+.modal-content.light .status-item {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.modal-content.dark .status-item {
+  border-color: #374151;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.status-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-yes {
+  color: #10b981;
+}
+
+.status-no {
+  color: #ef4444;
+}
+
+.tools-section,
+.metrics-text-section {
+  margin-bottom: 2rem;
+}
+
+.tools-section h4,
+.metrics-text-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #8B5CF6;
+}
+
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tool-item {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid;
+}
+
+.modal-content.light .tool-item {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.modal-content.dark .tool-item {
+  border-color: #374151;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tool-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.metrics-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.metrics-list li {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid #F97316;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.modal-content.light .metrics-list li {
+  background: #f9fafb;
+}
+
+.modal-content.dark .metrics-list li {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 1rem;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+  }
+  
+  .modal-body {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .team-skills-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .modal-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    padding: 1rem;
+    max-height: 95vh;
+  }
+  
+  .modal-close {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .modal-header {
+    padding-right: 3rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .modal-title {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+  
+  .modal-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .modal-campo,
+  .modal-tipo {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .modal-description {
+    font-size: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .status-grid {
+    gap: 0.5rem;
+  }
+  
+  .status-item {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .tools-list {
+    gap: 0.75rem;
+  }
+  
+  .tool-item {
+    padding: 0.75rem;
+  }
+  
+  .tool-item p {
+    font-size: 0.8rem;
+  }
+  
+  .metrics-list li {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}

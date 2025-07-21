@@ -35,10 +35,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useTheme = (): ThemeContextType => {
+export const useTheme = (): ThemeContextType & { theme: 'light' | 'dark' } => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
-  return context;
+  return {
+    ...context,
+    theme: context.isDarkMode ? 'dark' : 'light',
+  };
 };
