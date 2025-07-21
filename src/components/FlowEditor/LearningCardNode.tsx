@@ -6,10 +6,7 @@ import {
   BookOpen, 
   ChevronDown,
   FileText,
-  Lightbulb,
-  ExternalLink,
-  Paperclip,
-  Users
+  Lightbulb
 } from 'lucide-react';
 import { LearningCardData } from './types';
 import './styles/LearningCardNode.css';
@@ -243,7 +240,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
-            data.onEdit(); 
+            git(); 
           }} 
           className="card-btn edit"
           title="Editar Learning Card"
