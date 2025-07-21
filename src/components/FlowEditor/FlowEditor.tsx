@@ -29,6 +29,7 @@ import {
 
 import {
   crear as crearLearningCard,
+  eliminar as eliminarLearningCard,
   obtenerPorTestingCard,
   LearningCard
 } from '../../services/learningCardService';
@@ -50,6 +51,9 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteLearningModal, setShowDeleteLearningModal] = useState(false);
+  const [deleteLearningId, setDeleteLearningId] = useState<string | null>(null);
+  const [isDeletingLearning, setIsDeletingLearning] = useState(false);
 
   // Función para convertir LearningCard del servicio a LearningCardData del componente
   const convertToLearningCardData = (lc: LearningCard): LearningCardData => {
@@ -201,13 +205,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
                   id: `learning-${learningCardData.id_learning_card}`,
                   type: 'learning',
                   position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
-                  data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+                  data: { ...learningCardData, onEdit: () => {}, onDelete: () => handleDeleteLearningCard(learningCardData.id_learning_card.toString()) }
                 });
                 setIsModalOpen(true);
               },
               onDelete: () => {
                 console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
-                // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+                handleDeleteLearningCard(learningCardData.id_learning_card.toString());
               }
             },
           });
@@ -349,13 +353,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
               id: `learning-${learningCardData.id_learning_card}`,
               type: 'learning',
               position: { x: 450, y: 300 + nodes.length * 100 },
-              data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+              data: { ...learningCardData, onEdit: () => {}, onDelete: () => handleDeleteLearningCard(learningCardData.id_learning_card.toString()) }
             });
             setIsModalOpen(true);
           },
           onDelete: () => {
             console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
-            // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+            handleDeleteLearningCard(learningCardData.id_learning_card.toString());
           }
         },
       };
@@ -465,6 +469,60 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
     setDeleteId(null);
   };
 
+  // Métodos de eliminación para Learning Cards
+  const handleDeleteLearningCard = (id?: string) => {
+    if (!id) {
+      console.error('[FlowEditor] ID de Learning Card no definido');
+      return;
+    }
+    
+    console.log('[FlowEditor] ==========================================');
+    console.log('[FlowEditor] INICIANDO ELIMINACIÓN LEARNING CARD');
+    console.log('[FlowEditor] ID de learning card a eliminar:', id);
+    console.log('[FlowEditor] ==========================================');
+    
+    setDeleteLearningId(id);
+    setShowDeleteLearningModal(true);
+  };
+
+  const handleConfirmDeleteLearning = async () => {
+    if (!deleteLearningId) return;
+    setIsDeletingLearning(true);
+    try {
+      // Buscar el nodo a eliminar
+      const nodeToDelete = nodes.find(n => 
+        n.type === 'learning' && 
+        (n.data as LearningCardData).id_learning_card?.toString() === deleteLearningId
+      );
+      
+      if (!nodeToDelete) {
+        console.error('[FlowEditor] No se encontró el nodo Learning Card a eliminar con id:', deleteLearningId);
+        return;
+      }
+      
+      console.log('[FlowEditor] Eliminando Learning Card nodo:', nodeToDelete.id, 'con id_learning_card:', deleteLearningId);
+      
+      // Eliminar del backend
+      await eliminarLearningCard(parseInt(deleteLearningId, 10));
+      
+      // Eliminar del frontend
+      setNodes(nds => nds.filter(node => node.id !== nodeToDelete.id));
+      setEdges(eds => eds.filter(edge => edge.source !== nodeToDelete.id && edge.target !== nodeToDelete.id));
+      
+      setShowDeleteLearningModal(false);
+      setDeleteLearningId(null);
+    } catch (error) {
+      console.error('[FlowEditor] Error eliminando Learning Card:', error);
+    } finally {
+      setIsDeletingLearning(false);
+    }
+  };
+
+  const handleCancelDeleteLearning = () => {
+    setShowDeleteLearningModal(false);
+    setDeleteLearningId(null);
+  };
+
   const handleStatusChange = (id: string) => {
     // Aquí puedes implementar la lógica real de cambio de estado
     console.log('[FlowEditor] Cambiar status de Testing Card:', id);
@@ -559,6 +617,25 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         cancelText="Cancelar"
         type="danger"
         isLoading={isDeleting}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteLearningModal}
+        onClose={handleCancelDeleteLearning}
+        onConfirm={handleConfirmDeleteLearning}
+        title="Eliminar Learning Card"
+        message={`¿Eliminar la Learning Card "${
+          deleteLearningId ? 
+            (nodes.find(n => 
+              n.type === 'learning' && 
+              (n.data as LearningCardData).id_learning_card?.toString() === deleteLearningId
+            )?.data as LearningCardData)?.resultado || `con ID ${deleteLearningId}`
+            : ''
+        }"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeletingLearning}
       />
     </div>
   );
