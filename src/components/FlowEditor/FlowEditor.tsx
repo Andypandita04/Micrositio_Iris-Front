@@ -288,16 +288,44 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
 
   const handleAddTestingChild = async (padreId: string) => {
     try {
-      const nuevaCard = await crearTestingCard({
+      console.log('[FlowEditor] Creando Testing Card hija con padre_id:', padreId);
+      
+      const payload = {
         padre_id: parseInt(padreId, 10),
+        id_secuencia: Number(idSecuencia), // Mismo id_secuencia que el padre
         titulo: `Nueva Testing Card ${Date.now()}`,
+        hipotesis: 'Hipótesis por definir',
+        descripcion: 'Descripción por definir',
+        dia_inicio: new Date().toISOString().slice(0, 10),
+        dia_fin: new Date().toISOString().slice(0, 10),
+        id_responsable: 1, // Valor por defecto
+        id_experimento_tipo: 2, // Valor por defecto
         status: 'En validación',
-      });
+      };
+      
+      console.log('[FlowEditor] Payload para Testing Card hija:', payload);
+      const nuevaCard = await crearTestingCard(payload);
+      console.log('[FlowEditor] Nueva Testing Card hija creada:', nuevaCard);
+
+      // Encontrar la posición del nodo padre para posicionar el hijo
+      const parentNode = nodes.find(n => 
+        n.type === 'testing' && 
+        (n.data as TestingCardData).id_testing_card?.toString() === padreId
+      );
+      
+      const parentY = parentNode ? parentNode.position.y : 100;
+      const childrenCount = nodes.filter(n => 
+        n.type === 'testing' && 
+        (n.data as TestingCardData).padre_id?.toString() === padreId
+      ).length;
 
       const nuevoNodo = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
-        position: { x: 250, y: 100 + nodes.length * 100 },
+        position: { 
+          x: 500, // Más a la derecha para mostrar jerarquía
+          y: parentY + (childrenCount * 150) + 50 // Espaciado vertical basado en hermanos
+        },
         data: {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
@@ -324,8 +352,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       };
 
       setNodes(nds => [...nds, nuevoNodo]);
+      
+      // Crear la conexión entre el padre y el hijo
+      setEdges(eds => [
+        ...eds,
+        {
+          id: `edge-testing-${padreId}-to-${nuevaCard.id_testing_card}`,
+          source: `testing-${padreId}`,
+          target: `testing-${nuevaCard.id_testing_card}`,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          style: { stroke: '#6C63FF' },
+        },
+      ]);
+      
     } catch (error) {
-      console.error('[FlowEditor] Error creando Testing Card:', error);
+      console.error('[FlowEditor] Error creando Testing Card hija:', error);
     }
   };
 
