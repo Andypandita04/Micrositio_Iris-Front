@@ -7,6 +7,7 @@ import styles from './EditarProyectoModal.module.css';
 import { actualizarProyecto } from '../../../services/proyectosService';
 import { obtenerEmpleados } from '../../../services/empleadosService';
 import EmpleadoSelector from '../../Proyectos/components/EmpleadoSelector';
+//import { form } from 'framer-motion/m';
 
 interface Empleado {
   id_empleado: number;
@@ -50,7 +51,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     descripcion: proyecto.descripcion,
     id_lider: 0, // Se inicializará cuando se carguen los empleados
     fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
-    fecha_fin_estimada: proyecto.fecha_fin_estimada || '' // <-- nuevo
+    fecha_fin_estimada: proyecto.fecha_fin_estimada || '', // <-- nuevo,
+    estado : proyecto.estado || 'ACTIVO' // <-- nuevo, estado por defecto
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,7 +69,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         descripcion: proyecto.descripcion,
         id_lider: 0,
         fecha_inicio: proyecto.fecha_inicio || '',
-        fecha_fin_estimada: proyecto.fecha_fin_estimada || ''
+        fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
+        estado: proyecto.estado || 'ACTIVO' 
       });
       setErrors({});
     }
@@ -124,6 +127,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Datos a enviar:', formData); // Antes de actualizarProyecto
 
     if (!validateForm()) return;
 
@@ -249,6 +253,26 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           getIniciales={getIniciales}
           getAvatarColor={getAvatarColor}
         />
+
+        <div className={styles['form-group']}>
+          <label htmlFor="estado" className={styles.label}>
+            Estado del Proyecto *
+          </label>
+          <select
+            id="estado"
+            value={formData.estado}
+            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value }))}
+            className={`${styles.input} ${styles.select}`}
+            disabled={loading}
+            required
+          >
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="INACTIVO">INACTIVO</option>
+            <option value="COMPLETADO">COMPLETADO</option>
+          </select>
+        </div>
+
+
 
         <div className={styles['form-group']}>
           <label htmlFor="fecha_inicio" className={styles.label}>
