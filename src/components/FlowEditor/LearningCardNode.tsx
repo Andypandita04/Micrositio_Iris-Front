@@ -98,7 +98,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             <span className={`learning-status-badge ${statusInfo.className}`}>{statusInfo.label}</span>
           )}
         </div>
-        <div className="card-id">#{data.id_learning_card.toString().slice(-4)}</div>
+        {/*<div className="card-id">#{data.id_learning_card.toString().slice(-4)}</div>*/}
       </div>
 
       {/* @section: Co-autores - Posición: Sección derecha superior 
@@ -230,7 +230,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             borderRadius: 'var(--border-radius-md)',
             border: '1px solid var(--theme-border)'
           }}>
-            <strong>Testing Card asociada:</strong> #{data.id_testing_card.toString().slice(-4)}
+            {/*<strong>Testing Card asociada:</strong> #{data.id_testing_card.toString().slice(-4)}*/}
           </div>
         </div>
       </div>

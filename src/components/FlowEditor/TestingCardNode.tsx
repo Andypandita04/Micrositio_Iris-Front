@@ -47,7 +47,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className="experiment-type">
             <ClipboardList size={14} />
-            <span>Tipo #{data.id_experimento_tipo}</span>
+            <span>TESTING CARD</span>
+            {/*<span>Tipo #{data.id_experimento_tipo}</span> */}
           </div>
         </div>
       </div>
@@ -80,7 +81,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
               color: 'var(--theme-text-secondary)',
               marginBottom: 'var(--spacing-xs)'
             }}>
-              <strong>ID Secuencia:</strong> {data.id_secuencia}
+              {/*<strong>ID Secuencia:</strong> {data.id_secuencia}*/}
             </div>
             {data.anexo_url && (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--theme-text-secondary)' }}>

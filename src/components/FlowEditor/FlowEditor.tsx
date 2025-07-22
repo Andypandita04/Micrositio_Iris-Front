@@ -240,7 +240,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         id_secuencia: Number(idSecuencia),
         titulo: 'Primer experimento', // >= 3 caracteres
         hipotesis: 'Hipótesis inicial de prueba', // >= 10 caracteres
-        id_experimento_tipo: 2, // Debe existir en tu catálogo
+        id_experimento_tipo: 15, // Debe existir en tu catálogo
         descripcion: 'Descripción inicial de prueba', // >= 10 caracteres
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
@@ -299,7 +299,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
         id_responsable: 1, // Valor por defecto
-        id_experimento_tipo: 2, // Valor por defecto
+        id_experimento_tipo: 15, // Valor por defecto
         status: 'En validación',
       };
       
