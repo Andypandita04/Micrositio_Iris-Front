@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -19,6 +19,7 @@ import EmptyFlowState from './components/EmptyFlowState';
 import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
+import { useNodePositions } from '../../hooks/useNodePositions';
 import './styles/FlowEditor.css';
 
 import {
@@ -38,12 +39,17 @@ interface FlowEditorProps {
   idSecuencia?: string | number;
 }
 
+export interface FlowEditorRef {
+  saveCurrentPositions: () => Promise<void>;
+  getCurrentNodes: () => Node<NodeData>[];
+}
+
 const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
 
-const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
+const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +60,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [showDeleteLearningModal, setShowDeleteLearningModal] = useState(false);
   const [deleteLearningId, setDeleteLearningId] = useState<string | null>(null);
   const [isDeletingLearning, setIsDeletingLearning] = useState(false);
+
+  // Hook para manejar posiciones de nodos
+  const {
+    saveNodePositionsToDatabase,
+    getNodePosition,
+    calculateDefaultPosition,
+    loadNodePositionsFromDatabase
+  } = useNodePositions(idSecuencia);
+
+  // Exponer métodos al componente padre a través de ref
+  useImperativeHandle(ref, () => ({
+    saveCurrentPositions: async () => {
+      await saveNodePositionsToDatabase(nodes);
+    },
+    getCurrentNodes: () => nodes,
+  }), [nodes, saveNodePositionsToDatabase]);
 
   // Función para convertir LearningCard del servicio a LearningCardData del componente
   const convertToLearningCardData = (lc: LearningCard): LearningCardData => {
@@ -74,6 +96,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       console.log('[FlowEditor] Solicitando Testing Cards con idSecuencia:', idSecuencia);
       const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
       console.log('[FlowEditor] Respuesta de obtenerTestingCardsPorSecuencia:', testingCards);
+      
+      // Cargar posiciones guardadas
+      const savedPositions = await loadNodePositionsFromDatabase();
+      console.log('[FlowEditor] Posiciones cargadas:', savedPositions);
       
       // Debug: Ver estructura exacta de los datos
       if (testingCards && testingCards.length > 0) {
@@ -134,10 +160,14 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
           learningCards = [];
         }
 
+        // Obtener posición del nodo testing
+        const testingNodeId = `testing-${card.id_testing_card}`;
+        const testingPosition = getNodePosition('testing', card, nodesAccum, card.padre_id?.toString(), savedPositions);
+
         const testingNode: Node = {
-          id: `testing-${card.id_testing_card}`, // <-- Usa card.id_testing_card para consistencia
+          id: testingNodeId,
           type: 'testing',
-          position: { x: 250, y: 100 + nodesAccum.length * 100 },
+          position: testingPosition,
           data: {
             ...card,
             onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
@@ -193,10 +223,14 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             resultado: learningCardData.resultado
           });
           
+          // Obtener posición del nodo learning
+          const learningNodeId = `learning-${learningCardData.id_learning_card}`;
+          const learningPosition = getNodePosition('learning', learningCardData, nodesAccum, card.id_testing_card.toString(), savedPositions);
+          
           nodesAccum.push({
-            id: `learning-${learningCardData.id_learning_card}`,
+            id: learningNodeId,
             type: 'learning',
-            position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
+            position: learningPosition,
             data: { 
               ...learningCardData,
               onEdit: () => {
@@ -254,7 +288,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const testingNode = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
-        position: { x: 250, y: 100 },
+        position: calculateDefaultPosition('testing', undefined, [], true),
         data: {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
@@ -307,25 +341,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const nuevaCard = await crearTestingCard(payload);
       console.log('[FlowEditor] Nueva Testing Card hija creada:', nuevaCard);
 
-      // Encontrar la posición del nodo padre para posicionar el hijo
-      const parentNode = nodes.find(n => 
-        n.type === 'testing' && 
-        (n.data as TestingCardData).id_testing_card?.toString() === padreId
-      );
-      
-      const parentY = parentNode ? parentNode.position.y : 100;
-      const childrenCount = nodes.filter(n => 
-        n.type === 'testing' && 
-        (n.data as TestingCardData).padre_id?.toString() === padreId
-      ).length;
-
       const nuevoNodo = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
-        position: { 
-          x: 500, // Más a la derecha para mostrar jerarquía
-          y: parentY + (childrenCount * 150) + 50 // Espaciado vertical basado en hermanos
-        },
+        position: calculateDefaultPosition('testing', padreId, nodes),
         data: {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
@@ -386,7 +405,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const nuevoNodo: Node = {
         id: `learning-${learningCardData.id_learning_card}`,
         type: 'learning',
-        position: { x: 450, y: 300 + nodes.length * 100 },
+        position: calculateDefaultPosition('learning', testingCardId, nodes),
         data: { 
           ...learningCardData,
           onEdit: () => {
@@ -682,6 +701,8 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       />
     </div>
   );
-};
+});
+
+FlowEditor.displayName = 'FlowEditor';
 
 export default FlowEditor;
