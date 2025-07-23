@@ -63,15 +63,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
   // Cargar empleados cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      console.log('=== DEBUG PROYECTO ===');
-      console.log('Proyecto completo:', proyecto);
-      console.log('proyecto.id_lider:', proyecto.id_lider);
-      console.log('typeof proyecto.id_lider:', typeof proyecto.id_lider);
-      console.log('=====================');
-      
       // Primero establecer los datos del formulario
       const liderId = proyecto.id_lider || 0;
-      console.log('liderId calculado:', liderId);
       
       setFormData({
         nombre: proyecto.nombre,
@@ -79,7 +72,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         id_lider: liderId, // Usar el id_lider del proyecto
         fecha_inicio: proyecto.fecha_inicio || '',
         fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
-        estado: proyecto.estado || 'activo' 
+        estado: proyecto.estado || 'ACTIVO' 
       });
       setErrors({});
       
@@ -103,10 +96,6 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         correo: empleado.correo,
         activo: empleado.activo
       }));
-
-
-      console.log('Empleados cargados:', empleadosMapeados); // Debug
-      console.log('FormData actual id_lider:', formData.id_lider); // Debug
 
 
       setEmpleados(empleadosMapeados);
@@ -139,7 +128,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Datos a enviar:', formData); // Antes de actualizarProyecto
+    console.log('📤 Datos a enviar:', formData);
 
     if (!validateForm()) return;
 
@@ -155,19 +144,29 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         fecha_fin_estimada: formData.fecha_fin_estimada || null
       };
 
+      console.log('🚀 Enviando al backend:', data);
+
       // Actualiza el proyecto en el backend
       const proyectoActualizado = await actualizarProyecto(Number(proyecto.id), data);
+      
+      console.log('✅ Respuesta del backend:', proyectoActualizado);
 
       // Mapea la respuesta al tipo Proyecto del front
-      onProyectoActualizado({
+      const proyectoMapeado = {
         ...proyecto,
         nombre: proyectoActualizado.titulo,
         descripcion: proyectoActualizado.descripcion,
         id_lider: proyectoActualizado.id_lider // Asegúrate de que el backend devuelva este campo
-      });
+      };
+
+      console.log('📦 Proyecto mapeado para el frontend:', proyectoMapeado);
+
+      onProyectoActualizado(proyectoMapeado);
+      console.log('🎉 Proyecto actualizado exitosamente!');
+      
       onClose();
     } catch (error) {
-      console.error('Error al actualizar proyecto:', error);
+      console.error('❌ Error al actualizar proyecto:', error);
       setErrors({ general: 'Error al actualizar el proyecto' });
     } finally {
       setLoading(false);
@@ -290,15 +289,15 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           <select
             id="estado"
             value={formData.estado}
-            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'activo' | 'pausado' | 'completado' | 'cancelado' }))}
+            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO' }))}
             className={`${styles.input} ${styles.select}`}
             disabled={loading}
             required
           >
-            <option value="activo">ACTIVO</option>
-            <option value="pausado">PAUSADO</option>
-            <option value="completado">COMPLETADO</option>
-            <option value="cancelado">CANCELADO</option>
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="PAUSADO">PAUSADO</option>
+            <option value="COMPLETADO">COMPLETADO</option>
+            <option value="CANCELADO">CANCELADO</option>
           </select>
         </div>
 
