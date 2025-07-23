@@ -53,7 +53,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     id_lider: proyecto.id_lider, // Se inicializará cuando se carguen los empleados
     fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
     fecha_fin_estimada: proyecto.fecha_fin_estimada || '', // <-- nuevo,
-    estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO' // <-- nuevo, estado por defecto
+    estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' // <-- actualizado
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -141,7 +141,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         descripcion: formData.descripcion,
         id_lider: formData.id_lider,
         fecha_inicio: formData.fecha_inicio || null,
-        fecha_fin_estimada: formData.fecha_fin_estimada || null
+        fecha_fin_estimada: formData.fecha_fin_estimada || null,
+        estado: formData.estado
       };
 
       console.log('🚀 Enviando al backend:', data);
@@ -156,7 +157,10 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         ...proyecto,
         nombre: proyectoActualizado.titulo,
         descripcion: proyectoActualizado.descripcion,
-        id_lider: proyectoActualizado.id_lider // Asegúrate de que el backend devuelva este campo
+        id_lider: proyectoActualizado.id_lider,
+        estado: proyectoActualizado.estado,
+        fecha_inicio: proyectoActualizado.fecha_inicio,
+        fecha_fin_estimada: proyectoActualizado.fecha_fin_estimada
       };
 
       console.log('📦 Proyecto mapeado para el frontend:', proyectoMapeado);
@@ -289,15 +293,14 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           <select
             id="estado"
             value={formData.estado}
-            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'PAUSADO' | 'COMPLETADO' | 'CANCELADO' }))}
+            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' }))}
             className={`${styles.input} ${styles.select}`}
             disabled={loading}
             required
           >
             <option value="ACTIVO">ACTIVO</option>
-            <option value="PAUSADO">PAUSADO</option>
+            <option value="INACTIVO">INACTIVO</option>
             <option value="COMPLETADO">COMPLETADO</option>
-            <option value="CANCELADO">CANCELADO</option>
           </select>
         </div>
 
