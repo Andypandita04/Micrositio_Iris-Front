@@ -16,7 +16,7 @@
 }
 
 .modal-overlay.dark {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(15, 23, 42, 0.95);
 }
 
 .modal-content {
@@ -32,12 +32,12 @@
 
 .modal-content.light {
   background: #ffffff;
-  color: #000000;
+  color: #1e293b;
 }
 
 .modal-content.dark {
-  background: #1e3a8a;
-  color: #ffffff;
+  background: #1e293b;
+  color: #f1f5f9;
 }
 
 .modal-close {

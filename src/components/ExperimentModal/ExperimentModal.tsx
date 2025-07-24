@@ -41,10 +41,10 @@ const ExperimentModal: React.FC<ExperimentModalProps> = ({ experiment, isOpen, o
 
         <div className="modal-header">
           <div className="modal-title-section">
-            <h2 className="modal-title">{experiment.Titulo}</h2>
+            <h2 className="modal-title">{experiment.Titulo ?? experiment.titulo ?? ''}</h2>
             <div className="modal-meta">
-              <span className="modal-campo">{experiment.campo}</span>
-              <span className="modal-tipo">{experiment.Tipo}</span>
+              <span className="modal-campo">{experiment.campo ?? experiment.Campo ?? ''}</span>
+              <span className="modal-tipo">{experiment.Tipo ?? experiment.tipo ?? ''}</span>
             </div>
           </div>
         </div>
@@ -52,36 +52,36 @@ const ExperimentModal: React.FC<ExperimentModalProps> = ({ experiment, isOpen, o
         <div className="modal-body">
           <div className="modal-left">
             <div className="description-section">
-              <p className="modal-description">{experiment.Descripción}</p>
+              <p className="modal-description">{experiment.Descripción ?? experiment.descripcion ?? ''}</p>
             </div>
 
             <div className="team-skills-section">
               <div className="team-section">
                 <span className="section-label">Equipo:</span>
                 <div className="team-icons">
-                  {getTeamIcon(experiment.Equipo)}
+                  {getTeamIcon(experiment.Equipo ?? experiment.equipo ?? '')}
                 </div>
               </div>
               
               <div className="skills-section">
                 <span className="section-label">Habilidades:</span>
-                <span className="skills-text">{experiment.Habilidades}</span>
+                <span className="skills-text">{experiment.Habilidades ?? experiment.habilidades ?? ''}</span>
               </div>
             </div>
 
             <div className="metrics-section">
               <div className="metrics-grid">
                 <div className="metric-item">
-                  <PieChart value={parseInt(experiment.Costo)} label="Costo" icon={<DollarSign size={20} />} />
+                  <PieChart value={parseInt(experiment.Costo ?? experiment.costo ?? '0')} label="Costo" icon={<DollarSign size={20} />} />
                 </div>
                 <div className="metric-item">
-                  <PieChart value={parseInt(experiment["Tiempo de preparación"])} label="Prep." icon={<Clock size={20} />} />
+                  <PieChart value={parseInt(experiment["Tiempo de preparación"] ?? experiment.tiempo_de_preparacion ?? '0')} label="Prep." icon={<Clock size={20} />} />
                 </div>
                 <div className="metric-item">
-                  <PieChart value={parseInt(experiment["Tiempo de ejecución"])} label="Ejec." icon={<Clock size={20} />} />
+                  <PieChart value={parseInt(experiment["Tiempo de ejecución"] ?? experiment.tiempo_de_ejecucion ?? '0')} label="Ejec." icon={<Clock size={20} />} />
                 </div>
                 <div className="metric-item">
-                  <PieChart value={parseInt(experiment["Fuerza de evidencia"])} label="Evidencia" icon={<Target size={20} />} />
+                  <PieChart value={parseInt(experiment["Fuerza de evidencia"] ?? experiment.fuerza_de_evidencia ?? '0')} label="Evidencia" icon={<Target size={20} />} />
                 </div>
               </div>
             </div>
@@ -94,29 +94,29 @@ const ExperimentModal: React.FC<ExperimentModalProps> = ({ experiment, isOpen, o
                 <div className="status-item">
                   <span>Deseabilidad:</span>
                   <div className="status-value">
-                    {getStatusIcon(experiment.Deseabilidad)}
-                    <span>{experiment.Deseabilidad}</span>
+                    {getStatusIcon(experiment.Deseabilidad ?? experiment.deseabilidad ?? '')}
+                    <span>{experiment.Deseabilidad ?? experiment.deseabilidad ?? ''}</span>
                   </div>
                 </div>
                 <div className="status-item">
                   <span>Factibilidad:</span>
                   <div className="status-value">
-                    {getStatusIcon(experiment.Factibilidad)}
-                    <span>{experiment.Factibilidad}</span>
+                    {getStatusIcon(experiment.Factibilidad ?? experiment.factibilidad ?? '')}
+                    <span>{experiment.Factibilidad ?? experiment.factibilidad ?? ''}</span>
                   </div>
                 </div>
                 <div className="status-item">
                   <span>Viabilidad:</span>
                   <div className="status-value">
-                    {getStatusIcon(experiment.Viabilidad)}
-                    <span>{experiment.Viabilidad}</span>
+                    {getStatusIcon(experiment.Viabilidad ?? experiment.viabilidad ?? '')}
+                    <span>{experiment.Viabilidad ?? experiment.viabilidad ?? ''}</span>
                   </div>
                 </div>
                 <div className="status-item">
                   <span>Adaptabilidad:</span>
                   <div className="status-value">
-                    {getStatusIcon(experiment.Adaptabilidad)}
-                    <span>{experiment.Adaptabilidad}</span>
+                    {getStatusIcon(experiment.Adaptabilidad ?? experiment.adaptabilidad ?? '')}
+                    <span>{experiment.Adaptabilidad ?? experiment.adaptabilidad ?? ''}</span>
                   </div>
                 </div>
               </div>
@@ -125,21 +125,34 @@ const ExperimentModal: React.FC<ExperimentModalProps> = ({ experiment, isOpen, o
             <div className="tools-section">
               <h4>Herramientas</h4>
               <div className="tools-list">
-                {experiment.Herramientas && typeof experiment.Herramientas === 'object' &&
-                  Object.entries(experiment.Herramientas).map(([key, value]) => (
-                    <div key={key} className="tool-item">
-                      <p>{typeof value === 'string' ? value : JSON.stringify(value)}</p>
-                    </div>
-                  ))}
+                {experiment.Herramientas && typeof experiment.Herramientas === 'object'
+                  ? Object.entries(experiment.Herramientas).map(([key, value]) => (
+                      <div key={key} className="tool-item">
+                        <p>{typeof value === 'string' ? value : JSON.stringify(value)}</p>
+                      </div>
+                    ))
+                  : experiment.herramientas && typeof experiment.herramientas === 'object'
+                  ? Object.entries(experiment.herramientas).map(([key, value]) => (
+                      <div key={key} className="tool-item">
+                        <p>{typeof value === 'string' ? value : JSON.stringify(value)}</p>
+                      </div>
+                    ))
+                  : null}
               </div>
             </div>
 
             <div className="metrics-text-section">
               <h4>Métricas</h4>
               <ul className="metrics-list">
-                {Array.isArray(experiment.Metricas) && experiment.Metricas.map((metric: string, index: number) => (
-                  <li key={index}>{metric}</li>
-                ))}
+                {Array.isArray(experiment.Metricas)
+                  ? experiment.Metricas.map((metric: string, index: number) => (
+                      <li key={index}>{metric}</li>
+                    ))
+                  : Array.isArray(experiment.metricas)
+                  ? experiment.metricas.map((metric: string, index: number) => (
+                      <li key={index}>{metric}</li>
+                    ))
+                  : null}
               </ul>
             </div>
           </div>

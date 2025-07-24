@@ -5,6 +5,10 @@ import ExperimentModal from '../../components/ExperimentModal/ExperimentModal';
 import Filters from '../../components/Filters/Filters';
 import { AppContext } from '../../contexts/AppContext';
 import type { AppContextType } from '../../contexts/AppContext';
+import TestingCardPlaybookService from '../../services/TestingCardPlaybookService';
+import { useTheme } from '../../hooks/useTheme';
+
+const service = new TestingCardPlaybookService();
 
 const LibroDigital: React.FC = () => {
   const [experiments, setExperiments] = useState<any[]>([]);
@@ -13,11 +17,11 @@ const LibroDigital: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { filters } = useContext(AppContext) as AppContextType;
+  const { theme } = useTheme();
 
-  // Cargar datos desde el backend
+  // Cargar datos desde el backend usando el service
   useEffect(() => {
-    fetch('/api/testing-card-playbook') // Ajusta la URL según tu backend
-      .then(res => res.json())
+    service.listarTodos()
       .then(data => {
         setExperiments(data);
         setFilteredExperiments(data); // Inicialmente sin filtros
@@ -25,17 +29,32 @@ const LibroDigital: React.FC = () => {
       .catch(error => console.error('Error fetching data:', error));
   }, []);
 
-  // Aplica los filtros cada vez que cambian
+  // Aplica los filtros consultando al backend
   useEffect(() => {
-    let filtered = experiments;
-    if (filters.campo) {
-      filtered = filtered.filter(exp => exp.campo === filters.campo);
-    }
-    if (filters.tipo) {
-      filtered = filtered.filter(exp => exp.tipo === filters.tipo);
-    }
-    setFilteredExperiments(filtered);
-  }, [experiments, filters]);
+    const fetchFiltered = async () => {
+      try {
+        if (!filters.campo && !filters.tipo) {
+          const data = await service.listarTodos();
+          setFilteredExperiments(data);
+        } else if (filters.campo && !filters.tipo) {
+          const data = await service.buscarPorCampo(filters.campo);
+          setFilteredExperiments(data);
+        } else if (!filters.campo && filters.tipo) {
+          const data = await service.buscarPorTipo(filters.tipo);
+          setFilteredExperiments(data);
+        } else if (filters.campo && filters.tipo) {
+          // Primero filtra por campo, luego por tipo
+          const dataCampo = await service.buscarPorCampo(filters.campo);
+          const data = dataCampo.filter(exp => exp.tipo === filters.tipo);
+          setFilteredExperiments(data);
+        }
+      } catch (error) {
+        console.error('Error fetching filtered data:', error);
+        setFilteredExperiments([]);
+      }
+    };
+    fetchFiltered();
+  }, [filters]);
 
   const handleViewMore = (experiment: any) => {
     setSelectedExperiment(experiment);
@@ -48,7 +67,7 @@ const LibroDigital: React.FC = () => {
   };
 
   return (
-    <div className="libro-digital">
+    <div className={`libro-digital ${theme}`}>
       <Filters />
       <div className="experiments-grid">
         {filteredExperiments.map((experiment, index) => (

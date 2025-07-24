@@ -15,9 +15,9 @@
 }
 
 .experiment-card.dark {
-  background: #1e3a8a;
-  border-color: #374151;
-  color: #ffffff;
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
 }
 
 .experiment-card:hover {

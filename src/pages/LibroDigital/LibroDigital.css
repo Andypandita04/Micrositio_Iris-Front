@@ -3,6 +3,16 @@
   min-height: calc(100vh - 200px);
 }
 
+.libro-digital.light {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.libro-digital.dark {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
 .experiments-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));

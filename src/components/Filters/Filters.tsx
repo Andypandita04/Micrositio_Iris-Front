@@ -1,10 +1,12 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { useTheme } from '../../hooks/useTheme';
 import './Filters.css';
 
 const Filters: React.FC = () => {
   const { theme, filters, setFilters } = useApp();
+  const { theme: themeMode } = useTheme();
 
   const tipoOptionsDescubrimiento = [
     'Exploración',
@@ -38,7 +40,7 @@ const Filters: React.FC = () => {
   };
 
   return (
-    <div className={`filters ${theme}`}>
+    <div className={`filters ${themeMode}`}>
       <div className="filter-group">
         <label className="filter-label">Campo:</label>
         <select 
