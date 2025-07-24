@@ -325,6 +325,36 @@
   background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
 }
 
+/* @section: Acciones de métricas */
+.testing-metric-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.testing-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--color-success);
+  cursor: pointer;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.testing-save-btn:hover {
+  background-color: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.testing-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* @section: Botones del footer */
 .testing-form-actions {
   display: flex;
@@ -440,6 +470,21 @@
   background-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
   border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
   cursor: not-allowed;
+}
+
+/* @section: Preview de métrica en modal de confirmación */
+.testing-metric-preview {
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid var(--theme-border);
+}
+
+.testing-metric-preview p {
+  margin: var(--spacing-xs) 0 !important;
+  font-size: var(--font-size-xs) !important;
+  color: var(--theme-text-secondary) !important;
 }
 
 /* @section: Responsive design */

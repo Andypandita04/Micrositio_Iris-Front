@@ -15,10 +15,24 @@ import {
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
+
+/**
+ * Interfaz extendida para métricas con propiedades adicionales del frontend
+ */
+interface MetricaWithFrontendProps {
+  id_metrica: number;
+  id_testing_card: number;
+  nombre: string;
+  operador: string;
+  criterio: string;
+  created_at?: string;
+  updated_at?: string;
+  needsCreation?: boolean; // Propiedad adicional para el frontend
+}
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
-import { obtenerPorTestingCard, eliminar } from '../../services/metricaTestingCardService';
+import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -57,7 +71,7 @@ interface TestingCardEditModalProps {
  */
 const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose, editingId }) => {
   // @state: Datos del formulario
-  const [formData, setFormData] = useState<TestingCardData>({
+  const [formData, setFormData] = useState<TestingCardData & { metricas?: MetricaWithFrontendProps[] }>({
     ...node.data,
     titulo: node.data.titulo || '',
     hipotesis: node.data.hipotesis || '',
@@ -99,6 +113,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
 
   // @state: Modal de confirmación para eliminar métrica
   const [metricaAEliminar, setMetricaAEliminar] = useState<{index: number, metrica: any} | null>(null);
+
+  // @state: Modal de confirmación para crear métrica
+  const [metricaACrear, setMetricaACrear] = useState<{index: number, metrica: any} | null>(null);
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -248,9 +265,17 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
 
   // Añade una nueva métrica vacía
   const addMetric = () => {
+    const newMetric = { 
+      id_metrica: 0, 
+      id_testing_card: editingId, 
+      nombre: '', 
+      operador: '', 
+      criterio: '',
+      needsCreation: true // Marca que necesita ser creada en BD
+    };
     setFormData({
       ...formData,
-      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id, nombre: '', operador: '', criterio: '' }]
+      metricas: [...(formData.metricas || []), newMetric]
     });
   };
 
@@ -321,6 +346,68 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // Cancela la eliminación de una métrica
   const cancelarEliminacionMetrica = () => {
     setMetricaAEliminar(null);
+  };
+
+  // Inicia el proceso de creación de una métrica en la BD
+  const iniciarCreacionMetrica = (index: number) => {
+    const metricToCreate = (formData.metricas || [])[index];
+    console.log('[iniciarCreacionMetrica] Métrica a crear:', metricToCreate);
+    setMetricaACrear({ index, metrica: metricToCreate });
+  };
+
+  // Confirma la creación de una métrica en la base de datos
+  const confirmarCreacionMetrica = async () => {
+    if (!metricaACrear) return;
+    
+    const { index, metrica } = metricaACrear;
+    
+    console.log('[confirmarCreacionMetrica] Iniciando creación...');
+    console.log('[confirmarCreacionMetrica] Métrica a crear:', metrica);
+    
+    // Validar que la métrica tenga datos requeridos
+    if (!metrica.nombre || !metrica.operador || !metrica.criterio) {
+      setErrorMsg('Por favor completa todos los campos de la métrica antes de guardarla');
+      setMetricaACrear(null);
+      return;
+    }
+    
+    try {
+      setLoadingMetricas(true);
+      
+      // Crear la métrica en la BD
+      const dataToCreate = {
+        id_testing_card: editingId,
+        nombre: metrica.nombre,
+        operador: metrica.operador,
+        criterio: metrica.criterio
+      };
+      
+      console.log('[confirmarCreacionMetrica] Datos a enviar:', dataToCreate);
+      const metricaCreada = await crear(dataToCreate);
+      console.log('[confirmarCreacionMetrica] ✅ Métrica creada exitosamente:', metricaCreada);
+      
+      // Actualizar el estado local con la métrica creada
+      const updatedMetricas = [...(formData.metricas || [])];
+      updatedMetricas[index] = {
+        ...metricaCreada,
+        needsCreation: false // Ya no necesita ser creada
+      } as MetricaWithFrontendProps;
+      
+      setFormData({ ...formData, metricas: updatedMetricas });
+      setSuccessMsg('Métrica creada exitosamente');
+      
+    } catch (error) {
+      console.error('[confirmarCreacionMetrica] ❌ Error al crear métrica:', error);
+      setErrorMsg('Error al crear la métrica en la base de datos');
+    } finally {
+      setLoadingMetricas(false);
+      setMetricaACrear(null);
+    }
+  };
+
+  // Cancela la creación de una métrica
+  const cancelarCreacionMetrica = () => {
+    setMetricaACrear(null);
   };
 
   /**
@@ -707,7 +794,9 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   </div>
                 )}
                 
-                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => (
+                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
+                  const metricWithFrontend = metric as MetricaWithFrontendProps;
+                  return (
                   <div key={metric.id_metrica || index} className="testing-metric-row">
                     <input
                       type="text"
@@ -730,15 +819,30 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                       className="testing-input small"
                       placeholder="Criterio"
                     />
-                    <button 
-                      type="button" 
-                      className="testing-remove-btn"
-                      onClick={() => removeMetric(index)}
-                    >
-                      <X size={14} />
-                    </button>
+                    <div className="testing-metric-actions">
+                      {metricWithFrontend.needsCreation ? (
+                        <button 
+                          type="button" 
+                          className="testing-save-btn"
+                          onClick={() => iniciarCreacionMetrica(index)}
+                          title="Guardar métrica en la base de datos"
+                        >
+                          <Save size={14} />
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          className="testing-remove-btn"
+                          onClick={() => removeMetric(index)}
+                          title="Eliminar métrica"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
                 <button 
                   type="button" 
                   className="testing-add-btn"
@@ -845,14 +949,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               <div className="testing-confirmation-content">
                 <p>¿Estás seguro que deseas eliminar la métrica <strong>"{metricaAEliminar.metrica?.nombre || 'Sin nombre'}"</strong>?</p>
                 <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
-                {/* Debug info */}
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '10px', fontFamily: 'monospace' }}>
-                  <strong>Debug Info:</strong><br/>
-                  ID (id_metrica): {metricaAEliminar.metrica?.id_metrica || 'N/A'}<br/>
-                  ID (id): {(metricaAEliminar.metrica as any)?.id || 'N/A'}<br/>
-                  Índice: {metricaAEliminar.index}<br/>
-                  Nombre: {metricaAEliminar.metrica?.nombre || 'N/A'}
-                </div>
               </div>
               <div className="testing-confirmation-actions">
                 <button
@@ -870,6 +966,43 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   disabled={loadingMetricas}
                 >
                   {loadingMetricas ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* @component: Modal de confirmación para crear métrica */}
+        {metricaACrear && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Confirmar Creación</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas guardar la métrica <strong>"{metricaACrear.metrica?.nombre || 'Sin nombre'}"</strong> en la base de datos?</p>
+                <div className="testing-metric-preview">
+                  <p><strong>Nombre:</strong> {metricaACrear.metrica?.nombre}</p>
+                  <p><strong>Operador:</strong> {metricaACrear.metrica?.operador}</p>
+                  <p><strong>Criterio:</strong> {metricaACrear.metrica?.criterio}</p>
+                </div>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={cancelarCreacionMetrica}
+                  className="testing-btn testing-btn-secondary"
+                  disabled={loadingMetricas}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmarCreacionMetrica}
+                  className="testing-btn testing-btn-primary"
+                  disabled={loadingMetricas}
+                >
+                  {loadingMetricas ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
