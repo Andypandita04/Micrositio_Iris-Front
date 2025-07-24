@@ -10,10 +10,12 @@ export interface Proyecto {
   nombre: string;
   descripcion: string;
   colaboradores: Colaborador[];
+
   fecha_inicio: string;
   fecha_fin_estimada: string;
   estado: 'ACTIVO' | 'INACTIVO' | 'COMPLETADO';
   id_lider: number; // Agregado para manejar el líder del proyecto
+
 }
 
 export interface CreateProyectoData {

@@ -7,6 +7,7 @@ import styles from './EditarProyectoModal.module.css';
 import { actualizarProyecto } from '../../../services/proyectosService';
 import { obtenerEmpleados } from '../../../services/empleadosService';
 import EmpleadoSelector from '../../Proyectos/components/EmpleadoSelector';
+//import { form } from 'framer-motion/m';
 
 //import { form } from 'framer-motion/m';
 
@@ -53,7 +54,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     id_lider: proyecto.id_lider, // Se inicializará cuando se carguen los empleados
     fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
     fecha_fin_estimada: proyecto.fecha_fin_estimada || '', // <-- nuevo,
+
     estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' // <-- actualizado
+
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -128,7 +131,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     console.log('📤 Datos a enviar:', formData);
+
 
     if (!validateForm()) return;
 
@@ -294,6 +299,26 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
             id="estado"
             value={formData.estado}
             onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' }))}
+            className={`${styles.input} ${styles.select}`}
+            disabled={loading}
+            required
+          >
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="INACTIVO">INACTIVO</option>
+            <option value="COMPLETADO">COMPLETADO</option>
+          </select>
+        </div>
+
+
+
+        <div className={styles['form-group']}>
+          <label htmlFor="estado" className={styles.label}>
+            Estado del Proyecto *
+          </label>
+          <select
+            id="estado"
+            value={formData.estado}
+            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value }))}
             className={`${styles.input} ${styles.select}`}
             disabled={loading}
             required
