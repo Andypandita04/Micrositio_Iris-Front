@@ -4,6 +4,12 @@ import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
 import { obtenerPorId as obtenerLearningCardPorId, actualizar as actualizarLearningCard } from '../../services/learningCardService';
+import { 
+  UrlLearningCard, 
+  obtenerPorLearningCard as obtenerUrlsPorLearningCard,
+  crear as crearUrlLearningCard,
+  eliminar as eliminarUrlLearningCard 
+} from '../../services/urlLearningCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -55,11 +61,12 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [errorMsg, setErrorMsg] = useState('');
 
   // Estados locales para links, documentación y archivos adjuntos
-  const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
+  const [documentationUrls, setDocumentationUrls] = useState<UrlLearningCard[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDocumentation, setShowDocumentation] = useState(false);
+  const [loadingUrls, setLoadingUrls] = useState(false);
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -86,11 +93,76 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     // eslint-disable-next-line
   }, [editingIdLC]);
 
-  // Funciones para manejar links/documentos/archivos SOLO en el modal
-  const addDocumentationUrl = (url: string) => {
-    if (!documentationUrls.includes(url)) setDocumentationUrls([...documentationUrls, url]);
+  /**
+   * Efecto para cargar URLs cuando se abre la sección de documentación
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (showDocumentation && editingIdLC) {
+      cargarUrls();
+    }
+    // eslint-disable-next-line
+  }, [showDocumentation, editingIdLC]);
+
+  /**
+   * Carga las URLs desde la base de datos
+   * @function cargarUrls
+   */
+  const cargarUrls = async () => {
+    if (!editingIdLC) return;
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerUrlsPorLearningCard(editingIdLC);
+      setDocumentationUrls(urlsData);
+    } catch (error) {
+      console.error('[cargarUrls] Error al cargar URLs:', error);
+      setDocumentationUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
   };
-  const removeDocumentationUrl = (index: number) => setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
+
+  // Funciones para manejar links/documentos/archivos con BD
+  const addDocumentationUrl = async (url: string) => {
+    if (!editingIdLC) return;
+    
+    // Verificar si la URL ya existe
+    const exists = documentationUrls.some(urlObj => urlObj.url === url);
+    if (exists) return;
+    
+    try {
+      setLoadingUrls(true);
+      const newUrlData = await crearUrlLearningCard({
+        id_learning_card: editingIdLC,
+        url: url
+      });
+      setDocumentationUrls([...documentationUrls, newUrlData]);
+      setSuccessMsg('URL agregada exitosamente');
+    } catch (error) {
+      console.error('[addDocumentationUrl] Error al crear URL:', error);
+      setErrorMsg('Error al agregar la URL');
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
+
+  const removeDocumentationUrl = async (index: number) => {
+    const urlToRemove = documentationUrls[index];
+    if (!urlToRemove?.id_url_lc) return;
+    
+    try {
+      setLoadingUrls(true);
+      await eliminarUrlLearningCard(urlToRemove.id_url_lc);
+      setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
+      setSuccessMsg('URL eliminada exitosamente');
+    } catch (error) {
+      console.error('[removeDocumentationUrl] Error al eliminar URL:', error);
+      setErrorMsg('Error al eliminar la URL');
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
 
   const addDocumentationFiles = (files: File[]) => {
     const newAttachments = files.map(file => ({
@@ -288,17 +360,30 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                     URLs de Referencia
                   </h4>
 
-                  {documentationUrls && documentationUrls.length > 0 && (
+                  {loadingUrls && (
+                    <div className="testing-metrics-loading">
+                      <span>Cargando URLs...</span>
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls && documentationUrls.length === 0 && (
+                    <div className="testing-metrics-empty">
+                      <span>No hay URLs definidas para esta Learning Card</span>
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {documentationUrls.map((url, index) => (
-                        <div key={index} className="url-item">
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {url}
+                      {documentationUrls.map((urlObj, index) => (
+                        <div key={urlObj.id_url_lc || index} className="url-item">
+                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {urlObj.url}
                           </a>
                           <button
                             type="button"
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
+                            disabled={loadingUrls}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -311,6 +396,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                     type="button"
                     className="testing-add-btn"
                     onClick={() => setIsDocumentationModalOpen(true)}
+                    disabled={loadingUrls}
                   >
                     <Plus size={14} />
                     Añadir URL
