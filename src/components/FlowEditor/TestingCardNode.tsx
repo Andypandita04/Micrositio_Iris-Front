@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import {
   Edit3,
@@ -7,9 +7,11 @@ import {
   ClipboardList,
   ChevronDown,
   Target,
-  Calendar
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 import { TestingCardData } from './types';
+import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -25,14 +27,71 @@ interface TestingCardNodeProps {
 
 const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
 
   const toggleExpanded = () => setIsExpanded(prev => !prev);
+
+  // Cargar métricas cuando se expande el componente
+  useEffect(() => {
+    if (isExpanded && data.id_testing_card) {
+      cargarMetricas();
+    }
+  }, [isExpanded, data.id_testing_card]);
+
+  const cargarMetricas = async () => {
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(data.id_testing_card);
+      setMetricas(metricasData);
+    } catch (error) {
+      console.error('Error al cargar métricas:', error);
+      setMetricas([]);
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const renderMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading">
+          <span>Cargando métricas...</span>
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty">
+          <span>No hay métricas definidas</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list">
+        {metricas.map((metrica) => (
+          <div key={metrica.id_metrica} className="metrica-item">
+            <div className="metrica-header">
+              <BarChart3 size={14} />
+              <span className="metrica-nombre">{metrica.nombre}</span>
+            </div>
+            <div className="metrica-criterio">
+              <span className="metrica-operador">{metrica.operador}</span>
+              <span className="metrica-valor">{metrica.criterio}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -73,6 +132,15 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
               Hipótesis
             </div>
             <p className="hypothesis-text">{data.hipotesis}</p>
+          </div>
+
+          {/* Nueva sección de métricas */}
+          <div className="metricas-section">
+            <div className="metricas-label">
+              <BarChart3 size={12} style={{ marginRight: '4px' }} />
+              Métricas de Éxito
+            </div>
+            {renderMetricas()}
           </div>
 
           <div className="experiment-details">
