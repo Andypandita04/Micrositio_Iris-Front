@@ -267,6 +267,45 @@
   align-items: center;
 }
 
+.metric-status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.metric-saved {
+  color: #22c55e;
+  font-size: 16px;
+  cursor: help;
+}
+
+.metric-new {
+  color: #f59e0b;
+  font-size: 16px;
+  cursor: help;
+}
+
+.testing-metrics-loading {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md);
+  font-style: italic;
+}
+
+.testing-metrics-empty {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md);
+  font-style: italic;
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 2px dashed var(--theme-border);
+}
+
 /* @section: Botones de acción */
 .testing-add-btn {
   display: inline-flex;

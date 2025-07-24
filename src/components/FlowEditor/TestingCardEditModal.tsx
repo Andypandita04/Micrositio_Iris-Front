@@ -18,6 +18,7 @@ import DocumentationModal from './components/DocumentationModal';
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
+import { obtenerPorTestingCard, crear, eliminar, actualizar } from '../../services/metricaTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -93,6 +94,12 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // @state: Loading para métricas
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+
+  // @state: Timeout para debounce de actualización de métricas
+  const [metricUpdateTimeout, setMetricUpdateTimeout] = useState<NodeJS.Timeout | null>(null);
+
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
    * @function useEffect
@@ -124,11 +131,22 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .then((data) => {
           setFormData({ ...formData, ...data });
         })
-        //.catch(() => setErrorMsg('Error al cargar datos de la BD'))
+        .catch(() => setErrorMsg('Error al cargar datos de la BD'))
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line
   }, [node.data.id]);
+
+  /**
+   * Efecto para cargar métricas cuando se abre la sección de métricas
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (showMetrics && editingId) {
+      cargarMetricas();
+    }
+    // eslint-disable-next-line
+  }, [showMetrics, editingId]);
 
   /**
    * Valida todos los campos del formulario
@@ -156,47 +174,52 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       setLoading(true);
       setErrorMsg('');
       setSuccessMsg('');
-      // Validación y limpieza extra del payload
-      // Limpiar payload: solo enviar campos válidos al backend
-      const {
-        id_testing_card,
-        titulo,
-        hipotesis,
-        descripcion,
-        dia_inicio,
-        dia_fin,
-        id_responsable,
-        id_experimento_tipo,
-        status,
-        metricas,
-        documentationUrls,
-        attachments,
-        collaborators,
-        id_secuencia,
-        padre_id,
-        anexo_url,
-        // creado, actualizado, id eliminados por tipado
-      } = formData;
-      const payload = {
-        id_testing_card: id_testing_card,
-        titulo: titulo.trim(),
-        hipotesis: hipotesis.trim(),
-        descripcion: descripcion.trim(),
-        dia_inicio: dia_inicio || '',
-        dia_fin: dia_fin || '',
-        id_responsable: Number(id_responsable) || -1,
-        id_experimento_tipo: Number(id_experimento_tipo) || 1,
-        status: status || 'En validación',
-        //metricas: Array.isArray(metricas) ? metricas : [],
-        //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
-        //attachments: Array.isArray(attachments) ? attachments : [],
-        //collaborators: Array.isArray(collaborators) ? collaborators : [],
-        id_secuencia,
-        //anexo_url,
-      };
-      // Log para depuración
-      console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
+      
       try {
+        // Guardar métricas pendientes antes de actualizar la Testing Card
+        await guardarMetricasPendientes();
+        
+        // Validación y limpieza extra del payload
+        // Limpiar payload: solo enviar campos válidos al backend
+        const {
+          id_testing_card,
+          titulo,
+          hipotesis,
+          descripcion,
+          dia_inicio,
+          dia_fin,
+          id_responsable,
+          id_experimento_tipo,
+          status,
+          metricas,
+          documentationUrls,
+          attachments,
+          collaborators,
+          id_secuencia,
+          padre_id,
+          anexo_url,
+          // creado, actualizado, id eliminados por tipado
+        } = formData;
+        const payload = {
+          id_testing_card: id_testing_card,
+          titulo: titulo.trim(),
+          hipotesis: hipotesis.trim(),
+          descripcion: descripcion.trim(),
+          dia_inicio: dia_inicio || '',
+          dia_fin: dia_fin || '',
+          id_responsable: Number(id_responsable) || -1,
+          id_experimento_tipo: Number(id_experimento_tipo) || 1,
+          status: status || 'En validación',
+          //metricas: Array.isArray(metricas) ? metricas : [],
+          //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
+          //attachments: Array.isArray(attachments) ? attachments : [],
+          //collaborators: Array.isArray(collaborators) ? collaborators : [],
+          id_secuencia,
+          //anexo_url,
+        };
+        // Log para depuración
+        console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
+        
         await actualizarTestingCard(editingId, payload); // <-- Aquí usas editingId
         setSuccessMsg('¡Guardado exitosamente!');
         onSave(payload); // Notifica al padre
@@ -222,20 +245,169 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     const updatedMetricas = [...(formData.metricas || [])];
     updatedMetricas[index] = { ...updatedMetricas[index], [field]: value };
     setFormData({ ...formData, metricas: updatedMetricas });
+
+    // Actualizar en BD si la métrica ya existe (tiene id_metrica > 0)
+    const metrica = updatedMetricas[index];
+    if (metrica.id_metrica && metrica.id_metrica > 0) {
+      // Cancelar timeout anterior si existe
+      if (metricUpdateTimeout) {
+        clearTimeout(metricUpdateTimeout);
+      }
+
+      // Crear nuevo timeout para actualizar en BD después de 1 segundo de inactividad
+      const newTimeout = setTimeout(async () => {
+        try {
+          await actualizar(metrica.id_metrica, {
+            nombre: metrica.nombre,
+            operador: metrica.operador,
+            criterio: metrica.criterio
+          });
+          console.log('Métrica actualizada en BD:', metrica.id_metrica);
+        } catch (error) {
+          console.error('Error al actualizar métrica en BD:', error);
+          setErrorMsg('Error al actualizar la métrica');
+          setTimeout(() => setErrorMsg(''), 3000);
+        }
+      }, 1000);
+
+      setMetricUpdateTimeout(newTimeout);
+    }
   };
 
   // Añade una nueva métrica vacía
-  const addMetric = () => {
-    setFormData({
-      ...formData,
-      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id, nombre: '', operador: '', criterio: '' }]
-    });
+  const addMetric = async () => {
+    if (!editingId) {
+      // Si no hay editingId, solo añadir al formulario local
+      setFormData({
+        ...formData,
+        metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: editingId, nombre: '', operador: '', criterio: '' }]
+      });
+      return;
+    }
+
+    try {
+      // Crear métrica en la base de datos
+      const nuevaMetrica = await crear({
+        id_testing_card: editingId,
+        nombre: '',
+        operador: '',
+        criterio: ''
+      });
+
+      // Actualizar el estado local con la métrica creada
+      setFormData(prev => ({
+        ...prev,
+        metricas: [...(prev.metricas || []), nuevaMetrica]
+      }));
+
+      setSuccessMsg('Métrica añadida exitosamente');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('Error al crear métrica:', error);
+      setErrorMsg('Error al añadir la métrica');
+      setTimeout(() => setErrorMsg(''), 3000);
+    }
   };
 
   // Elimina una métrica por índice
-  const removeMetric = (index: number) => {
+  const removeMetric = async (index: number) => {
+    const metricaAEliminar = formData.metricas?.[index];
+    
+    if (!metricaAEliminar) return;
+
+    // Si la métrica tiene id_metrica, eliminar de la BD
+    if (metricaAEliminar.id_metrica && metricaAEliminar.id_metrica > 0) {
+      try {
+        await eliminar(metricaAEliminar.id_metrica);
+        setSuccessMsg('Métrica eliminada exitosamente');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (error) {
+        console.error('Error al eliminar métrica:', error);
+        setErrorMsg('Error al eliminar la métrica');
+        setTimeout(() => setErrorMsg(''), 3000);
+        return; // No eliminar del estado local si falló en BD
+      }
+    }
+
+    // Eliminar del estado local
     const updatedMetricas = (formData.metricas || []).filter((_, i) => i !== index);
     setFormData({ ...formData, metricas: updatedMetricas });
+  };
+
+  /**
+   * Carga las métricas desde la base de datos
+   * @function cargarMetricas
+   */
+  const cargarMetricas = async () => {
+    if (!editingId) return;
+    
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(editingId);
+      
+      // Actualizar el formData con las métricas cargadas
+      setFormData(prev => ({
+        ...prev,
+        metricas: metricasData
+      }));
+    } catch (error) {
+      console.error('Error al cargar métricas:', error);
+      // En caso de error, mantener el array vacío
+      setFormData(prev => ({
+        ...prev,
+        metricas: []
+      }));
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Guarda todas las métricas pendientes en la base de datos
+   * @function guardarMetricasPendientes
+   */
+  const guardarMetricasPendientes = async () => {
+    if (!editingId || !formData.metricas) return;
+
+    const metricasPendientes = formData.metricas.filter(metrica => 
+      !metrica.id_metrica || metrica.id_metrica === 0
+    );
+
+    if (metricasPendientes.length === 0) return;
+
+    try {
+      const promesasCreacion = metricasPendientes.map(metrica => 
+        crear({
+          id_testing_card: editingId,
+          nombre: metrica.nombre || '',
+          operador: metrica.operador || '',
+          criterio: metrica.criterio || ''
+        })
+      );
+
+      const metricasCreadas = await Promise.all(promesasCreacion);
+      
+      // Actualizar las métricas en el estado local con los IDs generados
+      setFormData(prev => ({
+        ...prev,
+        metricas: prev.metricas?.map(metrica => {
+          if (!metrica.id_metrica || metrica.id_metrica === 0) {
+            const metricaCreada = metricasCreadas.find(creada => 
+              creada.nombre === metrica.nombre &&
+              creada.operador === metrica.operador &&
+              creada.criterio === metrica.criterio
+            );
+            return metricaCreada || metrica;
+          }
+          return metrica;
+        }) || []
+      }));
+
+      console.log('Métricas pendientes guardadas exitosamente');
+    } catch (error) {
+      console.error('Error al guardar métricas pendientes:', error);
+      throw error; // Re-lanzar el error para que lo maneje el formulario principal
+    }
   };
 
   /**
@@ -335,6 +507,15 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   useEffect(() => {
     console.log('[TestingCardEditModal] editingId recibido:', editingId);
   }, [editingId]);
+
+  // Limpieza del timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (metricUpdateTimeout) {
+        clearTimeout(metricUpdateTimeout);
+      }
+    };
+  }, [metricUpdateTimeout]);
 
   return (
     <div className="testing-modal-backdrop">
@@ -559,8 +740,27 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             
             {showMetrics && (
               <div className="testing-form-section-content">
-                {formData.metricas && formData.metricas.map((metric, index) => (
-                  <div key={index} className="testing-metric-row">
+                {loadingMetricas && (
+                  <div className="testing-metrics-loading">
+                    <span>Cargando métricas...</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
+                  <div className="testing-metrics-empty">
+                    <span>No hay métricas definidas para esta Testing Card</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => (
+                  <div key={metric.id_metrica || index} className="testing-metric-row">
+                    <div className="metric-status-indicator">
+                      {metric.id_metrica && metric.id_metrica > 0 ? (
+                        <span className="metric-saved" title="Métrica guardada en BD">●</span>
+                      ) : (
+                        <span className="metric-new" title="Métrica nueva (pendiente de guardar)">○</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={metric.nombre}
