@@ -715,3 +715,56 @@
   font-style: italic;
   padding: var(--spacing-xs);
 }
+
+/* @component: Sección de enlaces para Testing Cards */
+.links-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.links-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+}
+
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: color-mix(in srgb, var(--color-primary-purple) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary-purple) 15%, transparent);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.link-item:hover {
+  background: color-mix(in srgb, var(--color-primary-purple) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary-purple) 25%, transparent);
+}
+
+.link-text {
+  color: var(--color-primary-purple);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.link-text:hover {
+  text-decoration: underline;
+}

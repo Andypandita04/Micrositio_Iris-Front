@@ -8,10 +8,12 @@ import {
   ChevronDown,
   Target,
   Calendar,
-  BarChart3
+  BarChart3,
+  ExternalLink
 } from 'lucide-react';
 import { TestingCardData } from './types';
 import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
+import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard } from '../../services/urlTestingCardService';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -29,13 +31,18 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
   const [isExpanded, setIsExpanded] = useState(false);
   const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
   const [loadingMetricas, setLoadingMetricas] = useState(false);
+  
+  // Estado para las URLs de la Testing Card
+  const [urls, setUrls] = useState<UrlTestingCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
 
   const toggleExpanded = () => setIsExpanded(prev => !prev);
 
-  // Cargar métricas cuando se expande el componente
+  // Cargar métricas y URLs cuando se expande el componente
   useEffect(() => {
     if (isExpanded && data.id_testing_card) {
       cargarMetricas();
+      cargarUrls();
     }
   }, [isExpanded, data.id_testing_card]);
 
@@ -52,11 +59,52 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
     }
   };
 
+  /**
+   * Carga las URLs desde la base de datos
+   */
+  const cargarUrls = async () => {
+    if (!data.id_testing_card) return;
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerUrlsPorTestingCard(data.id_testing_card);
+      setUrls(urlsData || []);
+    } catch (error) {
+      console.error('[TestingCardNode] Error al cargar URLs:', error);
+      setUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  /**
+   * Trunca URLs de forma inteligente para mejor legibilidad
+   */
+  const truncateUrl = (url: string, maxLength: number = 50) => {
+    if (url.length <= maxLength) return url;
+    
+    // Intentar mantener el dominio visible
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname + urlObj.search;
+      
+      if (domain.length < maxLength - 10) {
+        const remainingLength = maxLength - domain.length - 3; // 3 para "..."
+        return domain + (path.length > remainingLength ? `...${path.slice(-remainingLength)}` : path);
+      }
+    } catch (e) {
+      // Si no es una URL válida, truncar normalmente
+    }
+    
+    return url.substring(0, maxLength) + '...';
   };
 
   const renderMetricas = () => {
@@ -143,20 +191,71 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             {renderMetricas()}
           </div>
 
+          {/* Sección de URLs de documentación */}
+          <div className="links-section">
+            <div className="links-label">
+              <ExternalLink size={12} style={{ marginRight: '4px' }} />
+              URLs de Referencia
+            </div>
+            
+            {loadingUrls && (
+              <div className="loading-urls" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                Cargando URLs...
+              </div>
+            )}
+
+            {!loadingUrls && urls.length === 0 && (
+              <div className="no-urls" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                No hay URLs registradas
+              </div>
+            )}
+
+            {!loadingUrls && urls.length > 0 && (
+              <div className="links-list">
+                {urls.map((urlObj) => (
+                  <div key={urlObj.id_url_tc} className="link-item">
+                    <ExternalLink size={12} />
+                    <a 
+                      href={urlObj.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="link-text"
+                      onClick={(e) => e.stopPropagation()}
+                      title={urlObj.url}
+                    >
+                      {truncateUrl(urlObj.url)}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="experiment-details">
             <div style={{
               fontSize: 'var(--font-size-xs)',
               color: 'var(--theme-text-secondary)',
               marginBottom: 'var(--spacing-xs)'
             }}>
-              {/*<strong>ID Secuencia:</strong> {data.id_secuencia}*/}
+              
             </div>
+            {/*<strong>ID Secuencia:</strong> {data.id_secuencia}
             {data.anexo_url && (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--theme-text-secondary)' }}>
                 <strong>Anexo:</strong> <a href={data.anexo_url} target="_blank" rel="noreferrer">Ver documento</a>
               </div>
-            )}
-          </div>
+            )} */}
+          </div> 
         </div>
 
         <div className="card-dates">

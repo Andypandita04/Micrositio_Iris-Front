@@ -4,12 +4,6 @@ import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
 import { obtenerPorId as obtenerLearningCardPorId, actualizar as actualizarLearningCard } from '../../services/learningCardService';
-import { 
-  UrlLearningCard, 
-  obtenerPorLearningCard as obtenerUrlsPorLearningCard,
-  crear as crearUrlLearningCard,
-  eliminar as eliminarUrlLearningCard 
-} from '../../services/urlLearningCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -61,15 +55,11 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [errorMsg, setErrorMsg] = useState('');
 
   // Estados locales para links, documentación y archivos adjuntos
-  const [documentationUrls, setDocumentationUrls] = useState<UrlLearningCard[]>([]);
+  const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDocumentation, setShowDocumentation] = useState(false);
-  const [loadingUrls, setLoadingUrls] = useState(false);
-
-  // @state: Modal de confirmación para eliminar URL
-  const [urlAEliminar, setUrlAEliminar] = useState<{index: number, url: UrlLearningCard} | null>(null);
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -96,91 +86,11 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     // eslint-disable-next-line
   }, [editingIdLC]);
 
-  /**
-   * Efecto para cargar URLs cuando se abre la sección de documentación
-   * @function useEffect
-   */
-  useEffect(() => {
-    if (showDocumentation && editingIdLC) {
-      cargarUrls();
-    }
-    // eslint-disable-next-line
-  }, [showDocumentation, editingIdLC]);
-
-  /**
-   * Carga las URLs desde la base de datos
-   * @function cargarUrls
-   */
-  const cargarUrls = async () => {
-    if (!editingIdLC) return;
-    
-    try {
-      setLoadingUrls(true);
-      const urlsData = await obtenerUrlsPorLearningCard(editingIdLC);
-      setDocumentationUrls(urlsData);
-    } catch (error) {
-      console.error('[cargarUrls] Error al cargar URLs:', error);
-      setDocumentationUrls([]);
-    } finally {
-      setLoadingUrls(false);
-    }
+  // Funciones para manejar links/documentos/archivos SOLO en el modal
+  const addDocumentationUrl = (url: string) => {
+    if (!documentationUrls.includes(url)) setDocumentationUrls([...documentationUrls, url]);
   };
-
-  // Funciones para manejar links/documentos/archivos con BD
-  const addDocumentationUrl = async (url: string) => {
-    if (!editingIdLC) return;
-    
-    // Verificar si la URL ya existe
-    const exists = documentationUrls.some(urlObj => urlObj.url === url);
-    if (exists) return;
-    
-    try {
-      setLoadingUrls(true);
-      const newUrlData = await crearUrlLearningCard({
-        id_learning_card: editingIdLC,
-        url: url
-      });
-      setDocumentationUrls([...documentationUrls, newUrlData]);
-      setSuccessMsg('URL agregada exitosamente');
-    } catch (error) {
-      console.error('[addDocumentationUrl] Error al crear URL:', error);
-      setErrorMsg('Error al agregar la URL');
-    } finally {
-      setLoadingUrls(false);
-    }
-  };
-
-  const removeDocumentationUrl = (index: number) => {
-    const urlToRemove = documentationUrls[index];
-    if (!urlToRemove?.id_url_lc) return;
-    
-    setUrlAEliminar({ index, url: urlToRemove });
-  };
-
-  // Confirma la eliminación de una URL
-  const confirmarEliminacionUrl = async () => {
-    if (!urlAEliminar) return;
-    
-    const { index, url } = urlAEliminar;
-    
-    try {
-      setLoadingUrls(true);
-      await eliminarUrlLearningCard(url.id_url_lc);
-      setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
-      setSuccessMsg('URL eliminada exitosamente');
-    } catch (error) {
-      console.error('[confirmarEliminacionUrl] Error al eliminar URL:', error);
-      setErrorMsg('Error al eliminar la URL');
-    } finally {
-      setLoadingUrls(false);
-      setUrlAEliminar(null);
-    }
-  };
-
-  // Cancela la eliminación de una URL
-  const cancelarEliminacionUrl = () => {
-    setUrlAEliminar(null);
-  };
+  const removeDocumentationUrl = (index: number) => setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
 
   const addDocumentationFiles = (files: File[]) => {
     const newAttachments = files.map(file => ({
@@ -378,31 +288,17 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                     URLs de Referencia
                   </h4>
 
-                  {loadingUrls && (
-                    <div className="testing-metrics-loading">
-                      <span>Cargando URLs...</span>
-                    </div>
-                  )}
-
-                  {!loadingUrls && documentationUrls && documentationUrls.length === 0 && (
-                    <div className="testing-metrics-empty">
-                      <span>No hay URLs definidas para esta Learning Card</span>
-                    </div>
-                  )}
-
-                  {!loadingUrls && documentationUrls && documentationUrls.length > 0 && (
+                  {documentationUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {documentationUrls.map((urlObj, index) => (
-                        <div key={urlObj.id_url_lc || index} className="url-item">
-                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {urlObj.url}
+                      {documentationUrls.map((url, index) => (
+                        <div key={index} className="url-item">
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {url}
                           </a>
                           <button
                             type="button"
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
-                            disabled={loadingUrls}
-                            title="Eliminar URL"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -415,7 +311,6 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                     type="button"
                     className="testing-add-btn"
                     onClick={() => setIsDocumentationModalOpen(true)}
-                    disabled={loadingUrls}
                   >
                     <Plus size={14} />
                     Añadir URL
@@ -482,50 +377,6 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
             onAddUrl={addDocumentationUrl}
             onAddFiles={addDocumentationFiles}
           />
-        )}
-
-        {/* @component: Modal de confirmación para eliminar URL */}
-        {urlAEliminar && (
-          <div className="testing-modal-backdrop">
-            <div className="testing-confirmation-modal">
-              <div className="testing-confirmation-header">
-                <h3>Confirmar Eliminación de URL</h3>
-              </div>
-              <div className="testing-confirmation-content">
-                <p>¿Estás seguro que deseas eliminar la siguiente URL?</p>
-                <div className="url-preview" style={{ 
-                  backgroundColor: '#f8f9fa', 
-                  padding: '8px 12px', 
-                  borderRadius: '4px', 
-                  margin: '8px 0',
-                  wordBreak: 'break-all',
-                  fontFamily: 'monospace',
-                  fontSize: '14px'
-                }}>
-                  <strong>{urlAEliminar.url?.url || 'URL no disponible'}</strong>
-                </div>
-                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
-              </div>
-              <div className="testing-confirmation-actions">
-                <button
-                  type="button"
-                  onClick={cancelarEliminacionUrl}
-                  className="testing-btn testing-btn-secondary"
-                  disabled={loadingUrls}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmarEliminacionUrl}
-                  className="testing-btn testing-btn-danger"
-                  disabled={loadingUrls}
-                >
-                  {loadingUrls ? 'Eliminando...' : 'Eliminar URL'}
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>
