@@ -238,7 +238,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             <div className="links-section">
               <div className="links-label">
                 <ExternalLink size={12} style={{ marginRight: '4px' }} />
-                URLs de Referencia
+                URLs de referencia
               </div>
               
               {loadingUrls && (

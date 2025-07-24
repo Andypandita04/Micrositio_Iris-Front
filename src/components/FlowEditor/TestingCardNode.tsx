@@ -195,7 +195,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
           <div className="links-section">
             <div className="links-label">
               <ExternalLink size={12} style={{ marginRight: '4px' }} />
-              URLs de Referencia
+              URLs de referencia
             </div>
             
             {loadingUrls && (
@@ -247,15 +247,14 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
               color: 'var(--theme-text-secondary)',
               marginBottom: 'var(--spacing-xs)'
             }}>
-              
+              {/*<strong>ID Secuencia:</strong> {data.id_secuencia}*/}
             </div>
-            {/*<strong>ID Secuencia:</strong> {data.id_secuencia}
             {data.anexo_url && (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--theme-text-secondary)' }}>
                 <strong>Anexo:</strong> <a href={data.anexo_url} target="_blank" rel="noreferrer">Ver documento</a>
               </div>
-            )} */}
-          </div> 
+            )}
+          </div>
         </div>
 
         <div className="card-dates">

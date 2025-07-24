@@ -33,12 +33,6 @@ import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector'
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
-import { 
-  UrlTestingCard, 
-  obtenerPorTestingCard as obtenerUrlsPorTestingCard,
-  crear as crearUrlTestingCard,
-  eliminar as eliminarUrlTestingCard 
-} from '../../services/urlTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -123,13 +117,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // @state: Modal de confirmación para crear métrica
   const [metricaACrear, setMetricaACrear] = useState<{index: number, metrica: any} | null>(null);
 
-  // @state: URLs de documentación y estado de carga
-  const [documentationUrls, setDocumentationUrls] = useState<UrlTestingCard[]>([]);
-  const [loadingUrls, setLoadingUrls] = useState(false);
-
-  // @state: Modal de confirmación para eliminar URL
-  const [urlAEliminar, setUrlAEliminar] = useState<{index: number, url: UrlTestingCard} | null>(null);
-
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
    * @function useEffect
@@ -183,21 +170,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   }, [showMetrics, editingId]);
 
   /**
-   * Efecto para cargar URLs cuando se abre la sección de documentación
-   * @function useEffect
-   */
-  useEffect(() => {
-    console.log('[useEffect URLs] showDocumentation:', showDocumentation, 'editingId:', editingId);
-    if (showDocumentation && editingId) {
-      console.log('[useEffect URLs] Condiciones cumplidas, llamando a cargarUrls()');
-      cargarUrls();
-    } else {
-      console.log('[useEffect URLs] Condiciones no cumplidas, no se cargan URLs');
-    }
-    // eslint-disable-next-line
-  }, [showDocumentation, editingId]);
-
-  /**
    * Valida todos los campos del formulario
    * @function validateForm
    * @returns {boolean} true si el formulario es válido
@@ -235,11 +207,16 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         id_responsable,
         id_experimento_tipo,
         status,
-        id_secuencia
-        // metricas, documentationUrls, attachments, collaborators, padre_id, anexo_url - No se envían en el payload principal
+        metricas,
+        documentationUrls,
+        attachments,
+        collaborators,
+        id_secuencia,
+        padre_id,
+        anexo_url,
+        // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
-        id: editingId, // Añadir ID requerido por el tipo
         id_testing_card: id_testing_card,
         titulo: titulo.trim(),
         hipotesis: hipotesis.trim(),
@@ -249,7 +226,12 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         id_responsable: Number(id_responsable) || -1,
         id_experimento_tipo: Number(id_experimento_tipo) || 1,
         status: status || 'En validación',
-        id_secuencia
+        //metricas: Array.isArray(metricas) ? metricas : [],
+        //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
+        //attachments: Array.isArray(attachments) ? attachments : [],
+        //collaborators: Array.isArray(collaborators) ? collaborators : [],
+        id_secuencia,
+        //anexo_url,
       };
       // Log para depuración
       console.log('[TestingCardEditModal] Payload enviado:', payload, 'editingId:', editingId);
@@ -480,62 +462,18 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   };
 
   /**
-   * Carga las URLs desde la base de datos
-   * @function cargarUrls
-   */
-  const cargarUrls = async () => {
-    if (!editingId) {
-      console.log('[cargarUrls] ⚠️ No hay editingId, saliendo...');
-      return;
-    }
-    
-    console.log('[cargarUrls] Iniciando carga de URLs para editingId:', editingId);
-    
-    try {
-      setLoadingUrls(true);
-      const urlsData = await obtenerUrlsPorTestingCard(editingId);
-      
-      console.log('[cargarUrls] ✅ URLs recibidas de la BD:', urlsData);
-      console.log('[cargarUrls] Cantidad de URLs:', urlsData?.length || 0);
-      
-      setDocumentationUrls(urlsData || []);
-      console.log('[cargarUrls] ✅ URLs actualizadas en el estado');
-    } catch (error) {
-      console.error('[cargarUrls] ❌ Error al cargar URLs:', error);
-      setDocumentationUrls([]);
-    } finally {
-      setLoadingUrls(false);
-    }
-  };
-
-  /**
    * Añade una nueva URL de documentación
    * @function addDocumentationUrl
    * @param {string} url - URL a añadir
    */
-  const addDocumentationUrl = async (url: string) => {
-    if (!editingId) return;
-    
-    // Verificar si la URL ya existe
-    const exists = documentationUrls.some(urlObj => urlObj.url === url);
-    if (exists) {
-      setErrorMsg('Esta URL ya existe');
-      return;
-    }
-    
-    try {
-      setLoadingUrls(true);
-      const newUrlData = await crearUrlTestingCard({
-        id_testing_card: editingId,
-        url: url
+  const addDocumentationUrl = (url: string) => {
+    if (!formData.documentationUrls) {
+      setFormData({ ...formData, documentationUrls: [url] });
+    } else {
+      setFormData({ 
+        ...formData, 
+        documentationUrls: [...formData.documentationUrls, url] 
       });
-      setDocumentationUrls([...documentationUrls, newUrlData]);
-      setSuccessMsg('URL agregada exitosamente');
-    } catch (error) {
-      console.error('[addDocumentationUrl] Error al crear URL:', error);
-      setErrorMsg('Error al agregar la URL');
-    } finally {
-      setLoadingUrls(false);
     }
   };
 
@@ -545,35 +483,10 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @param {number} index - Índice de la URL a eliminar
    */
   const removeDocumentationUrl = (index: number) => {
-    const urlToRemove = documentationUrls[index];
-    if (!urlToRemove?.id_url_tc) return;
-    
-    setUrlAEliminar({ index, url: urlToRemove });
-  };
-
-  // Confirma la eliminación de una URL
-  const confirmarEliminacionUrl = async () => {
-    if (!urlAEliminar) return;
-    
-    const { index, url } = urlAEliminar;
-    
-    try {
-      setLoadingUrls(true);
-      await eliminarUrlTestingCard(url.id_url_tc);
-      setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
-      setSuccessMsg('URL eliminada exitosamente');
-    } catch (error) {
-      console.error('[confirmarEliminacionUrl] Error al eliminar URL:', error);
-      setErrorMsg('Error al eliminar la URL');
-    } finally {
-      setLoadingUrls(false);
-      setUrlAEliminar(null);
+    if (formData.documentationUrls) {
+      const updatedUrls = formData.documentationUrls.filter((_, i) => i !== index);
+      setFormData({ ...formData, documentationUrls: updatedUrls });
     }
-  };
-
-  // Cancela la eliminación de una URL
-  const cancelarEliminacionUrl = () => {
-    setUrlAEliminar(null);
   };
 
   /**
@@ -783,32 +696,18 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                     <LinkIcon size={14} />
                     URLs de Referencia
                   </h4>
-
-                  {loadingUrls && (
-                    <div className="testing-metrics-loading">
-                      <span>Cargando URLs...</span>
-                    </div>
-                  )}
-
-                  {!loadingUrls && documentationUrls && documentationUrls.length === 0 && (
-                    <div className="testing-metrics-empty">
-                      <span>No hay URLs definidas para esta Testing Card</span>
-                    </div>
-                  )}
-
-                  {!loadingUrls && documentationUrls && documentationUrls.length > 0 && (
+                  
+                  {formData.documentationUrls && formData.documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {documentationUrls.map((urlObj, index) => (
-                        <div key={urlObj.id_url_tc || index} className="url-item">
-                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {urlObj.url}
+                      {formData.documentationUrls.map((url, index) => (
+                        <div key={index} className="url-item">
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {url}
                           </a>
-                          <button
-                            type="button"
+                          <button 
+                            type="button" 
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
-                            disabled={loadingUrls}
-                            title="Eliminar URL"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -821,7 +720,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                     type="button"
                     className="testing-add-btn"
                     onClick={() => setIsDocumentationModalOpen(true)}
-                    disabled={loadingUrls}
                   >
                     <Plus size={14} />
                     Añadir URL
@@ -1105,50 +1003,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   disabled={loadingMetricas}
                 >
                   {loadingMetricas ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* @component: Modal de confirmación para eliminar URL */}
-        {urlAEliminar && (
-          <div className="testing-modal-backdrop">
-            <div className="testing-confirmation-modal">
-              <div className="testing-confirmation-header">
-                <h3>Confirmar Eliminación de URL</h3>
-              </div>
-              <div className="testing-confirmation-content">
-                <p>¿Estás seguro que deseas eliminar la siguiente URL?</p>
-                <div className="url-preview" style={{ 
-                  backgroundColor: '#f8f9fa', 
-                  padding: '8px 12px', 
-                  borderRadius: '4px', 
-                  margin: '8px 0',
-                  wordBreak: 'break-all',
-                  fontFamily: 'monospace',
-                  fontSize: '14px'
-                }}>
-                  <strong>{urlAEliminar.url?.url || 'URL no disponible'}</strong>
-                </div>
-                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
-              </div>
-              <div className="testing-confirmation-actions">
-                <button
-                  type="button"
-                  onClick={cancelarEliminacionUrl}
-                  className="testing-btn testing-btn-secondary"
-                  disabled={loadingUrls}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmarEliminacionUrl}
-                  className="testing-btn testing-btn-danger"
-                  disabled={loadingUrls}
-                >
-                  {loadingUrls ? 'Eliminando...' : 'Eliminar URL'}
                 </button>
               </div>
             </div>
