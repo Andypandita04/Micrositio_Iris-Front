@@ -3,6 +3,7 @@ import { X, Save, FileText, BookOpen, Link as LinkIcon, Upload, Plus, Trash2 } f
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
+import { obtenerPorId as obtenerLearningCardPorId, actualizar as actualizarLearningCard } from '../../services/learningCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -16,6 +17,8 @@ interface LearningCardEditModalProps {
   onSave: (data: LearningCardData) => void;
   /** Función callback para cerrar el modal */
   onClose: () => void;
+  /** ID de la Learning Card a editar */
+  editingIdLC: number;
 }
 
 /**
@@ -37,9 +40,19 @@ interface LearningCardEditModalProps {
  * @param {LearningCardEditModalProps} props - Props del componente
  * @returns {JSX.Element} Modal de edición de Learning Card
  */
-const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onSave, onClose }) => {
-  // Solo datos principales en formData
-  const [formData, setFormData] = useState<LearningCardData>(node.data);
+const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onSave, onClose, editingIdLC }) => {
+  // @state: Datos del formulario
+  const [formData, setFormData] = useState<LearningCardData>({
+    ...node.data,
+    resultado: node.data.resultado || '',
+    hallazgo: node.data.hallazgo || '',
+    estado: node.data.estado || 'CUMPLIDO',
+  });
+
+  // @state: Loading y feedback
+  const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Estados locales para links, documentación y archivos adjuntos
   const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
@@ -50,10 +63,28 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
-    { value: 'cumplido', label: 'Cumplido' },
-    { value: 'rechazado', label: 'Rechazado' },
-    { value: 'repetir', label: 'Repetir' },
+    { value: 'CUMPLIDO', label: 'Cumplido' },
+    { value: 'RECHAZADO', label: 'Rechazado' },
+    { value: 'REPETIR', label: 'Repetir' },
+    { value: 'VALIDADA', label: 'Validada' },
   ];
+
+  /**
+   * Efecto para cargar datos reales de la BD al abrir el modal
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (editingIdLC) {
+      setLoading(true);
+      obtenerLearningCardPorId(editingIdLC)
+        .then((data) => {
+          setFormData({ ...formData, ...data });
+        })
+        .catch(() => setErrorMsg('Error al cargar datos de la Learning Card'))
+        .finally(() => setLoading(false));
+    }
+    // eslint-disable-next-line
+  }, [editingIdLC]);
 
   // Funciones para manejar links/documentos/archivos SOLO en el modal
   const addDocumentationUrl = (url: string) => {
@@ -74,15 +105,62 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   // Validación y submit
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    // Añadir validaciones básicas si es necesario
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /**
+   * Maneja el envío del formulario
+   * @function handleSubmit
+   * @param {React.FormEvent} e - Evento del formulario
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // Por ahora, solo mandas formData (sin links ni archivos)
-      onSave(formData);
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+      
+      // Limpiar payload: solo enviar campos válidos al backend
+      const {
+        id_learning_card,
+        id_testing_card,
+        resultado,
+        hallazgo,
+        estado,
+      } = formData;
+      
+      const payload = {
+        ...formData,
+        id_learning_card: id_learning_card,
+        id_testing_card: id_testing_card,
+        resultado: resultado?.trim() || '',
+        hallazgo: hallazgo?.trim() || '',
+        estado: estado || 'CUMPLIDO',
+      };
+      
+      // Log para depuración
+      console.log('[LearningCardEditModal] Payload enviado:', payload, 'editingIdLC:', editingIdLC);
+      
+      try {
+        await actualizarLearningCard(editingIdLC, payload);
+        setSuccessMsg('¡Learning Card guardada exitosamente!');
+        onSave(payload); // Notifica al padre
+      } catch (err: any) {
+        // Mostrar mensaje detallado del backend si existe
+        let backendMsg = 'Error al guardar Learning Card en la base de datos';
+        if (err?.response?.data?.detail) {
+          backendMsg = err.response.data.detail;
+        } else if (err?.message) {
+          backendMsg = err.message;
+        }
+        setErrorMsg(backendMsg);
+        // Log para depuración
+        console.error('[LearningCardEditModal] Error al actualizar:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -97,6 +175,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  /**
+   * Efecto para loguear el editingIdLC
+   * @function useEffect
+   */
+  useEffect(() => {
+    console.log('[LearningCardEditModal] editingIdLC recibido:', editingIdLC);
+  }, [editingIdLC]);
 
   return (
     <div className="testing-modal-backdrop">
@@ -115,6 +201,9 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         </div>
 
         <form onSubmit={handleSubmit} className="testing-modal-form">
+          {loading && <div className="testing-form-loading">Cargando...</div>}
+          {successMsg && <div className="testing-form-success">{successMsg}</div>}
+          {errorMsg && <div className="testing-form-error">{errorMsg}</div>}
 
           {/* @section: Estado de la Learning Card */}
           <div className="testing-form-group">

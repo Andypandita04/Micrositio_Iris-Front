@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -19,6 +19,7 @@ import EmptyFlowState from './components/EmptyFlowState';
 import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 
 import { TestingCardData, LearningCardData, NodeData } from './types';
+import { useNodePositions } from '../../hooks/useNodePositions';
 import './styles/FlowEditor.css';
 
 import {
@@ -29,7 +30,8 @@ import {
 
 import {
   crear as crearLearningCard,
-  obtenerPorTestingCard as obtenerPorId,
+  eliminar as eliminarLearningCard,
+  obtenerPorTestingCard,
   LearningCard
 } from '../../services/learningCardService';
 
@@ -37,12 +39,17 @@ interface FlowEditorProps {
   idSecuencia?: string | number;
 }
 
+export interface FlowEditorRef {
+  saveCurrentPositions: () => Promise<void>;
+  getCurrentNodes: () => Node<NodeData>[];
+}
+
 const nodeTypes: any = {
   testing: TestingCardNode,
   learning: LearningCardNode,
 };
 
-const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
+const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,6 +57,25 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteLearningModal, setShowDeleteLearningModal] = useState(false);
+  const [deleteLearningId, setDeleteLearningId] = useState<string | null>(null);
+  const [isDeletingLearning, setIsDeletingLearning] = useState(false);
+
+  // Hook para manejar posiciones de nodos
+  const {
+    saveNodePositionsToDatabase,
+    getNodePosition,
+    calculateDefaultPosition,
+    loadNodePositionsFromDatabase
+  } = useNodePositions(idSecuencia);
+
+  // Exponer métodos al componente padre a través de ref
+  useImperativeHandle(ref, () => ({
+    saveCurrentPositions: async () => {
+      await saveNodePositionsToDatabase(nodes);
+    },
+    getCurrentNodes: () => nodes,
+  }), [nodes, saveNodePositionsToDatabase]);
 
   // Función para convertir LearningCard del servicio a LearningCardData del componente
   const convertToLearningCardData = (lc: LearningCard): LearningCardData => {
@@ -71,6 +97,10 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const testingCards = await obtenerTestingCardsPorSecuencia(idSecuencia);
       console.log('[FlowEditor] Respuesta de obtenerTestingCardsPorSecuencia:', testingCards);
       
+      // Cargar posiciones guardadas
+      const savedPositions = await loadNodePositionsFromDatabase();
+      console.log('[FlowEditor] Posiciones cargadas:', savedPositions);
+      
       // Debug: Ver estructura exacta de los datos
       if (testingCards && testingCards.length > 0) {
         console.log('[FlowEditor] Primera Testing Card estructura:', testingCards[0]);
@@ -91,8 +121,23 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         try {
           console.log('[FlowEditor] Obteniendo Learning Cards para testing card:', card.id_testing_card);
           console.log('[FlowEditor] Tipo de id_testing_card:', typeof card.id_testing_card, 'Valor:', card.id_testing_card);
-          learningCards = await obtenerPorId(card.id_testing_card);
-          console.log('[FlowEditor] Learning Cards obtenidas exitosamente:', learningCards);
+          const response = await obtenerPorTestingCard(card.id_testing_card);
+          console.log('[FlowEditor] Learning Cards obtenidas exitosamente:', response);
+          console.log('[FlowEditor] Tipo de response:', typeof response, 'Es array:', Array.isArray(response));
+          
+          // Verificar si la respuesta es un array o un objeto individual
+          if (Array.isArray(response)) {
+            console.log('[FlowEditor] Response es array, asignando directamente');
+            learningCards = response;
+          } else if (response && typeof response === 'object' && 'id_learning_card' in response) {
+            // Si es un objeto individual con id_learning_card, convertirlo en array
+            console.log('[FlowEditor] Response es objeto individual, convirtiendo a array');
+            learningCards = [response];
+          } else {
+            console.log('[FlowEditor] Response no es array ni objeto válido, asignando array vacío');
+            learningCards = [];
+          }
+          console.log('[FlowEditor] Learning Cards procesadas como array:', learningCards, 'Longitud:', learningCards.length);
         } catch (error) {
           console.error('[FlowEditor] Error obteniendo Learning Cards para testing card:', card.id_testing_card);
           console.error('[FlowEditor] Error completo:', error);
@@ -100,14 +145,29 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             const axiosError = error as any;
             console.error('[FlowEditor] Response status:', axiosError.response?.status);
             console.error('[FlowEditor] Response data:', axiosError.response?.data);
+            
+            // Si es un 404, significa que no hay learning cards para esta testing card
+            if (axiosError.response?.status === 404) {
+              console.log('[FlowEditor] No hay Learning Cards para este Testing Card, continuando...');
+            }
           }
           learningCards = [];
         }
+        
+        // Garantizar que learningCards sea siempre un array antes de continuar
+        if (!Array.isArray(learningCards)) {
+          console.warn('[FlowEditor] FORZANDO learningCards a array vacío porque no es array:', learningCards);
+          learningCards = [];
+        }
+
+        // Obtener posición del nodo testing
+        const testingNodeId = `testing-${card.id_testing_card}`;
+        const testingPosition = getNodePosition('testing', card, nodesAccum, card.padre_id?.toString(), savedPositions);
 
         const testingNode: Node = {
-          id: `testing-${card.id_testing_card}`, // <-- Usa card.id_testing_card para consistencia
+          id: testingNodeId,
           type: 'testing',
-          position: { x: 250, y: 100 + nodesAccum.length * 100 },
+          position: testingPosition,
           data: {
             ...card,
             onAddTesting: () => handleAddTestingChild(card.id_testing_card.toString()),
@@ -145,6 +205,16 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         nodesAccum.push(testingNode);
 
         // Crear nodos para Learning Cards
+        console.log('[FlowEditor] Tipo de learningCards:', typeof learningCards, 'Es array:', Array.isArray(learningCards), 'Valor:', learningCards);
+        
+        // Asegurar que learningCards sea un array válido antes del bucle
+        if (!Array.isArray(learningCards)) {
+          console.warn('[FlowEditor] learningCards no es un array, convirtiendo...', learningCards);
+          learningCards = [];
+        }
+        
+        console.log('[FlowEditor] learningCards final antes del bucle:', learningCards, 'Longitud:', learningCards.length);
+        
         for (const lc of learningCards) {
           const learningCardData = convertToLearningCardData(lc);
           console.log('[FlowEditor] Creando Learning Card:', {
@@ -153,10 +223,14 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
             resultado: learningCardData.resultado
           });
           
+          // Obtener posición del nodo learning
+          const learningNodeId = `learning-${learningCardData.id_learning_card}`;
+          const learningPosition = getNodePosition('learning', learningCardData, nodesAccum, card.id_testing_card.toString(), savedPositions);
+          
           nodesAccum.push({
-            id: `learning-${learningCardData.id_learning_card}`,
+            id: learningNodeId,
             type: 'learning',
-            position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
+            position: learningPosition,
             data: { 
               ...learningCardData,
               onEdit: () => {
@@ -165,13 +239,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
                   id: `learning-${learningCardData.id_learning_card}`,
                   type: 'learning',
                   position: { x: 450, y: testingNode.position.y + 200 + (learningCards.indexOf(lc) * 150) },
-                  data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+                  data: { ...learningCardData, onEdit: () => {}, onDelete: () => handleDeleteLearningCard(learningCardData.id_learning_card.toString()) }
                 });
                 setIsModalOpen(true);
               },
               onDelete: () => {
                 console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
-                // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+                handleDeleteLearningCard(learningCardData.id_learning_card.toString());
               }
             },
           });
@@ -200,7 +274,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         id_secuencia: Number(idSecuencia),
         titulo: 'Primer experimento', // >= 3 caracteres
         hipotesis: 'Hipótesis inicial de prueba', // >= 10 caracteres
-        id_experimento_tipo: 2, // Debe existir en tu catálogo
+        id_experimento_tipo: 15, // Debe existir en tu catálogo
         descripcion: 'Descripción inicial de prueba', // >= 10 caracteres
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
@@ -214,7 +288,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const testingNode = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
-        position: { x: 250, y: 100 },
+        position: calculateDefaultPosition('testing', undefined, [], true),
         data: {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
@@ -248,16 +322,29 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
 
   const handleAddTestingChild = async (padreId: string) => {
     try {
-      const nuevaCard = await crearTestingCard({
+      console.log('[FlowEditor] Creando Testing Card hija con padre_id:', padreId);
+      
+      const payload = {
         padre_id: parseInt(padreId, 10),
+        id_secuencia: Number(idSecuencia), // Mismo id_secuencia que el padre
         titulo: `Nueva Testing Card ${Date.now()}`,
+        hipotesis: 'Hipótesis por definir',
+        descripcion: 'Descripción por definir',
+        dia_inicio: new Date().toISOString().slice(0, 10),
+        dia_fin: new Date().toISOString().slice(0, 10),
+        id_responsable: 1, // Valor por defecto
+        id_experimento_tipo: 15, // Valor por defecto
         status: 'En validación',
-      });
+      };
+      
+      console.log('[FlowEditor] Payload para Testing Card hija:', payload);
+      const nuevaCard = await crearTestingCard(payload);
+      console.log('[FlowEditor] Nueva Testing Card hija creada:', nuevaCard);
 
       const nuevoNodo = {
         id: `testing-${nuevaCard.id_testing_card}`,
         type: 'testing',
-        position: { x: 250, y: 100 + nodes.length * 100 },
+        position: calculateDefaultPosition('testing', padreId, nodes),
         data: {
           ...nuevaCard,
           onAddTesting: () => handleAddTestingChild(nuevaCard.id_testing_card.toString()),
@@ -284,8 +371,22 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       };
 
       setNodes(nds => [...nds, nuevoNodo]);
+      
+      // Crear la conexión entre el padre y el hijo
+      setEdges(eds => [
+        ...eds,
+        {
+          id: `edge-testing-${padreId}-to-${nuevaCard.id_testing_card}`,
+          source: `testing-${padreId}`,
+          target: `testing-${nuevaCard.id_testing_card}`,
+          sourceHandle: 'right',
+          targetHandle: 'left',
+          style: { stroke: '#6C63FF' },
+        },
+      ]);
+      
     } catch (error) {
-      console.error('[FlowEditor] Error creando Testing Card:', error);
+      console.error('[FlowEditor] Error creando Testing Card hija:', error);
     }
   };
 
@@ -304,7 +405,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
       const nuevoNodo: Node = {
         id: `learning-${learningCardData.id_learning_card}`,
         type: 'learning',
-        position: { x: 450, y: 300 + nodes.length * 100 },
+        position: calculateDefaultPosition('learning', testingCardId, nodes),
         data: { 
           ...learningCardData,
           onEdit: () => {
@@ -313,13 +414,13 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
               id: `learning-${learningCardData.id_learning_card}`,
               type: 'learning',
               position: { x: 450, y: 300 + nodes.length * 100 },
-              data: { ...learningCardData, onEdit: () => {}, onDelete: () => {} }
+              data: { ...learningCardData, onEdit: () => {}, onDelete: () => handleDeleteLearningCard(learningCardData.id_learning_card.toString()) }
             });
             setIsModalOpen(true);
           },
           onDelete: () => {
             console.log('[FlowEditor] Eliminar Learning Card id_learning_card:', learningCardData.id_learning_card);
-            // Aquí puedes implementar la eliminación de Learning Cards si lo necesitas
+            handleDeleteLearningCard(learningCardData.id_learning_card.toString());
           }
         },
       };
@@ -429,6 +530,60 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
     setDeleteId(null);
   };
 
+  // Métodos de eliminación para Learning Cards
+  const handleDeleteLearningCard = (id?: string) => {
+    if (!id) {
+      console.error('[FlowEditor] ID de Learning Card no definido');
+      return;
+    }
+    
+    console.log('[FlowEditor] ==========================================');
+    console.log('[FlowEditor] INICIANDO ELIMINACIÓN LEARNING CARD');
+    console.log('[FlowEditor] ID de learning card a eliminar:', id);
+    console.log('[FlowEditor] ==========================================');
+    
+    setDeleteLearningId(id);
+    setShowDeleteLearningModal(true);
+  };
+
+  const handleConfirmDeleteLearning = async () => {
+    if (!deleteLearningId) return;
+    setIsDeletingLearning(true);
+    try {
+      // Buscar el nodo a eliminar
+      const nodeToDelete = nodes.find(n => 
+        n.type === 'learning' && 
+        (n.data as LearningCardData).id_learning_card?.toString() === deleteLearningId
+      );
+      
+      if (!nodeToDelete) {
+        console.error('[FlowEditor] No se encontró el nodo Learning Card a eliminar con id:', deleteLearningId);
+        return;
+      }
+      
+      console.log('[FlowEditor] Eliminando Learning Card nodo:', nodeToDelete.id, 'con id_learning_card:', deleteLearningId);
+      
+      // Eliminar del backend
+      await eliminarLearningCard(parseInt(deleteLearningId, 10));
+      
+      // Eliminar del frontend
+      setNodes(nds => nds.filter(node => node.id !== nodeToDelete.id));
+      setEdges(eds => eds.filter(edge => edge.source !== nodeToDelete.id && edge.target !== nodeToDelete.id));
+      
+      setShowDeleteLearningModal(false);
+      setDeleteLearningId(null);
+    } catch (error) {
+      console.error('[FlowEditor] Error eliminando Learning Card:', error);
+    } finally {
+      setIsDeletingLearning(false);
+    }
+  };
+
+  const handleCancelDeleteLearning = () => {
+    setShowDeleteLearningModal(false);
+    setDeleteLearningId(null);
+  };
+
   const handleStatusChange = (id: string) => {
     // Aquí puedes implementar la lógica real de cambio de estado
     console.log('[FlowEditor] Cambiar status de Testing Card:', id);
@@ -491,6 +646,7 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         ) : (
           <LearningCardEditModal
             node={editingNode as Node<LearningCardData>}
+            editingIdLC={(editingNode.data as LearningCardData).id_learning_card}
             onSave={(updatedData) => {
               setNodes((nds) =>
                 nds.map((node) =>
@@ -524,8 +680,29 @@ const FlowEditor: React.FC<FlowEditorProps> = ({ idSecuencia }) => {
         type="danger"
         isLoading={isDeleting}
       />
+
+      <ConfirmationModal
+        isOpen={showDeleteLearningModal}
+        onClose={handleCancelDeleteLearning}
+        onConfirm={handleConfirmDeleteLearning}
+        title="Eliminar Learning Card"
+        message={`¿Eliminar la Learning Card "${
+          deleteLearningId ? 
+            (nodes.find(n => 
+              n.type === 'learning' && 
+              (n.data as LearningCardData).id_learning_card?.toString() === deleteLearningId
+            )?.data as LearningCardData)?.resultado || `con ID ${deleteLearningId}`
+            : ''
+        }"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isDeletingLearning}
+      />
     </div>
   );
-};
+});
+
+FlowEditor.displayName = 'FlowEditor';
 
 export default FlowEditor;

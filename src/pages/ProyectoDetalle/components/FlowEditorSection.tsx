@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Play, GitBranch, Save } from 'lucide-react';
 import { Secuencia } from '../../../types/secuencia';
-import FlowEditor from '../../../components/FlowEditor/FlowEditor';
+import FlowEditor, { FlowEditorRef } from '../../../components/FlowEditor/FlowEditor';
 import Button from '../../../components/ui/Button/Button';
 import styles from './FlowEditorSection.module.css';
 
@@ -14,6 +14,30 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
   secuenciaSeleccionada,
   onGuardarCambios,
 }) => {
+  const flowEditorRef = useRef<FlowEditorRef>(null);
+
+  const handleGuardarCambios = async () => {
+    try {
+      if (flowEditorRef.current) {
+        // Guardar las posiciones de los nodos
+        await flowEditorRef.current.saveCurrentPositions();
+        console.log('Posiciones de nodos guardadas exitosamente');
+      }
+      
+      // Llamar al callback original si existe
+      if (onGuardarCambios) {
+        onGuardarCambios();
+      }
+    } catch (error) {
+      console.error('Error guardando las posiciones de los nodos:', error);
+      // Aquí podrías mostrar un toast o notificación de error
+      
+      // Aún así, llamar al callback original para no romper el flujo
+      if (onGuardarCambios) {
+        onGuardarCambios();
+      }
+    }
+  };
   if (!secuenciaSeleccionada) {
     return (
       <div className={styles['flow-editor-section']}>
@@ -62,7 +86,7 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
               variant="primary"
               size="small"
               icon={<Save size={14} />}
-              onClick={onGuardarCambios}
+              onClick={handleGuardarCambios}
             >
               Guardar
             </Button>
@@ -72,6 +96,7 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
 
       <div className={styles['flow-editor-container']}>
         <FlowEditor
+          ref={flowEditorRef}
           key={`flow-${secuenciaSeleccionada.id}`}
           idSecuencia={secuenciaSeleccionada.id}
         />
