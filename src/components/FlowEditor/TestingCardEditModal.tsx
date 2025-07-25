@@ -33,6 +33,7 @@ import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector'
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
+import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -117,6 +118,12 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // @state: Modal de confirmación para crear métrica
   const [metricaACrear, setMetricaACrear] = useState<{index: number, metrica: any} | null>(null);
 
+  // @state: Estados para URLs de documentación
+  const [documentationUrls, setDocumentationUrls] = useState<UrlTestingCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+  const [showDeleteUrlConfirmation, setShowDeleteUrlConfirmation] = useState(false);
+  const [urlToDelete, setUrlToDelete] = useState<UrlTestingCard | null>(null);
+
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
    * @function useEffect
@@ -170,6 +177,20 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   }, [showMetrics, editingId]);
 
   /**
+   * Efecto para cargar URLs cuando se abre la sección de documentación
+   * @function useEffect
+   */
+  useEffect(() => {
+    console.log('[useEffect URLs] showDocumentation:', showDocumentation, 'editingId:', editingId);
+    if (showDocumentation && editingId) {
+      console.log('[useEffect URLs] Condiciones cumplidas, llamando a cargarUrls()');
+      cargarUrls();
+    } else {
+      console.log('[useEffect URLs] Condiciones no cumplidas, no se cargan URLs');
+    }
+  }, [showDocumentation, editingId]);
+
+  /**
    * Valida todos los campos del formulario
    * @function validateForm
    * @returns {boolean} true si el formulario es válido
@@ -207,13 +228,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         id_responsable,
         id_experimento_tipo,
         status,
-        metricas,
-        documentationUrls,
-        attachments,
-        collaborators,
         id_secuencia,
-        padre_id,
-        anexo_url,
+
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
@@ -462,19 +478,95 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   };
 
   /**
+   * Carga las URLs desde la base de datos
+   * @function cargarUrls
+   */
+  const cargarUrls = async () => {
+    if (!editingId) {
+      console.log('[cargarUrls] ⚠️ No hay editingId, saliendo...');
+      return;
+    }
+    
+    console.log('[cargarUrls] Iniciando carga de URLs para editingId:', editingId);
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerUrlsPorTestingCard(editingId);
+      
+      console.log('[cargarUrls] ✅ URLs recibidas de la BD:', urlsData);
+      console.log('[cargarUrls] Cantidad de URLs:', urlsData?.length || 0);
+      
+      // Actualizar el estado con las URLs cargadas
+      setDocumentationUrls(urlsData || []);
+      
+      // Expandir automáticamente la sección si hay URLs
+      if (urlsData && urlsData.length > 0) {
+        setShowDocumentation(true);
+      }
+      
+      console.log('[cargarUrls] ✅ Estado actualizado con las URLs');
+    } catch (error) {
+      console.error('[cargarUrls] ❌ Error al cargar URLs:', error);
+      // En caso de error, mantener el array vacío
+      setDocumentationUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
+
+  /**
    * Añade una nueva URL de documentación
    * @function addDocumentationUrl
    * @param {string} url - URL a añadir
    */
-  const addDocumentationUrl = (url: string) => {
-    if (!formData.documentationUrls) {
-      setFormData({ ...formData, documentationUrls: [url] });
-    } else {
-      setFormData({ 
-        ...formData, 
-        documentationUrls: [...formData.documentationUrls, url] 
+  const addDocumentationUrl = async (url: string) => {
+    try {
+      console.log('[addDocumentationUrl] Agregando URL:', url, 'para TC:', editingId);
+      const nuevaUrl = await crearUrl({
+        id_testing_card: editingId,
+        url: url
       });
+      console.log('[addDocumentationUrl] URL creada:', nuevaUrl);
+      setDocumentationUrls(prev => [...prev, nuevaUrl]);
+      setSuccessMsg('URL agregada exitosamente');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('[addDocumentationUrl] Error al agregar URL:', error);
+      setErrorMsg('Error al agregar la URL');
+      setTimeout(() => setErrorMsg(''), 3000);
     }
+  };
+
+  /**
+   * Maneja la eliminación de una URL
+   * @function handleDeleteUrl
+   * @param {UrlTestingCard} urlObj - Objeto URL a eliminar
+   */
+  const handleDeleteUrl = (urlObj: UrlTestingCard) => {
+    setUrlToDelete(urlObj);
+    setShowDeleteUrlConfirmation(true);
+  };
+
+  /**
+   * Confirma la eliminación de una URL
+   * @function confirmDeleteUrl
+   */
+  const confirmDeleteUrl = async () => {
+    if (urlToDelete) {
+      try {
+        console.log('[confirmDeleteUrl] Eliminando URL:', urlToDelete.id_url_tc);
+        await eliminarUrl(urlToDelete.id_url_tc);
+        setDocumentationUrls(prev => prev.filter(url => url.id_url_tc !== urlToDelete.id_url_tc));
+        setSuccessMsg('URL eliminada exitosamente');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (error) {
+        console.error('[confirmDeleteUrl] Error al eliminar URL:', error);
+        setErrorMsg('Error al eliminar la URL');
+        setTimeout(() => setErrorMsg(''), 3000);
+      }
+    }
+    setShowDeleteUrlConfirmation(false);
+    setUrlToDelete(null);
   };
 
   /**
@@ -483,10 +575,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @param {number} index - Índice de la URL a eliminar
    */
   const removeDocumentationUrl = (index: number) => {
-    if (formData.documentationUrls) {
-      const updatedUrls = formData.documentationUrls.filter((_, i) => i !== index);
-      setFormData({ ...formData, documentationUrls: updatedUrls });
-    }
+    const urlObj = documentationUrls[index];
+    handleDeleteUrl(urlObj);
   };
 
   /**
@@ -686,6 +776,19 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             >
               <ChevronDown className={`toggle-icon ${showDocumentation ? 'open' : ''}`} />
               <span>Documentación</span>
+              {documentationUrls.length > 0 && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  background: 'var(--theme-primary)', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  padding: '2px 8px',
+                  fontWeight: '600'
+                }}>
+                  {documentationUrls.length} URL{documentationUrls.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </button>
             
             {showDocumentation && (
@@ -695,19 +798,54 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   <h4 className="subsection-title">
                     <LinkIcon size={14} />
                     URLs de Referencia
+                    {documentationUrls.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '10px', 
+                        background: 'var(--theme-primary)', 
+                        color: 'white', 
+                        borderRadius: '10px', 
+                        padding: '2px 6px' 
+                      }}>
+                        {documentationUrls.length}
+                      </span>
+                    )}
                   </h4>
+
+                  {loadingUrls && (
+                    <div className="loading-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      Cargando URLs...
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls.length === 0 && (
+                    <div className="no-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      No hay URLs registradas para esta Testing Card
+                    </div>
+                  )}
                   
-                  {formData.documentationUrls && formData.documentationUrls.length > 0 && (
+                  {!loadingUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {formData.documentationUrls.map((url, index) => (
-                        <div key={index} className="url-item">
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {url}
+                      {documentationUrls.map((urlObj, index) => (
+                        <div key={urlObj.id_url_tc} className="url-item">
+                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {urlObj.url}
                           </a>
                           <button 
                             type="button" 
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
+                            title="Eliminar URL"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1003,6 +1141,38 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   disabled={loadingMetricas}
                 >
                   {loadingMetricas ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* @component: Modal de confirmación para eliminar URL */}
+        {showDeleteUrlConfirmation && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Eliminar URL</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas eliminar esta URL?</p>
+                <p className="testing-warning-text">{urlToDelete?.url}</p>
+                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteUrlConfirmation(false)}
+                  className="testing-btn testing-btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteUrl}
+                  className="testing-btn testing-btn-danger"
+                >
+                  Eliminar
                 </button>
               </div>
             </div>
