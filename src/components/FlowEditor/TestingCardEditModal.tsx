@@ -10,7 +10,15 @@ import {
   Link as LinkIcon,
   Upload,
   Plus,
-  Trash2
+  Trash2,
+  Eye,
+  Download,
+  Image,
+  File,
+  FileVideo,
+  FileAudio,
+  FileSpreadsheet,
+  Presentation
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
@@ -34,6 +42,7 @@ import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlTestingCardService';
+import { TestingCardDocument, getDocumentsByTestingCard, deleteDocument, isImage } from '../../services/testingCardDocumentService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -123,6 +132,12 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const [loadingUrls, setLoadingUrls] = useState(false);
   const [showDeleteUrlConfirmation, setShowDeleteUrlConfirmation] = useState(false);
   const [urlToDelete, setUrlToDelete] = useState<UrlTestingCard | null>(null);
+  
+  // Estado para los documentos
+  const [documentos, setDocumentos] = useState<TestingCardDocument[]>([]);
+  const [loadingDocumentos, setLoadingDocumentos] = useState(false);
+  const [documentoAEliminar, setDocumentoAEliminar] = useState<TestingCardDocument | null>(null);
+  const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
 
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
@@ -185,6 +200,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     if (showDocumentation && editingId) {
       console.log('[useEffect URLs] Condiciones cumplidas, llamando a cargarUrls()');
       cargarUrls();
+      cargarDocumentos(); // También cargar documentos cuando se abre la sección
     } else {
       console.log('[useEffect URLs] Condiciones no cumplidas, no se cargan URLs');
     }
@@ -515,6 +531,38 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   };
 
   /**
+   * Carga los documentos desde la base de datos
+   * @function cargarDocumentos
+   */
+  const cargarDocumentos = async () => {
+    if (!editingId) {
+      console.log('[cargarDocumentos] ⚠️ No hay editingId, saliendo...');
+      return;
+    }
+    
+    console.log('[cargarDocumentos] Iniciando carga de documentos para editingId:', editingId);
+    
+    try {
+      setLoadingDocumentos(true);
+      const documentosData = await getDocumentsByTestingCard(editingId);
+      
+      console.log('[cargarDocumentos] ✅ Documentos recibidos de la BD:', documentosData);
+      console.log('[cargarDocumentos] Cantidad de documentos:', documentosData?.length || 0);
+      
+      // Actualizar el estado con los documentos cargados
+      setDocumentos(documentosData || []);
+      
+      console.log('[cargarDocumentos] ✅ Estado actualizado con los documentos');
+    } catch (error) {
+      console.error('[cargarDocumentos] ❌ Error al cargar documentos:', error);
+      // En caso de error, mantener el array vacío
+      setDocumentos([]);
+    } finally {
+      setLoadingDocumentos(false);
+    }
+  };
+
+  /**
    * Añade una nueva URL de documentación
    * @function addDocumentationUrl
    * @param {string} url - URL a añadir
@@ -577,6 +625,230 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const removeDocumentationUrl = (index: number) => {
     const urlObj = documentationUrls[index];
     handleDeleteUrl(urlObj);
+  };
+
+  /**
+   * Obtiene el icono de Lucide para un tipo de documento
+   * @function getDocumentIconComponent
+   * @param {string} mimeType - Tipo MIME del documento
+   * @returns {React.ComponentType} Componente de icono
+   */
+  const getDocumentIconComponent = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return Image;
+    if (mimeType === 'application/pdf') return FileText;
+    if (mimeType.includes('word')) return File;
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return FileSpreadsheet;
+    if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return Presentation;
+    if (mimeType.startsWith('video/')) return FileVideo;
+    if (mimeType.startsWith('audio/')) return FileAudio;
+    return File;
+  };
+
+  /**
+   * Trunca nombres de documento para mejor legibilidad
+   * @function truncateDocumentName
+   * @param {string} name - Nombre del documento
+   * @param {number} maxLength - Longitud máxima
+   * @returns {string} Nombre truncado
+   */
+  const truncateDocumentName = (name: string, maxLength: number = 30) => {
+    if (name.length <= maxLength) return name;
+    
+    const extension = name.split('.').pop();
+    const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
+    const maxNameLength = maxLength - extension!.length - 4; // 4 para "..." y "."
+    
+    return `${nameWithoutExt.substring(0, maxNameLength)}...${extension}`;
+  };
+
+  /**
+   * Maneja la visualización de un documento
+   * @function handleViewDocument
+   * @param {TestingCardDocument} documento - Documento a visualizar
+   */
+  const handleViewDocument = (documento: TestingCardDocument) => {
+    console.log('[handleViewDocument] Abriendo documento:', documento.document_name);
+    
+    if (isImage(documento.document_type) || documento.document_type === 'application/pdf') {
+      // Abrir en nueva pestaña para PDFs e imágenes
+      window.open(documento.document_url, '_blank');
+    } else {
+      // Descargar directamente para otros tipos
+      handleDownloadDocument(documento);
+    }
+  };
+
+  /**
+   * Maneja la descarga de un documento
+   * @function handleDownloadDocument
+   * @param {TestingCardDocument} documento - Documento a descargar
+   */
+  const handleDownloadDocument = (documento: TestingCardDocument) => {
+    console.log('[handleDownloadDocument] Descargando documento:', documento.document_name);
+    
+    const link = document.createElement('a');
+    link.href = documento.document_url;
+    link.download = documento.document_name;
+    link.click();
+  };
+
+  /**
+   * Maneja la eliminación de un documento
+   * @function handleDeleteDocument
+   * @param {TestingCardDocument} documento - Documento a eliminar
+   */
+  const handleDeleteDocument = (documento: TestingCardDocument) => {
+    setDocumentoAEliminar(documento);
+    setShowDeleteDocumentConfirmation(true);
+  };
+
+  /**
+   * Confirma la eliminación de un documento
+   * @function confirmDeleteDocument
+   */
+  const confirmDeleteDocument = async () => {
+    if (documentoAEliminar) {
+      try {
+        console.log('[confirmDeleteDocument] Eliminando documento:', documentoAEliminar.id);
+        await deleteDocument(documentoAEliminar.id);
+        
+        // Actualizar la lista eliminando el documento
+        setDocumentos(prev => prev.filter(doc => doc.id !== documentoAEliminar.id));
+        
+        console.log('[confirmDeleteDocument] ✅ Documento eliminado exitosamente');
+      } catch (error) {
+        console.error('[confirmDeleteDocument] Error al eliminar documento:', error);
+      }
+    }
+    setShowDeleteDocumentConfirmation(false);
+    setDocumentoAEliminar(null);
+  };
+
+  /**
+   * Renderiza la lista de documentos cargados desde la base de datos
+   * @function renderDocumentos
+   * @returns {JSX.Element} Lista de documentos
+   */
+  const renderDocumentos = () => {
+    if (loadingDocumentos) {
+      return (
+        <div className="documentos-loading" style={{ 
+          fontSize: '12px', 
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          Cargando documentos...
+        </div>
+      );
+    }
+
+    if (documentos.length === 0) {
+      return (
+        <div className="documentos-empty" style={{ 
+          fontSize: '12px', 
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          No hay documentos registrados para esta Testing Card
+        </div>
+      );
+    }
+
+    return (
+      <div className="documentos-list">
+        {documentos.map((documento) => {
+          const IconComponent = getDocumentIconComponent(documento.document_type);
+          
+          return (
+            <div key={documento.id} className="documento-item" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: 'var(--theme-bg-secondary)',
+              border: '1px solid var(--theme-border-primary)',
+              borderRadius: '6px',
+              marginBottom: '6px',
+              fontSize: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                <IconComponent size={16} style={{ color: 'var(--theme-text-secondary)', flexShrink: 0 }} />
+                <span 
+                  style={{ 
+                    color: 'var(--theme-text-primary)',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1
+                  }}
+                  onClick={() => handleViewDocument(documento)}
+                  title={documento.document_name}
+                >
+                  {truncateDocumentName(documento.document_name)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => handleViewDocument(documento)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    color: 'var(--theme-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: '4px'
+                  }}
+                  title="Ver documento"
+                >
+                  <Eye size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadDocument(documento)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    color: 'var(--theme-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: '4px'
+                  }}
+                  title="Descargar documento"
+                >
+                  <Download size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDocument(documento)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    color: 'var(--theme-danger)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderRadius: '4px'
+                  }}
+                  title="Eliminar documento"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   /**
@@ -869,30 +1141,22 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   <h4 className="subsection-title">
                     <Upload size={14} />
                     Archivos Adjuntos
+                    {documentos.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '10px', 
+                        background: 'var(--theme-primary)', 
+                        color: 'white', 
+                        borderRadius: '10px', 
+                        padding: '2px 6px' 
+                      }}>
+                        {documentos.length}
+                      </span>
+                    )}
                   </h4>
                   
-                  {formData.attachments && formData.attachments.length > 0 && (
-                    <div className="attachments-list">
-                      {formData.attachments.map((file, index) => (
-                        <div key={index} className="attachment-item">
-                          <span className="file-name">{file.fileName}</span>
-                          <span className="file-size">
-                            {file.fileSize ? `(${(file.fileSize / 1024 / 1024).toFixed(2)} MB)` : ''}
-                          </span>
-                          <button 
-                            type="button" 
-                            className="testing-remove-btn"
-                            onClick={() => {
-                              const updatedAttachments = (formData.attachments || []).filter((_, i) => i !== index);
-                              setFormData({ ...formData, attachments: updatedAttachments });
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Mostrar documentos cargados desde la base de datos */}
+                  {renderDocumentos()}
                   
                   <button
                     type="button"
@@ -1170,6 +1434,38 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 <button
                   type="button"
                   onClick={confirmDeleteUrl}
+                  className="testing-btn testing-btn-danger"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* @component: Modal de confirmación para eliminar documento */}
+        {showDeleteDocumentConfirmation && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Eliminar Documento</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas eliminar este documento?</p>
+                <p className="testing-warning-text">{documentoAEliminar?.document_name}</p>
+                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteDocumentConfirmation(false)}
+                  className="testing-btn testing-btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteDocument}
                   className="testing-btn testing-btn-danger"
                 >
                   Eliminar
