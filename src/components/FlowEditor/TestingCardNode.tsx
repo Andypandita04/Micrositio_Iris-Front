@@ -9,11 +9,21 @@ import {
   Target,
   Calendar,
   BarChart3,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Eye,
+  Download,
+  Image,
+  File,
+  FileVideo,
+  FileAudio,
+  FileSpreadsheet,
+  Presentation
 } from 'lucide-react';
 import { TestingCardData } from './types';
 import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard } from '../../services/urlTestingCardService';
+import { TestingCardDocument, getDocumentsByTestingCard, isImage } from '../../services/testingCardDocumentService';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -36,13 +46,29 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
   const [urls, setUrls] = useState<UrlTestingCard[]>([]);
   const [loadingUrls, setLoadingUrls] = useState(false);
 
+  // Estado para los documentos de la Testing Card
+  const [documentos, setDocumentos] = useState<TestingCardDocument[]>([]);
+  const [loadingDocumentos, setLoadingDocumentos] = useState(false);
+
   const toggleExpanded = () => setIsExpanded(prev => !prev);
 
-  // Cargar métricas y URLs cuando se expande el componente
+  // Cargar métricas, URLs y documentos cuando se expande el componente
   useEffect(() => {
+    console.log('[TestingCardNode] useEffect activado:', {
+      isExpanded,
+      id_testing_card: data.id_testing_card
+    });
+    
     if (isExpanded && data.id_testing_card) {
+      console.log('[TestingCardNode] Condiciones cumplidas, iniciando cargas...');
       cargarMetricas();
       cargarUrls();
+      cargarDocumentos();
+    } else {
+      console.log('[TestingCardNode] Condiciones no cumplidas:', {
+        expandido: isExpanded,
+        tieneId: !!data.id_testing_card
+      });
     }
   }, [isExpanded, data.id_testing_card]);
 
@@ -77,6 +103,54 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
     }
   };
 
+  /**
+   * Carga los documentos desde la base de datos
+   */
+  const cargarDocumentos = async () => {
+    console.log('[TestingCardNode] Iniciando carga de documentos...');
+    console.log('[TestingCardNode] ID Testing Card:', data.id_testing_card);
+    
+    if (!data.id_testing_card) {
+      console.warn('[TestingCardNode] No hay ID de Testing Card, cancelando carga de documentos');
+      return;
+    }
+    
+    try {
+      console.log('[TestingCardNode] Estableciendo estado de carga: true');
+      setLoadingDocumentos(true);
+      
+      console.log('[TestingCardNode] Llamando al servicio getDocumentsByTestingCard...');
+      const documentosData = await getDocumentsByTestingCard(data.id_testing_card);
+      
+      console.log('[TestingCardNode] Respuesta del servicio:', documentosData);
+      console.log('[TestingCardNode] Cantidad de documentos recibidos:', documentosData?.length || 0);
+      
+      if (documentosData && documentosData.length > 0) {
+        console.log('[TestingCardNode] Documentos encontrados:', documentosData.map(doc => ({
+          id: doc.id,
+          nombre: doc.document_name,
+          tipo: doc.document_type,
+          url: doc.document_url
+        })));
+      } else {
+        console.log('[TestingCardNode] No se encontraron documentos para esta Testing Card');
+      }
+      
+      setDocumentos(documentosData || []);
+      console.log('[TestingCardNode] Estado de documentos actualizado');
+    } catch (error) {
+      console.error('[TestingCardNode] Error al cargar documentos:', error);
+      console.error('[TestingCardNode] Detalles del error:', {
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      setDocumentos([]);
+    } finally {
+      console.log('[TestingCardNode] Estableciendo estado de carga: false');
+      setLoadingDocumentos(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       month: 'short',
@@ -105,6 +179,71 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
     }
     
     return url.substring(0, maxLength) + '...';
+  };
+
+  /**
+   * Obtiene el icono de Lucide para un tipo de documento
+   */
+  const getDocumentIconComponent = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return Image;
+    if (mimeType === 'application/pdf') return FileText;
+    if (mimeType.includes('word')) return File;
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return FileSpreadsheet;
+    if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return Presentation;
+    if (mimeType.startsWith('video/')) return FileVideo;
+    if (mimeType.startsWith('audio/')) return FileAudio;
+    return File;
+  };
+
+  /**
+   * Trunca nombres de documento para mejor legibilidad
+   */
+  const truncateDocumentName = (name: string, maxLength: number = 30) => {
+    if (name.length <= maxLength) return name;
+    
+    const extension = name.split('.').pop();
+    const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
+    const maxNameLength = maxLength - extension!.length - 4; // 4 para "..." y "."
+    
+    return `${nameWithoutExt.substring(0, maxNameLength)}...${extension}`;
+  };
+
+  /**
+   * Maneja la visualización de un documento (abre en nueva pestaña o descarga según tipo)
+   */
+  const handleViewDocument = (documento: TestingCardDocument) => {
+    console.log('[TestingCardNode] handleViewDocument llamado:', {
+      documento: documento.document_name,
+      tipo: documento.document_type,
+      url: documento.document_url
+    });
+    
+    if (isImage(documento.document_type) || documento.document_type === 'pdf') {
+      console.log('[TestingCardNode] Abriendo en nueva pestaña (imagen o PDF)');
+      // Abrir en nueva pestaña para PDFs e imágenes
+      window.open(documento.document_url, '_blank');
+    } else {
+      console.log('[TestingCardNode] Iniciando descarga directa (otro tipo de archivo)');
+      // Descargar directamente para otros tipos
+      handleDownloadDocument(documento);
+    }
+  };
+
+  /**
+   * Maneja la descarga forzada de un documento
+   */
+  const handleDownloadDocument = (documento: TestingCardDocument) => {
+    console.log('[TestingCardNode] handleDownloadDocument llamado:', {
+      documento: documento.document_name,
+      url: documento.document_url
+    });
+    
+    const link = document.createElement('a');
+    link.href = documento.document_url;
+    link.download = documento.document_name;
+    link.click();
+    
+    console.log('[TestingCardNode] Descarga iniciada');
   };
 
   const renderMetricas = () => {
@@ -138,6 +277,132 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             </div>
           </div>
         ))}
+      </div>
+    );
+  };
+
+    const renderDocumentos = () => {
+    console.log('[TestingCardNode] renderDocumentos llamado:', {
+      loadingDocumentos,
+      cantidadDocumentos: documentos.length,
+      documentos: documentos.map(d => d.document_name)
+    });
+    
+    if (loadingDocumentos) {
+      console.log('[TestingCardNode] Mostrando estado de carga');
+      return (
+        <div className="documentos-loading" style={{ 
+          fontSize: '12px', 
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '4px 0'
+        }}>
+          Cargando documentos...
+        </div>
+      );
+    }
+
+    if (documentos.length === 0) {
+      console.log('[TestingCardNode] Mostrando estado vacío');
+      return (
+        <div className="documentos-empty" style={{ 
+          fontSize: '12px', 
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '4px 0'
+        }}>
+          No hay documentos registrados
+        </div>
+      );
+    }
+
+    console.log('[TestingCardNode] Renderizando lista de documentos');
+    console.log('[TestingCardNode] Primeros documentos:', documentos.slice(0, 2));
+
+    return (
+      <div className="documentos-list">
+        {documentos.map((documento, index) => {
+          console.log(`[TestingCardNode] Renderizando documento ${index + 1}:`, {
+            id: documento.id,
+            nombre: documento.document_name,
+            tipo: documento.document_type,
+            url: documento.document_url
+          });
+          
+          const IconComponent = getDocumentIconComponent(documento.document_type);
+          console.log(`[TestingCardNode] Icono calculado para ${documento.document_name}:`, IconComponent.name);
+          
+          return (
+            <div key={documento.id} className="documento-item" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '4px 0',
+              fontSize: '12px',
+              border: '1px solid red' // ← TEMPORAL para debugging visual
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                <IconComponent size={12} style={{ color: 'var(--theme-text-secondary)' }} />
+                <span 
+                  className="documento-name"
+                  style={{ 
+                    color: 'var(--theme-text-primary)',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDocument(documento);
+                  }}
+                  title={documento.document_name}
+                >
+                  {truncateDocumentName(documento.document_name)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDocument(documento);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    color: 'var(--theme-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Ver documento"
+                >
+                  <Eye size={12} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadDocument(documento);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    color: 'var(--theme-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Descargar documento"
+                >
+                  <Download size={12} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -241,6 +506,27 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             )}
           </div>
 
+          {/* Nueva sección de documentos */}
+          <div className="documentos-section" style={{
+            backgroundColor: 'yellow',
+            border: '2px solid red',
+            minHeight: '50px',
+            display: 'block',
+            visibility: 'visible'
+          }}>
+            <div className="documentos-label" style={{
+              backgroundColor: 'lightblue',
+              border: '1px solid blue'
+            }}>
+              <FileText size={12} style={{ marginRight: '4px' }} />
+              Documentos ({documentos.length})
+            </div>
+            {(() => {
+              console.log('[TestingCardNode] A punto de renderizar documentos en el DOM');
+              return renderDocumentos();
+            })()}
+          </div>
+
           <div className="experiment-details">
             <div style={{
               fontSize: 'var(--font-size-xs)',
@@ -249,11 +535,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             }}>
               {/*<strong>ID Secuencia:</strong> {data.id_secuencia}*/}
             </div>
-            {data.anexo_url && (
-              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--theme-text-secondary)' }}>
-                <strong>Anexo:</strong> <a href={data.anexo_url} target="_blank" rel="noreferrer">Ver documento</a>
-              </div>
-            )}
+            
           </div>
         </div>
 
