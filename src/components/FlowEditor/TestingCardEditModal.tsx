@@ -15,9 +15,25 @@ import {
 import { Node } from 'reactflow';
 import { TestingCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
+
+/**
+ * Interfaz extendida para métricas con propiedades adicionales del frontend
+ */
+interface MetricaWithFrontendProps {
+  id_metrica: number;
+  id_testing_card: number;
+  nombre: string;
+  operador: string;
+  criterio: string;
+  created_at?: string;
+  updated_at?: string;
+  needsCreation?: boolean; // Propiedad adicional para el frontend
+}
 import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
+import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
+import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -56,7 +72,7 @@ interface TestingCardEditModalProps {
  */
 const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose, editingId }) => {
   // @state: Datos del formulario
-  const [formData, setFormData] = useState<TestingCardData>({
+  const [formData, setFormData] = useState<TestingCardData & { metricas?: MetricaWithFrontendProps[] }>({
     ...node.data,
     titulo: node.data.titulo || '',
     hipotesis: node.data.hipotesis || '',
@@ -93,6 +109,21 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // @state: Loading para métricas
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+
+  // @state: Modal de confirmación para eliminar métrica
+  const [metricaAEliminar, setMetricaAEliminar] = useState<{index: number, metrica: any} | null>(null);
+
+  // @state: Modal de confirmación para crear métrica
+  const [metricaACrear, setMetricaACrear] = useState<{index: number, metrica: any} | null>(null);
+
+  // @state: Estados para URLs de documentación
+  const [documentationUrls, setDocumentationUrls] = useState<UrlTestingCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+  const [showDeleteUrlConfirmation, setShowDeleteUrlConfirmation] = useState(false);
+  const [urlToDelete, setUrlToDelete] = useState<UrlTestingCard | null>(null);
+
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
    * @function useEffect
@@ -124,11 +155,40 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .then((data) => {
           setFormData({ ...formData, ...data });
         })
-        //.catch(() => setErrorMsg('Error al cargar datos de la BD'))
+        .catch(() => setErrorMsg('Error al cargar datos de la BD'))
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line
   }, [node.data.id]);
+
+  /**
+   * Efecto para cargar métricas cuando se abre la sección de métricas
+   * @function useEffect
+   */
+  useEffect(() => {
+    console.log('[useEffect métricas] showMetrics:', showMetrics, 'editingId:', editingId);
+    if (showMetrics && editingId) {
+      console.log('[useEffect métricas] Condiciones cumplidas, llamando a cargarMetricas()');
+      cargarMetricas();
+    } else {
+      console.log('[useEffect métricas] Condiciones no cumplidas, no se cargan métricas');
+    }
+    // eslint-disable-next-line
+  }, [showMetrics, editingId]);
+
+  /**
+   * Efecto para cargar URLs cuando se abre la sección de documentación
+   * @function useEffect
+   */
+  useEffect(() => {
+    console.log('[useEffect URLs] showDocumentation:', showDocumentation, 'editingId:', editingId);
+    if (showDocumentation && editingId) {
+      console.log('[useEffect URLs] Condiciones cumplidas, llamando a cargarUrls()');
+      cargarUrls();
+    } else {
+      console.log('[useEffect URLs] Condiciones no cumplidas, no se cargan URLs');
+    }
+  }, [showDocumentation, editingId]);
 
   /**
    * Valida todos los campos del formulario
@@ -168,13 +228,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         id_responsable,
         id_experimento_tipo,
         status,
-        metricas,
-        documentationUrls,
-        attachments,
-        collaborators,
         id_secuencia,
-        padre_id,
-        anexo_url,
+
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
@@ -226,16 +281,237 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
 
   // Añade una nueva métrica vacía
   const addMetric = () => {
+    const newMetric = { 
+      id_metrica: 0, 
+      id_testing_card: editingId, 
+      nombre: '', 
+      operador: '', 
+      criterio: '',
+      needsCreation: true // Marca que necesita ser creada en BD
+    };
     setFormData({
       ...formData,
-      metricas: [...(formData.metricas || []), { id_metrica: 0, id_testing_card: formData.id, nombre: '', operador: '', criterio: '' }]
+      metricas: [...(formData.metricas || []), newMetric]
     });
   };
 
   // Elimina una métrica por índice
   const removeMetric = (index: number) => {
+    const metricToRemove = (formData.metricas || [])[index];
+    console.log('[removeMetric] Índice:', index);
+    console.log('[removeMetric] Métrica a eliminar:', metricToRemove);
+    console.log('[removeMetric] ID de la métrica (id_metrica):', metricToRemove?.id_metrica);
+    console.log('[removeMetric] ID de la métrica (id):', (metricToRemove as any)?.id);
+    console.log('[removeMetric] Todas las métricas:', formData.metricas);
+    setMetricaAEliminar({ index, metrica: metricToRemove });
+  };
+
+  // Confirma la eliminación de una métrica
+  const confirmarEliminacionMetrica = async () => {
+    if (!metricaAEliminar) return;
+    
+    const { index, metrica } = metricaAEliminar;
+    
+    console.log('[confirmarEliminacionMetrica] Iniciando eliminación...');
+    console.log('[confirmarEliminacionMetrica] Índice:', index);
+    console.log('[confirmarEliminacionMetrica] Métrica completa:', metrica);
+    console.log('[confirmarEliminacionMetrica] ID de métrica (id_metrica):', metrica?.id_metrica);
+    console.log('[confirmarEliminacionMetrica] ID de métrica (id):', (metrica as any)?.id);
+    console.log('[confirmarEliminacionMetrica] Tipo de ID (id_metrica):', typeof metrica?.id_metrica);
+    console.log('[confirmarEliminacionMetrica] Tipo de ID (id):', typeof (metrica as any)?.id);
+    
+    // Usar tanto id_metrica como id para mayor compatibilidad
+    const metricaId = metrica?.id_metrica || (metrica as any)?.id;
+    
+    // Si la métrica tiene un ID válido, eliminarla de la BD
+    if (metrica && metricaId && metricaId > 0) {
+      console.log('[confirmarEliminacionMetrica] ID válido detectado, procediendo a eliminar de BD...');
+      try {
+        setLoadingMetricas(true);
+        console.log('[confirmarEliminacionMetrica] Llamando a eliminar() con ID:', metricaId);
+        await eliminar(metricaId);
+        console.log(`[confirmarEliminacionMetrica] ✅ Métrica ${metricaId} eliminada exitosamente de la BD`);
+        setSuccessMsg('Métrica eliminada exitosamente');
+      } catch (error) {
+        console.error('[confirmarEliminacionMetrica] ❌ Error al eliminar métrica de la BD:', error);
+        setErrorMsg('Error al eliminar la métrica');
+        setLoadingMetricas(false);
+        setMetricaAEliminar(null);
+        return; // No actualizar el estado local si falla la eliminación en BD
+      } finally {
+        setLoadingMetricas(false);
+      }
+    } else {
+      console.log('[confirmarEliminacionMetrica] ⚠️ ID no válido, solo eliminando del estado local');
+      console.log('[confirmarEliminacionMetrica] Razones posibles:');
+      console.log('  - metrica es null/undefined:', !metrica);
+      console.log('  - metricaId es null/undefined:', !metricaId);
+      console.log('  - metricaId <= 0:', metricaId <= 0);
+    }
+    
+    // Actualizar el estado local
+    console.log('[confirmarEliminacionMetrica] Actualizando estado local...');
     const updatedMetricas = (formData.metricas || []).filter((_, i) => i !== index);
+    console.log('[confirmarEliminacionMetrica] Métricas antes del filtro:', formData.metricas);
+    console.log('[confirmarEliminacionMetrica] Métricas después del filtro:', updatedMetricas);
     setFormData({ ...formData, metricas: updatedMetricas });
+    setMetricaAEliminar(null);
+    console.log('[confirmarEliminacionMetrica] ✅ Estado local actualizado');
+  };
+
+  // Cancela la eliminación de una métrica
+  const cancelarEliminacionMetrica = () => {
+    setMetricaAEliminar(null);
+  };
+
+  // Inicia el proceso de creación de una métrica en la BD
+  const iniciarCreacionMetrica = (index: number) => {
+    const metricToCreate = (formData.metricas || [])[index];
+    console.log('[iniciarCreacionMetrica] Métrica a crear:', metricToCreate);
+    setMetricaACrear({ index, metrica: metricToCreate });
+  };
+
+  // Confirma la creación de una métrica en la base de datos
+  const confirmarCreacionMetrica = async () => {
+    if (!metricaACrear) return;
+    
+    const { index, metrica } = metricaACrear;
+    
+    console.log('[confirmarCreacionMetrica] Iniciando creación...');
+    console.log('[confirmarCreacionMetrica] Métrica a crear:', metrica);
+    
+    // Validar que la métrica tenga datos requeridos
+    if (!metrica.nombre || !metrica.operador || !metrica.criterio) {
+      setErrorMsg('Por favor completa todos los campos de la métrica antes de guardarla');
+      setMetricaACrear(null);
+      return;
+    }
+    
+    try {
+      setLoadingMetricas(true);
+      
+      // Crear la métrica en la BD
+      const dataToCreate = {
+        id_testing_card: editingId,
+        nombre: metrica.nombre,
+        operador: metrica.operador,
+        criterio: metrica.criterio
+      };
+      
+      console.log('[confirmarCreacionMetrica] Datos a enviar:', dataToCreate);
+      const metricaCreada = await crear(dataToCreate);
+      console.log('[confirmarCreacionMetrica] ✅ Métrica creada exitosamente:', metricaCreada);
+      
+      // Actualizar el estado local con la métrica creada
+      const updatedMetricas = [...(formData.metricas || [])];
+      updatedMetricas[index] = {
+        ...metricaCreada,
+        needsCreation: false // Ya no necesita ser creada
+      } as MetricaWithFrontendProps;
+      
+      setFormData({ ...formData, metricas: updatedMetricas });
+      setSuccessMsg('Métrica creada exitosamente');
+      
+    } catch (error) {
+      console.error('[confirmarCreacionMetrica] ❌ Error al crear métrica:', error);
+      setErrorMsg('Error al crear la métrica en la base de datos');
+    } finally {
+      setLoadingMetricas(false);
+      setMetricaACrear(null);
+    }
+  };
+
+  // Cancela la creación de una métrica
+  const cancelarCreacionMetrica = () => {
+    setMetricaACrear(null);
+  };
+
+  /**
+   * Carga las métricas desde la base de datos
+   * @function cargarMetricas
+   */
+  const cargarMetricas = async () => {
+    if (!editingId) {
+      console.log('[cargarMetricas] ⚠️ No hay editingId, saliendo...');
+      return;
+    }
+    
+    console.log('[cargarMetricas] Iniciando carga de métricas para editingId:', editingId);
+    
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(editingId);
+      
+      console.log('[cargarMetricas] ✅ Métricas recibidas de la BD:', metricasData);
+      console.log('[cargarMetricas] Cantidad de métricas:', metricasData?.length || 0);
+      
+      // Log detallado de cada métrica
+      if (metricasData && metricasData.length > 0) {
+        metricasData.forEach((metrica, index) => {
+          console.log(`[cargarMetricas] Métrica ${index}:`, {
+            id_metrica: metrica.id_metrica,
+            nombre: metrica.nombre,
+            operador: metrica.operador,
+            criterio: metrica.criterio,
+            id_testing_card: metrica.id_testing_card
+          });
+        });
+      }
+      
+      // Actualizar el formData con las métricas cargadas
+      setFormData(prev => ({
+        ...prev,
+        metricas: metricasData
+      }));
+      
+      console.log('[cargarMetricas] ✅ FormData actualizado con las métricas');
+    } catch (error) {
+      console.error('[cargarMetricas] ❌ Error al cargar métricas:', error);
+      // En caso de error, mantener el array vacío
+      setFormData(prev => ({
+        ...prev,
+        metricas: []
+      }));
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Carga las URLs desde la base de datos
+   * @function cargarUrls
+   */
+  const cargarUrls = async () => {
+    if (!editingId) {
+      console.log('[cargarUrls] ⚠️ No hay editingId, saliendo...');
+      return;
+    }
+    
+    console.log('[cargarUrls] Iniciando carga de URLs para editingId:', editingId);
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerUrlsPorTestingCard(editingId);
+      
+      console.log('[cargarUrls] ✅ URLs recibidas de la BD:', urlsData);
+      console.log('[cargarUrls] Cantidad de URLs:', urlsData?.length || 0);
+      
+      // Actualizar el estado con las URLs cargadas
+      setDocumentationUrls(urlsData || []);
+      
+      // Expandir automáticamente la sección si hay URLs
+      if (urlsData && urlsData.length > 0) {
+        setShowDocumentation(true);
+      }
+      
+      console.log('[cargarUrls] ✅ Estado actualizado con las URLs');
+    } catch (error) {
+      console.error('[cargarUrls] ❌ Error al cargar URLs:', error);
+      // En caso de error, mantener el array vacío
+      setDocumentationUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
   };
 
   /**
@@ -243,15 +519,54 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @function addDocumentationUrl
    * @param {string} url - URL a añadir
    */
-  const addDocumentationUrl = (url: string) => {
-    if (!formData.documentationUrls) {
-      setFormData({ ...formData, documentationUrls: [url] });
-    } else {
-      setFormData({ 
-        ...formData, 
-        documentationUrls: [...formData.documentationUrls, url] 
+  const addDocumentationUrl = async (url: string) => {
+    try {
+      console.log('[addDocumentationUrl] Agregando URL:', url, 'para TC:', editingId);
+      const nuevaUrl = await crearUrl({
+        id_testing_card: editingId,
+        url: url
       });
+      console.log('[addDocumentationUrl] URL creada:', nuevaUrl);
+      setDocumentationUrls(prev => [...prev, nuevaUrl]);
+      setSuccessMsg('URL agregada exitosamente');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('[addDocumentationUrl] Error al agregar URL:', error);
+      setErrorMsg('Error al agregar la URL');
+      setTimeout(() => setErrorMsg(''), 3000);
     }
+  };
+
+  /**
+   * Maneja la eliminación de una URL
+   * @function handleDeleteUrl
+   * @param {UrlTestingCard} urlObj - Objeto URL a eliminar
+   */
+  const handleDeleteUrl = (urlObj: UrlTestingCard) => {
+    setUrlToDelete(urlObj);
+    setShowDeleteUrlConfirmation(true);
+  };
+
+  /**
+   * Confirma la eliminación de una URL
+   * @function confirmDeleteUrl
+   */
+  const confirmDeleteUrl = async () => {
+    if (urlToDelete) {
+      try {
+        console.log('[confirmDeleteUrl] Eliminando URL:', urlToDelete.id_url_tc);
+        await eliminarUrl(urlToDelete.id_url_tc);
+        setDocumentationUrls(prev => prev.filter(url => url.id_url_tc !== urlToDelete.id_url_tc));
+        setSuccessMsg('URL eliminada exitosamente');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (error) {
+        console.error('[confirmDeleteUrl] Error al eliminar URL:', error);
+        setErrorMsg('Error al eliminar la URL');
+        setTimeout(() => setErrorMsg(''), 3000);
+      }
+    }
+    setShowDeleteUrlConfirmation(false);
+    setUrlToDelete(null);
   };
 
   /**
@@ -260,10 +575,8 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    * @param {number} index - Índice de la URL a eliminar
    */
   const removeDocumentationUrl = (index: number) => {
-    if (formData.documentationUrls) {
-      const updatedUrls = formData.documentationUrls.filter((_, i) => i !== index);
-      setFormData({ ...formData, documentationUrls: updatedUrls });
-    }
+    const urlObj = documentationUrls[index];
+    handleDeleteUrl(urlObj);
   };
 
   /**
@@ -463,6 +776,19 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             >
               <ChevronDown className={`toggle-icon ${showDocumentation ? 'open' : ''}`} />
               <span>Documentación</span>
+              {documentationUrls.length > 0 && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  background: 'var(--theme-primary)', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  padding: '2px 8px',
+                  fontWeight: '600'
+                }}>
+                  {documentationUrls.length} URL{documentationUrls.length !== 1 ? 's' : ''}
+                </span>
+              )}
             </button>
             
             {showDocumentation && (
@@ -472,19 +798,54 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   <h4 className="subsection-title">
                     <LinkIcon size={14} />
                     URLs de Referencia
+                    {documentationUrls.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '10px', 
+                        background: 'var(--theme-primary)', 
+                        color: 'white', 
+                        borderRadius: '10px', 
+                        padding: '2px 6px' 
+                      }}>
+                        {documentationUrls.length}
+                      </span>
+                    )}
                   </h4>
+
+                  {loadingUrls && (
+                    <div className="loading-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      Cargando URLs...
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls.length === 0 && (
+                    <div className="no-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      No hay URLs registradas para esta Testing Card
+                    </div>
+                  )}
                   
-                  {formData.documentationUrls && formData.documentationUrls.length > 0 && (
+                  {!loadingUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {formData.documentationUrls.map((url, index) => (
-                        <div key={index} className="url-item">
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {url}
+                      {documentationUrls.map((urlObj, index) => (
+                        <div key={urlObj.id_url_tc} className="url-item">
+                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {urlObj.url}
                           </a>
                           <button 
                             type="button" 
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
+                            title="Eliminar URL"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -559,8 +920,22 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             
             {showMetrics && (
               <div className="testing-form-section-content">
-                {formData.metricas && formData.metricas.map((metric, index) => (
-                  <div key={index} className="testing-metric-row">
+                {loadingMetricas && (
+                  <div className="testing-metrics-loading">
+                    <span>Cargando métricas...</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
+                  <div className="testing-metrics-empty">
+                    <span>No hay métricas definidas para esta Testing Card</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
+                  const metricWithFrontend = metric as MetricaWithFrontendProps;
+                  return (
+                  <div key={metric.id_metrica || index} className="testing-metric-row">
                     <input
                       type="text"
                       value={metric.nombre}
@@ -582,15 +957,30 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                       className="testing-input small"
                       placeholder="Criterio"
                     />
-                    <button 
-                      type="button" 
-                      className="testing-remove-btn"
-                      onClick={() => removeMetric(index)}
-                    >
-                      <X size={14} />
-                    </button>
+                    <div className="testing-metric-actions">
+                      {metricWithFrontend.needsCreation ? (
+                        <button 
+                          type="button" 
+                          className="testing-save-btn"
+                          onClick={() => iniciarCreacionMetrica(index)}
+                          title="Guardar métrica en la base de datos"
+                        >
+                          <Save size={14} />
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          className="testing-remove-btn"
+                          onClick={() => removeMetric(index)}
+                          title="Eliminar métrica"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
                 <button 
                   type="button" 
                   className="testing-add-btn"
@@ -685,6 +1075,108 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             onAddUrl={addDocumentationUrl}
             onAddFiles={addDocumentationFiles}
           />
+        )}
+
+        {/* @component: Modal de confirmación para eliminar métrica */}
+        {metricaAEliminar && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Confirmar Eliminación</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas eliminar la métrica <strong>"{metricaAEliminar.metrica?.nombre || 'Sin nombre'}"</strong>?</p>
+                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={cancelarEliminacionMetrica}
+                  className="testing-btn testing-btn-secondary"
+                  disabled={loadingMetricas}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmarEliminacionMetrica}
+                  className="testing-btn testing-btn-danger"
+                  disabled={loadingMetricas}
+                >
+                  {loadingMetricas ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* @component: Modal de confirmación para crear métrica */}
+        {metricaACrear && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Confirmar Creación</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas guardar la métrica <strong>"{metricaACrear.metrica?.nombre || 'Sin nombre'}"</strong> en la base de datos?</p>
+                <div className="testing-metric-preview">
+                  <p><strong>Nombre:</strong> {metricaACrear.metrica?.nombre}</p>
+                  <p><strong>Operador:</strong> {metricaACrear.metrica?.operador}</p>
+                  <p><strong>Criterio:</strong> {metricaACrear.metrica?.criterio}</p>
+                </div>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={cancelarCreacionMetrica}
+                  className="testing-btn testing-btn-secondary"
+                  disabled={loadingMetricas}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmarCreacionMetrica}
+                  className="testing-btn testing-btn-primary"
+                  disabled={loadingMetricas}
+                >
+                  {loadingMetricas ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* @component: Modal de confirmación para eliminar URL */}
+        {showDeleteUrlConfirmation && (
+          <div className="testing-modal-backdrop">
+            <div className="testing-confirmation-modal">
+              <div className="testing-confirmation-header">
+                <h3>Eliminar URL</h3>
+              </div>
+              <div className="testing-confirmation-content">
+                <p>¿Estás seguro que deseas eliminar esta URL?</p>
+                <p className="testing-warning-text">{urlToDelete?.url}</p>
+                <p className="testing-warning-text">Esta acción no se puede deshacer.</p>
+              </div>
+              <div className="testing-confirmation-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteUrlConfirmation(false)}
+                  className="testing-btn testing-btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteUrl}
+                  className="testing-btn testing-btn-danger"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

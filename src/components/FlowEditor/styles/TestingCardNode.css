@@ -625,3 +625,146 @@
     0 4px 8px rgba(0, 0, 0, 0.3),
     0 0 0 2px color-mix(in srgb, var(--color-secondary-orange) 50%, transparent);
 }
+
+/* =================================================================
+   NUEVA SECCIÓN: MÉTRICAS ASIGNADAS
+   ================================================================= */
+
+/* @section: Contenedor de métricas */
+.metricas-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+/* @component: Label de métricas */
+.metricas-label {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* @component: Lista de métricas */
+.metricas-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* @component: Item de métrica */
+.metrica-item {
+  background-color: var(--theme-bg-secondary);
+  border-radius: 6px;
+  padding: var(--spacing-xs);
+  border-left: 3px solid var(--theme-accent);
+}
+
+/* @component: Header de métrica */
+.metrica-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+/* @component: Nombre de métrica */
+.metrica-nombre {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+}
+
+/* @component: Criterio de métrica */
+.metrica-criterio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+}
+
+/* @component: Operador de métrica */
+.metrica-operador {
+  background-color: var(--theme-accent);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+/* @component: Valor de métrica */
+.metrica-valor {
+  color: var(--theme-text-secondary);
+  font-weight: 500;
+}
+
+/* @component: Estado de carga de métricas */
+.metricas-loading {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs);
+}
+
+/* @component: Estado vacío de métricas */
+.metricas-empty {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-xs);
+  font-style: italic;
+  padding: var(--spacing-xs);
+}
+
+/* @component: Sección de enlaces */
+.links-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.links-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+}
+
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-info) 15%, transparent);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.link-item:hover {
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-info) 25%, transparent);
+}
+
+.link-text {
+  color: var(--color-info);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.link-text:hover {
+  text-decoration: underline;
+}

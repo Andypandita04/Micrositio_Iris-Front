@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import { 
   Edit3, 
@@ -7,11 +7,10 @@ import {
   ChevronDown,
   FileText,
   Lightbulb,
-  ExternalLink,
-  Paperclip,
-  Users
+  ExternalLink
 } from 'lucide-react';
 import { LearningCardData } from './types';
+import { UrlLearningCard, obtenerPorLearningCard } from '../../services/urlLearningCardService';
 import './styles/LearningCardNode.css';
 
 /**
@@ -19,42 +18,14 @@ import './styles/LearningCardNode.css';
  */
 interface LearningCardNodeProps {
   /** Datos de la Learning Card */
-  data: LearningCardData;
+  data: LearningCardData & {
+    onEdit: () => void;
+    onDelete: () => void;
+  };
   /** Indica si el nodo está seleccionado */
   selected?: boolean;
 }
 
-/**
- * Mock data de colaboradores para mostrar en la card
- * @constant mockCollaborators
- */
-const mockCollaborators = [
-  {
-    id: '1',
-    name: 'Ana García',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '2',
-    name: 'Carlos Rodríguez',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '3',
-    name: 'María López',
-    avatar: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '4',
-    name: 'David Martínez',
-    avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  },
-  {
-    id: '5',
-    name: 'Laura Sánchez',
-    avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop'
-  }
-];
 
 /**
  * Componente LearningCardNode
@@ -74,16 +45,49 @@ const mockCollaborators = [
  * - Responsive y compatible con modo oscuro
  */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
-  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir
+  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir, Validada
   const statusMap: Record<string, { label: string; className: string }> = {
     'cumplido': { label: 'Cumplido', className: 'learning-status-cumplido' },
     'rechazado': { label: 'Rechazado', className: 'learning-status-rechazado' },
     'repetir': { label: 'Repetir', className: 'learning-status-repetir' },
+    'validada': { label: 'Validada', className: 'learning-status-validada' },
   };
-  const statusKey = (data.status || '').toLowerCase();
+  const statusKey = (data.estado || '').toLowerCase();
   const statusInfo = statusMap[statusKey];
   // Estado para controlar si el contenido está expandido
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Estado para las URLs de la Learning Card
+  const [urls, setUrls] = useState<UrlLearningCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+
+  /**
+   * Carga las URLs cuando se expande el contenido y hay un ID válido
+   */
+  useEffect(() => {
+    if (isExpanded && data.id_learning_card) {
+      cargarUrls();
+    }
+    // eslint-disable-next-line
+  }, [isExpanded, data.id_learning_card]);
+
+  /**
+   * Carga las URLs desde la base de datos
+   */
+  const cargarUrls = async () => {
+    if (!data.id_learning_card) return;
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerPorLearningCard(data.id_learning_card);
+      setUrls(urlsData || []);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar URLs:', error);
+      setUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
 
   /**
    * Alterna el estado de expansión del contenido
@@ -101,36 +105,27 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   };
 
   /**
-   * Obtiene los colaboradores asignados basado en los IDs
-   * @function getAssignedCollaborators
-   * @returns {Array} Lista de colaboradores asignados
+   * Trunca URLs de forma inteligente para mejor legibilidad
    */
-  const getAssignedCollaborators = () => {
-    if (!data.collaborators || data.collaborators.length === 0) {
-      return [];
+  const truncateUrl = (url: string, maxLength: number = 50) => {
+    if (url.length <= maxLength) return url;
+    
+    // Intentar mantener el dominio visible
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname + urlObj.search;
+      
+      if (domain.length < maxLength - 10) {
+        const remainingLength = maxLength - domain.length - 3; // 3 para "..."
+        return domain + (path.length > remainingLength ? `...${path.slice(-remainingLength)}` : path);
+      }
+    } catch (e) {
+      // Si no es una URL válida, truncar normalmente
     }
     
-    return mockCollaborators.filter(collaborator => 
-      data.collaborators?.includes(collaborator.id)
-    );
+    return url.substring(0, maxLength) + '...';
   };
-
-  /**
-   * Genera las iniciales de un nombre
-   * @function getInitials
-   * @param {string} name - Nombre completo
-   * @returns {string} Iniciales del nombre
-   */
-  const getInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const assignedCollaborators = getAssignedCollaborators();
 
   return (
     <div className={`learning-card ${selected ? 'selected' : ''}`}>
@@ -160,10 +155,10 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             <span className={`learning-status-badge ${statusInfo.className}`}>{statusInfo.label}</span>
           )}
         </div>
-        <div className="card-id">#{data.id.slice(-4)}</div>
+        {/*<div className="card-id">#{data.id_learning_card.toString().slice(-4)}</div>*/}
       </div>
 
-      {/* @section: Co-autores - Posición: Sección derecha superior */}
+      {/* @section: Co-autores - Posición: Sección derecha superior 
       {assignedCollaborators.length > 0 && (
         <div className="card-collaborators">
           <div className="collaborators-label">
@@ -197,7 +192,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             )}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Cuerpo principal con información */}
       <div className="card-body">
@@ -208,7 +203,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             Resultados
           </h4>
           <p className={isExpanded ? 'section-text-expanded' : 'section-text-collapsed'}>
-            {isExpanded ? data.result : truncateText(data.result || 'Sin resultados registrados')}
+            {isExpanded ? data.resultado : truncateText(data.resultado || 'Sin resultados registrados')}
           </p>
         </div>
         
@@ -219,7 +214,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             Hallazgo Accionable
           </h4>
           <p className={isExpanded ? 'section-text-expanded' : 'section-text-collapsed'}>
-            {isExpanded ? data.actionableInsight : truncateText(data.actionableInsight || 'Sin hallazgos registrados')}
+            {isExpanded ? data.hallazgo : truncateText(data.hallazgo || 'Sin hallazgos registrados')}
           </p>
         </div>
 
@@ -238,33 +233,59 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
 
         {/* Contenido expandible con información adicional */}
         <div className={`expandable-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
-          {/* Sección de enlaces relacionados */}
-          {data.links && data.links.length > 0 && (
+          {/* Sección de URLs de documentación */}
+          {isExpanded && (
             <div className="links-section">
               <div className="links-label">
                 <ExternalLink size={12} style={{ marginRight: '4px' }} />
-                Enlaces relacionados
+                URLs de referencia
               </div>
-              <div className="links-list">
-                {data.links.map((link, index) => (
-                  <div key={index} className="link-item">
-                    <ExternalLink size={12} />
-                    <a 
-                      href={link} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="link-text"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {link}
-                    </a>
-                  </div>
-                ))}
-              </div>
+              
+              {loadingUrls && (
+                <div className="loading-urls" style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  Cargando URLs...
+                </div>
+              )}
+
+              {!loadingUrls && urls.length === 0 && (
+                <div className="no-urls" style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No hay URLs registradas
+                </div>
+              )}
+
+              {!loadingUrls && urls.length > 0 && (
+                <div className="links-list">
+                  {urls.map((urlObj) => (
+                    <div key={urlObj.id_url_lc} className="link-item">
+                      <ExternalLink size={12} />
+                      <a 
+                        href={urlObj.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="link-text"
+                        onClick={(e) => e.stopPropagation()}
+                        title={urlObj.url}
+                      >
+                        {truncateUrl(urlObj.url)}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Sección de archivos adjuntos */}
+          {/* Sección de archivos adjuntos 
           {data.attachments && data.attachments.length > 0 && (
             <div className="attachments-section">
               <div className="attachments-label">
@@ -280,7 +301,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
                 ))}
               </div>
             </div>
-          )}
+          )}*/}
 
           {/* Información adicional */}
           <div style={{ 
@@ -292,7 +313,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
             borderRadius: 'var(--border-radius-md)',
             border: '1px solid var(--theme-border)'
           }}>
-            <strong>Testing Card asociada:</strong> #{data.testingCardId.slice(-4)}
+            {/*<strong>Testing Card asociada:</strong> #{data.id_testing_card.toString().slice(-4)}*/}
           </div>
         </div>
       </div>
@@ -308,7 +329,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
           className="card-btn edit"
           title="Editar Learning Card"
         >
-          <Edit3 size={12} /> Editar
+          <Edit3 size={12} />
         </button>
         
         {/* Botón para eliminar la Learning Card */}

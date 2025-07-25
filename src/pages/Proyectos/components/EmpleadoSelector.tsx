@@ -24,6 +24,7 @@ interface EmpleadoSelectorProps {
   getNombreCompleto: (empleado: Empleado) => string;
   getIniciales: (empleado: Empleado) => string;
   getAvatarColor: (index: number) => string;
+  hideLabel?: boolean; // Nueva prop para ocultar el label
 }
 
 const EmpleadoSelector: React.FC<EmpleadoSelectorProps> = ({
@@ -37,6 +38,7 @@ const EmpleadoSelector: React.FC<EmpleadoSelectorProps> = ({
   getNombreCompleto,
   getIniciales,
   getAvatarColor,
+  hideLabel = false, // Valor por defecto es false
 }) => {
   const [open, setOpen] = React.useState(false);
   const selectedEmpleado = empleados.find(emp => emp.id_empleado === selectedId);
@@ -53,15 +55,19 @@ const EmpleadoSelector: React.FC<EmpleadoSelectorProps> = ({
   }, [open]);
 
   return (
-    <div className={styles['form-group']}>
-      <label className={styles.label}>
-        Líder del Proyecto *
-        {selectedEmpleado && (
-          <span className={styles['selected-info']}>
-            {' '}(Seleccionado: {getNombreCompleto(selectedEmpleado)})
-          </span>
-        )}
-      </label>
+    <>
+      {!hideLabel && (
+        <div className={styles['form-group']}>
+          <label className={styles.label}>
+            Líder del Proyecto *
+            {selectedEmpleado && (
+              <span className={styles['selected-info']}>
+                {' '}(Seleccionado: {getNombreCompleto(selectedEmpleado)})
+              </span>
+            )}
+          </label>
+        </div>
+      )}
       {loadingEmpleados ? (
         <div className={styles['loading-empleados']}>
           <p>Cargando empleados...</p>
@@ -183,8 +189,8 @@ const EmpleadoSelector: React.FC<EmpleadoSelectorProps> = ({
           )}
         </div>
       )}
-      {errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
-    </div>
+      {!hideLabel && errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
+    </>
   );
 };
 

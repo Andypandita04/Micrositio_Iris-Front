@@ -9,9 +9,11 @@ import { obtenerEmpleados } from '../../../services/empleadosService';
 import EmpleadoSelector from '../../Proyectos/components/EmpleadoSelector';
 //import { form } from 'framer-motion/m';
 
+//import { form } from 'framer-motion/m';
+
 interface Empleado {
   id_empleado: number;
-  nombre_pila: string;
+  nombre_pila: string; 
   apellido_paterno: string;
   apellido_materno?: string;
   celular?: string;
@@ -49,10 +51,12 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
   const [formData, setFormData] = useState({
     nombre: proyecto.nombre,
     descripcion: proyecto.descripcion,
-    id_lider: 0, // Se inicializará cuando se carguen los empleados
+    id_lider: proyecto.id_lider, // Se inicializará cuando se carguen los empleados
     fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
     fecha_fin_estimada: proyecto.fecha_fin_estimada || '', // <-- nuevo,
-    estado : proyecto.estado || 'ACTIVO' // <-- nuevo, estado por defecto
+
+    estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' // <-- actualizado
+
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,17 +66,21 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
   // Cargar empleados cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      cargarEmpleados();
-      // Reset form data con datos del proyecto
+      // Primero establecer los datos del formulario
+      const liderId = proyecto.id_lider || 0;
+      
       setFormData({
         nombre: proyecto.nombre,
         descripcion: proyecto.descripcion,
-        id_lider: 0,
+        id_lider: liderId, // Usar el id_lider del proyecto
         fecha_inicio: proyecto.fecha_inicio || '',
         fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
         estado: proyecto.estado || 'ACTIVO' 
       });
       setErrors({});
+      
+      // Luego cargar empleados
+      cargarEmpleados();
     }
   }, [isOpen, proyecto]);
 
@@ -92,12 +100,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         activo: empleado.activo
       }));
 
-      setEmpleados(empleadosMapeados);
 
-      // Si el proyecto tiene un líder, establecerlo
-      if (proyecto.lider_id) {
-        setFormData(prev => ({ ...prev, id_lider: proyecto.lider_id ?? 0 }));
-      }
+      setEmpleados(empleadosMapeados);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
       setErrors(prev => ({ ...prev, empleados: 'Error al cargar empleados' }));
@@ -127,7 +131,9 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Datos a enviar:', formData); // Antes de actualizarProyecto
+
+    console.log('📤 Datos a enviar:', formData);
+
 
     if (!validateForm()) return;
 
@@ -140,22 +146,36 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         descripcion: formData.descripcion,
         id_lider: formData.id_lider,
         fecha_inicio: formData.fecha_inicio || null,
-        fecha_fin_estimada: formData.fecha_fin_estimada || null
+        fecha_fin_estimada: formData.fecha_fin_estimada || null,
+        estado: formData.estado
       };
+
+      console.log('🚀 Enviando al backend:', data);
 
       // Actualiza el proyecto en el backend
       const proyectoActualizado = await actualizarProyecto(Number(proyecto.id), data);
+      
+      console.log('✅ Respuesta del backend:', proyectoActualizado);
 
       // Mapea la respuesta al tipo Proyecto del front
-      onProyectoActualizado({
+      const proyectoMapeado = {
         ...proyecto,
         nombre: proyectoActualizado.titulo,
         descripcion: proyectoActualizado.descripcion,
-        lider_id: proyectoActualizado.id_lider // Asegúrate de que el backend devuelva este campo
-      });
+        id_lider: proyectoActualizado.id_lider,
+        estado: proyectoActualizado.estado,
+        fecha_inicio: proyectoActualizado.fecha_inicio,
+        fecha_fin_estimada: proyectoActualizado.fecha_fin_estimada
+      };
+
+      console.log('📦 Proyecto mapeado para el frontend:', proyectoMapeado);
+
+      onProyectoActualizado(proyectoMapeado);
+      console.log('🎉 Proyecto actualizado exitosamente!');
+      
       onClose();
     } catch (error) {
-      console.error('Error al actualizar proyecto:', error);
+      console.error('❌ Error al actualizar proyecto:', error);
       setErrors({ general: 'Error al actualizar el proyecto' });
     } finally {
       setLoading(false);
@@ -241,18 +261,55 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         </div>
 
         {/* Selector de líder con grid bonito y colores */}
-        <EmpleadoSelector
-          empleados={empleados}
-          loading={loading}
-          loadingEmpleados={loadingEmpleados}
-          errors={errors}
-          selectedId={formData.id_lider}
-          onSelect={handleLiderSelect}
-          cargarEmpleados={cargarEmpleados}
-          getNombreCompleto={getNombreCompleto}
-          getIniciales={getIniciales}
-          getAvatarColor={getAvatarColor}
-        />
+        <div className={styles['form-group']}>
+          <label htmlFor="id_lider" className={styles.label}>
+            Líder del Proyecto *
+            {empleados.length > 0 && formData.id_lider ? (
+              (() => {
+                const emp = empleados.find(e => e.id_empleado === formData.id_lider);
+                return emp ? (
+                  <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
+                    (Seleccionado: {getNombreCompleto(emp)})
+                  </span>
+                ) : null;
+              })()
+            ) : null}
+          </label>
+          <EmpleadoSelector
+            empleados={empleados}
+            loading={loading}
+            loadingEmpleados={loadingEmpleados}
+            errors={errors}
+            selectedId={formData.id_lider}
+            onSelect={handleLiderSelect}
+            cargarEmpleados={cargarEmpleados}
+            getNombreCompleto={getNombreCompleto}
+            getIniciales={getIniciales}
+            getAvatarColor={getAvatarColor}
+            hideLabel={true} // Ocultar el label del EmpleadoSelector
+          />
+          {errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
+        </div>
+
+        <div className={styles['form-group']}>
+          <label htmlFor="estado" className={styles.label}>
+            Estado del Proyecto *
+          </label>
+          <select
+            id="estado"
+            value={formData.estado}
+            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' }))}
+            className={`${styles.input} ${styles.select}`}
+            disabled={loading}
+            required
+          >
+            <option value="ACTIVO">ACTIVO</option>
+            <option value="INACTIVO">INACTIVO</option>
+            <option value="COMPLETADO">COMPLETADO</option>
+          </select>
+        </div>
+
+
 
         <div className={styles['form-group']}>
           <label htmlFor="estado" className={styles.label}>

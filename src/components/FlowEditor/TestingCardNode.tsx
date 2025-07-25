@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import {
   Edit3,
@@ -7,9 +7,13 @@ import {
   ClipboardList,
   ChevronDown,
   Target,
-  Calendar
+  Calendar,
+  BarChart3,
+  ExternalLink
 } from 'lucide-react';
 import { TestingCardData } from './types';
+import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
+import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard } from '../../services/urlTestingCardService';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -25,14 +29,117 @@ interface TestingCardNodeProps {
 
 const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+  
+  // Estado para las URLs de la Testing Card
+  const [urls, setUrls] = useState<UrlTestingCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
 
   const toggleExpanded = () => setIsExpanded(prev => !prev);
+
+  // Cargar métricas y URLs cuando se expande el componente
+  useEffect(() => {
+    if (isExpanded && data.id_testing_card) {
+      cargarMetricas();
+      cargarUrls();
+    }
+  }, [isExpanded, data.id_testing_card]);
+
+  const cargarMetricas = async () => {
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(data.id_testing_card);
+      setMetricas(metricasData);
+    } catch (error) {
+      console.error('Error al cargar métricas:', error);
+      setMetricas([]);
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Carga las URLs desde la base de datos
+   */
+  const cargarUrls = async () => {
+    if (!data.id_testing_card) return;
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerUrlsPorTestingCard(data.id_testing_card);
+      setUrls(urlsData || []);
+    } catch (error) {
+      console.error('[TestingCardNode] Error al cargar URLs:', error);
+      setUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  /**
+   * Trunca URLs de forma inteligente para mejor legibilidad
+   */
+  const truncateUrl = (url: string, maxLength: number = 50) => {
+    if (url.length <= maxLength) return url;
+    
+    // Intentar mantener el dominio visible
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname + urlObj.search;
+      
+      if (domain.length < maxLength - 10) {
+        const remainingLength = maxLength - domain.length - 3; // 3 para "..."
+        return domain + (path.length > remainingLength ? `...${path.slice(-remainingLength)}` : path);
+      }
+    } catch (e) {
+      // Si no es una URL válida, truncar normalmente
+    }
+    
+    return url.substring(0, maxLength) + '...';
+  };
+
+  const renderMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading">
+          <span>Cargando métricas...</span>
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty">
+          <span>No hay métricas definidas</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list">
+        {metricas.map((metrica) => (
+          <div key={metrica.id_metrica} className="metrica-item">
+            <div className="metrica-header">
+              <BarChart3 size={14} />
+              <span className="metrica-nombre">{metrica.nombre}</span>
+            </div>
+            <div className="metrica-criterio">
+              <span className="metrica-operador">{metrica.operador}</span>
+              <span className="metrica-valor">{metrica.criterio}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -47,7 +154,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className="experiment-type">
             <ClipboardList size={14} />
-            <span>Tipo #{data.id_experimento_tipo}</span>
+            <span>TESTING CARD</span>
+            {/*<span>Tipo #{data.id_experimento_tipo}</span> */}
           </div>
         </div>
       </div>
@@ -74,13 +182,72 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             <p className="hypothesis-text">{data.hipotesis}</p>
           </div>
 
+          {/* Nueva sección de métricas */}
+          <div className="metricas-section">
+            <div className="metricas-label">
+              <BarChart3 size={12} style={{ marginRight: '4px' }} />
+              Métricas de Éxito
+            </div>
+            {renderMetricas()}
+          </div>
+
+          {/* Sección de URLs de documentación */}
+          <div className="links-section">
+            <div className="links-label">
+              <ExternalLink size={12} style={{ marginRight: '4px' }} />
+              URLs de referencia
+            </div>
+            
+            {loadingUrls && (
+              <div className="loading-urls" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                Cargando URLs...
+              </div>
+            )}
+
+            {!loadingUrls && urls.length === 0 && (
+              <div className="no-urls" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                No hay URLs registradas
+              </div>
+            )}
+
+            {!loadingUrls && urls.length > 0 && (
+              <div className="links-list">
+                {urls.map((urlObj) => (
+                  <div key={urlObj.id_url_tc} className="link-item">
+                    <ExternalLink size={12} />
+                    <a 
+                      href={urlObj.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="link-text"
+                      onClick={(e) => e.stopPropagation()}
+                      title={urlObj.url}
+                    >
+                      {truncateUrl(urlObj.url)}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="experiment-details">
             <div style={{
               fontSize: 'var(--font-size-xs)',
               color: 'var(--theme-text-secondary)',
               marginBottom: 'var(--spacing-xs)'
             }}>
-              <strong>ID Secuencia:</strong> {data.id_secuencia}
+              {/*<strong>ID Secuencia:</strong> {data.id_secuencia}*/}
             </div>
             {data.anexo_url && (
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--theme-text-secondary)' }}>

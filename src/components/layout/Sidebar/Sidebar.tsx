@@ -6,7 +6,8 @@ import {
   FileText, 
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookOpen
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
@@ -36,6 +37,11 @@ const menuItems: MenuItem[] = [
     path: '/equipo', 
     name: 'Equipo', 
     icon: <Users size={20} /> 
+  },
+  {
+    path: '/libro-digital',
+    name: 'Libro Digital',
+    icon: <BookOpen size={20} />
   },
 ];
 

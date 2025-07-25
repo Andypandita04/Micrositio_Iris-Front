@@ -1,0 +1,202 @@
+.experiment-card {
+  border: 2px solid;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.experiment-card.light {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #000000;
+}
+
+.experiment-card.dark {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.experiment-card:hover {
+  border-color: #8B5CF6;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.15);
+}
+
+.experiment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #8B5CF6, #F97316);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.experiment-card:hover::before {
+  opacity: 1;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.card-campo {
+  background: linear-gradient(135deg, #8B5CF6, #F97316);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.card-tipo {
+  margin-bottom: 1rem;
+}
+
+.tipo-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 1px solid #8B5CF6;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.card-description {
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.card-team {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.team-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.team-icons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.team-icon {
+  color: #F97316;
+}
+
+.card-skills {
+  margin-bottom: 1.5rem;
+}
+
+.skills-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.skills-text {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.view-more-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #F97316;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #F97316;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.view-more-button:hover {
+  background: #F97316;
+  color: white;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .experiment-card {
+    padding: 1rem;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .card-campo {
+    align-self: flex-start;
+  }
+  
+  .card-title {
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .experiment-card {
+    padding: 0.875rem;
+  }
+  
+  .card-title {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  
+  .card-description {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .card-team {
+    gap: 0.5rem;
+  }
+  
+  .team-label,
+  .skills-label {
+    font-size: 0.8rem;
+  }
+  
+  .skills-text {
+    font-size: 0.8rem;
+  }
+  
+  .view-more-button {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}
