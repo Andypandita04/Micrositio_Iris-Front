@@ -23,7 +23,7 @@ interface DocumentationModalProps {
   /** Función callback para añadir URLs */
   onAddUrl: (url: string) => void;
   /** Función callback para añadir archivos */
-  onAddFiles: (files: File[]) => void;
+  onAddFiles: (files: File[]) => Promise<void>;
 }
 
 /**
@@ -67,6 +67,9 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({
   
   // @state: Errores de validación
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // @state: Estado de carga para subida de archivos
+  const [isUploading, setIsUploading] = useState(false);
   
   // @ref: Referencia al input de archivos
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,21 +230,32 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({
    * Guarda todos los cambios y cierra el modal
    * @function handleSave
    */
-  const handleSave = () => {
-    // @action: Añadir URLs pendientes
-    pendingUrls.forEach(url => onAddUrl(url));
-    
-    // @action: Añadir archivos seleccionados
-    if (selectedFiles.length > 0) {
-      onAddFiles(selectedFiles);
-    }
+  const handleSave = async () => {
+    try {
+      setIsUploading(true);
+      
+      // @action: Añadir URLs pendientes
+      pendingUrls.forEach(url => onAddUrl(url));
+      
+      // @action: Añadir archivos seleccionados
+      if (selectedFiles.length > 0) {
+        console.log('[DocumentationModal] Subiendo archivos...');
+        await onAddFiles(selectedFiles);
+        console.log('[DocumentationModal] ✅ Archivos subidos exitosamente');
+      }
 
-    // @action: Resetear estado y cerrar
-    setPendingUrls([]);
-    setSelectedFiles([]);
-    setCurrentUrl('');
-    setErrors({});
-    onClose();
+      // @action: Resetear estado y cerrar
+      setPendingUrls([]);
+      setSelectedFiles([]);
+      setCurrentUrl('');
+      setErrors({});
+      onClose();
+    } catch (error) {
+      console.error('[DocumentationModal] ❌ Error al guardar:', error);
+      // No cerrar el modal si hay error, para que el usuario pueda intentar de nuevo
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   /**
@@ -395,16 +409,29 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({
 
         {/* @section: Botones de acción */}
         <div className="documentation-actions">
-          <button onClick={onClose} className="btn-secondary">
+          <button 
+            onClick={onClose} 
+            className="btn-secondary"
+            disabled={isUploading}
+          >
             Cancelar
           </button>
           <button 
             onClick={handleSave} 
             className="btn-primary"
-            disabled={pendingUrls.length === 0 && selectedFiles.length === 0}
+            disabled={isUploading || (pendingUrls.length === 0 && selectedFiles.length === 0)}
           >
-            <Check size={16} />
-            Guardar Documentación
+            {isUploading ? (
+              <>
+                <Upload size={16} />
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <Check size={16} />
+                Guardar Documentación
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -42,7 +42,7 @@ import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/testingCardService';
 import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlTestingCardService';
-import { TestingCardDocument, getDocumentsByTestingCard, deleteDocument, isImage } from '../../services/testingCardDocumentService';
+import { TestingCardDocument, getDocumentsByTestingCard, deleteDocument, isImage, uploadDocument } from '../../services/testingCardDocumentService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -852,20 +852,53 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   };
 
   /**
-   * Añade archivos de documentación
+   * Añade archivos de documentación subiéndolos a la base de datos
    * @function addDocumentationFiles
-   * @param {File[]} files - Archivos a añadir
+   * @param {File[]} files - Archivos a subir
    */
-  const addDocumentationFiles = (files: File[]) => {
-    const newAttachments = files.map(file => ({
-      fileName: file.name,
-      fileUrl: URL.createObjectURL(file),
-      fileSize: file.size
-    }));
-    setFormData({
-      ...formData,
-      attachments: [...(formData.attachments || []), ...newAttachments]
-    });
+  const addDocumentationFiles = async (files: File[]) => {
+    if (!editingId) {
+      console.error('[addDocumentationFiles] No hay editingId disponible');
+      setErrorMsg('Error: No se puede identificar la Testing Card');
+      return;
+    }
+
+    console.log('[addDocumentationFiles] Subiendo archivos:', files.length, 'para TC:', editingId);
+    
+    try {
+      setLoadingDocumentos(true);
+      
+      // Subir cada archivo individualmente
+      const uploadPromises = files.map(async (file) => {
+        console.log('[addDocumentationFiles] Subiendo archivo:', file.name);
+        try {
+          const documentoSubido = await uploadDocument(editingId, file);
+          console.log('[addDocumentationFiles] ✅ Archivo subido exitosamente:', documentoSubido);
+          return documentoSubido;
+        } catch (error) {
+          console.error('[addDocumentationFiles] ❌ Error al subir archivo:', file.name, error);
+          throw error;
+        }
+      });
+
+      // Esperar a que todos los archivos se suban
+      const documentosSubidos = await Promise.all(uploadPromises);
+      
+      // Actualizar la lista de documentos con los nuevos documentos
+      setDocumentos(prev => [...prev, ...documentosSubidos]);
+      
+      setSuccessMsg(`${documentosSubidos.length} archivo(s) subido(s) exitosamente`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      
+      console.log('[addDocumentationFiles] ✅ Todos los archivos subidos exitosamente');
+      
+    } catch (error) {
+      console.error('[addDocumentationFiles] ❌ Error al subir archivos:', error);
+      setErrorMsg('Error al subir los archivos');
+      setTimeout(() => setErrorMsg(''), 3000);
+    } finally {
+      setLoadingDocumentos(false);
+    }
   };
 
   /**
