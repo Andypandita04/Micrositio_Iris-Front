@@ -3,7 +3,9 @@ import { X, Save, FileText, BookOpen, Link as LinkIcon, Upload, Plus, Trash2 } f
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
 import DocumentationModal from './components/DocumentationModal';
+import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 import { obtenerPorId as obtenerLearningCardPorId, actualizar as actualizarLearningCard } from '../../services/learningCardService';
+import { UrlLearningCard, obtenerPorLearningCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlLearningCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -55,11 +57,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [errorMsg, setErrorMsg] = useState('');
 
   // Estados locales para links, documentación y archivos adjuntos
-  const [documentationUrls, setDocumentationUrls] = useState<string[]>([]);
+  const [documentationUrls, setDocumentationUrls] = useState<UrlLearningCard[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isDocumentationModalOpen, setIsDocumentationModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDocumentation, setShowDocumentation] = useState(false);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [urlToDelete, setUrlToDelete] = useState<UrlLearningCard | null>(null);
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -74,23 +79,72 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
    * @function useEffect
    */
   useEffect(() => {
-    if (editingIdLC) {
-      setLoading(true);
-      obtenerLearningCardPorId(editingIdLC)
-        .then((data) => {
+    const cargarDatos = async () => {
+      if (editingIdLC) {
+        setLoading(true);
+        try {
+          // Cargar datos de la Learning Card
+          const data = await obtenerLearningCardPorId(editingIdLC);
           setFormData({ ...formData, ...data });
-        })
-        .catch(() => setErrorMsg('Error al cargar datos de la Learning Card'))
-        .finally(() => setLoading(false));
-    }
+          
+          // Cargar URLs asociadas
+          setLoadingUrls(true);
+          const urlsData = await obtenerPorLearningCard(editingIdLC);
+          setDocumentationUrls(urlsData);
+        } catch (error) {
+          setErrorMsg('Error al cargar datos de la Learning Card');
+        } finally {
+          setLoading(false);
+          setLoadingUrls(false);
+        }
+      }
+    };
+    
+    cargarDatos();
     // eslint-disable-next-line
   }, [editingIdLC]);
 
-  // Funciones para manejar links/documentos/archivos SOLO en el modal
-  const addDocumentationUrl = (url: string) => {
-    if (!documentationUrls.includes(url)) setDocumentationUrls([...documentationUrls, url]);
+  // Funciones para manejar URLs
+  const addDocumentationUrl = async (url: string) => {
+    try {
+      const nuevaUrl = await crearUrl({
+        id_learning_card: editingIdLC,
+        url: url
+      });
+      setDocumentationUrls([...documentationUrls, nuevaUrl]);
+      setSuccessMsg('URL agregada exitosamente');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      setErrorMsg('Error al agregar la URL');
+      setTimeout(() => setErrorMsg(''), 3000);
+    }
   };
-  const removeDocumentationUrl = (index: number) => setDocumentationUrls(documentationUrls.filter((_, i) => i !== index));
+
+  const handleDeleteUrl = (urlObj: UrlLearningCard) => {
+    setUrlToDelete(urlObj);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteUrl = async () => {
+    if (urlToDelete) {
+      try {
+        await eliminarUrl(urlToDelete.id_url_lc);
+        setDocumentationUrls(documentationUrls.filter(url => url.id_url_lc !== urlToDelete.id_url_lc));
+        setSuccessMsg('URL eliminada exitosamente');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } catch (error) {
+        setErrorMsg('Error al eliminar la URL');
+        setTimeout(() => setErrorMsg(''), 3000);
+      }
+    }
+    setShowDeleteConfirmation(false);
+    setUrlToDelete(null);
+  };
+
+  const removeDocumentationUrl = (index: number) => {
+    const urlObj = documentationUrls[index];
+    handleDeleteUrl(urlObj);
+  };
 
   const addDocumentationFiles = (files: File[]) => {
     const newAttachments = files.map(file => ({
@@ -290,15 +344,16 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
                   {documentationUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
-                      {documentationUrls.map((url, index) => (
-                        <div key={index} className="url-item">
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="url-link">
-                            {url}
+                      {documentationUrls.map((urlObj, index) => (
+                        <div key={urlObj.id_url_lc} className="url-item">
+                          <a href={urlObj.url} target="_blank" rel="noopener noreferrer" className="url-link">
+                            {urlObj.url}
                           </a>
                           <button
                             type="button"
                             className="testing-remove-btn"
                             onClick={() => removeDocumentationUrl(index)}
+                            title="Eliminar URL"
                           >
                             <Trash2 size={14} />
                           </button>
