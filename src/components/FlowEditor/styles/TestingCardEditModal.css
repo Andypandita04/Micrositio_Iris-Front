@@ -267,6 +267,25 @@
   align-items: center;
 }
 
+.testing-metrics-loading {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md);
+  font-style: italic;
+}
+
+.testing-metrics-empty {
+  text-align: center;
+  color: var(--theme-text-secondary);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-md);
+  font-style: italic;
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 2px dashed var(--theme-border);
+}
+
 /* @section: Botones de acción */
 .testing-add-btn {
   display: inline-flex;
@@ -304,6 +323,36 @@
 
 .testing-remove-btn:hover {
   background-color: color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+/* @section: Acciones de métricas */
+.testing-metric-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.testing-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--color-success);
+  cursor: pointer;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.testing-save-btn:hover {
+  background-color: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.testing-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* @section: Botones del footer */
@@ -353,6 +402,89 @@
 .testing-btn-icon {
   width: 1rem;
   height: 1rem;
+}
+
+/* @section: Modal de confirmación */
+.testing-confirmation-modal {
+  background-color: var(--theme-bg-primary);
+  border-radius: var(--border-radius-xl);
+  width: 400px;
+  max-width: 90%;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--theme-border);
+  z-index: 1001;
+}
+
+.testing-confirmation-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+}
+
+.testing-confirmation-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+}
+
+.testing-confirmation-content {
+  padding: var(--spacing-lg);
+}
+
+.testing-confirmation-content p {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--theme-text-primary);
+  line-height: 1.5;
+}
+
+.testing-warning-text {
+  color: var(--color-danger) !important;
+  font-size: var(--font-size-xs) !important;
+  font-style: italic;
+}
+
+.testing-confirmation-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--theme-border);
+  background-color: var(--theme-bg-secondary);
+  border-radius: 0 0 var(--border-radius-xl) var(--border-radius-xl);
+}
+
+.testing-btn-danger {
+  background-color: var(--color-danger);
+  color: white;
+  border: 1px solid var(--color-danger);
+}
+
+.testing-btn-danger:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-danger) 90%, black);
+  border-color: color-mix(in srgb, var(--color-danger) 90%, black);
+}
+
+.testing-btn-danger:disabled {
+  background-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
+  cursor: not-allowed;
+}
+
+/* @section: Preview de métrica en modal de confirmación */
+.testing-metric-preview {
+  background-color: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid var(--theme-border);
+}
+
+.testing-metric-preview p {
+  margin: var(--spacing-xs) 0 !important;
+  font-size: var(--font-size-xs) !important;
+  color: var(--theme-text-secondary) !important;
 }
 
 /* @section: Responsive design */

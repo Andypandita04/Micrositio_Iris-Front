@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Handle, Position } from 'reactflow';
 import { 
   Edit3, 
@@ -6,9 +6,11 @@ import {
   BookOpen, 
   ChevronDown,
   FileText,
-  Lightbulb
+  Lightbulb,
+  ExternalLink
 } from 'lucide-react';
 import { LearningCardData } from './types';
+import { UrlLearningCard, obtenerPorLearningCard } from '../../services/urlLearningCardService';
 import './styles/LearningCardNode.css';
 
 /**
@@ -54,6 +56,38 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   const statusInfo = statusMap[statusKey];
   // Estado para controlar si el contenido está expandido
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Estado para las URLs de la Learning Card
+  const [urls, setUrls] = useState<UrlLearningCard[]>([]);
+  const [loadingUrls, setLoadingUrls] = useState(false);
+
+  /**
+   * Carga las URLs cuando se expande el contenido y hay un ID válido
+   */
+  useEffect(() => {
+    if (isExpanded && data.id_learning_card) {
+      cargarUrls();
+    }
+    // eslint-disable-next-line
+  }, [isExpanded, data.id_learning_card]);
+
+  /**
+   * Carga las URLs desde la base de datos
+   */
+  const cargarUrls = async () => {
+    if (!data.id_learning_card) return;
+    
+    try {
+      setLoadingUrls(true);
+      const urlsData = await obtenerPorLearningCard(data.id_learning_card);
+      setUrls(urlsData || []);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar URLs:', error);
+      setUrls([]);
+    } finally {
+      setLoadingUrls(false);
+    }
+  };
 
   /**
    * Alterna el estado de expansión del contenido
@@ -68,6 +102,29 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   const truncateText = (text: string, maxLength: number = 100) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  };
+
+  /**
+   * Trunca URLs de forma inteligente para mejor legibilidad
+   */
+  const truncateUrl = (url: string, maxLength: number = 50) => {
+    if (url.length <= maxLength) return url;
+    
+    // Intentar mantener el dominio visible
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname + urlObj.search;
+      
+      if (domain.length < maxLength - 10) {
+        const remainingLength = maxLength - domain.length - 3; // 3 para "..."
+        return domain + (path.length > remainingLength ? `...${path.slice(-remainingLength)}` : path);
+      }
+    } catch (e) {
+      // Si no es una URL válida, truncar normalmente
+    }
+    
+    return url.substring(0, maxLength) + '...';
   };
 
   return (
@@ -176,31 +233,57 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
 
         {/* Contenido expandible con información adicional */}
         <div className={`expandable-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
-          {/* Sección de enlaces relacionados 
-          {data.links && data.links.length > 0 && (
+          {/* Sección de URLs de documentación */}
+          {isExpanded && (
             <div className="links-section">
               <div className="links-label">
                 <ExternalLink size={12} style={{ marginRight: '4px' }} />
-                Enlaces relacionados
+                URLs de referencia
               </div>
-              <div className="links-list">
-                {data.links.map((link, index) => (
-                  <div key={index} className="link-item">
-                    <ExternalLink size={12} />
-                    <a 
-                      href={link} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="link-text"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {link}
-                    </a>
-                  </div>
-                ))}
-              </div>
+              
+              {loadingUrls && (
+                <div className="loading-urls" style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  Cargando URLs...
+                </div>
+              )}
+
+              {!loadingUrls && urls.length === 0 && (
+                <div className="no-urls" style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No hay URLs registradas
+                </div>
+              )}
+
+              {!loadingUrls && urls.length > 0 && (
+                <div className="links-list">
+                  {urls.map((urlObj) => (
+                    <div key={urlObj.id_url_lc} className="link-item">
+                      <ExternalLink size={12} />
+                      <a 
+                        href={urlObj.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="link-text"
+                        onClick={(e) => e.stopPropagation()}
+                        title={urlObj.url}
+                      >
+                        {truncateUrl(urlObj.url)}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}  */}
+          )}
 
           {/* Sección de archivos adjuntos 
           {data.attachments && data.attachments.length > 0 && (
