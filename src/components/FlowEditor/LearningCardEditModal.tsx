@@ -342,7 +342,29 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                     URLs de Referencia
                   </h4>
 
-                  {documentationUrls && documentationUrls.length > 0 && (
+                  {loadingUrls && (
+                    <div className="loading-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      Cargando URLs...
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls.length === 0 && (
+                    <div className="no-urls" style={{ 
+                      fontSize: '12px', 
+                      color: 'var(--theme-text-secondary)',
+                      fontStyle: 'italic',
+                      padding: '8px 0'
+                    }}>
+                      No hay URLs registradas
+                    </div>
+                  )}
+
+                  {!loadingUrls && documentationUrls.length > 0 && (
                     <div className="urls-list">
                       {documentationUrls.map((urlObj, index) => (
                         <div key={urlObj.id_url_lc} className="url-item">
@@ -431,6 +453,20 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
             onClose={() => setIsDocumentationModalOpen(false)}
             onAddUrl={addDocumentationUrl}
             onAddFiles={addDocumentationFiles}
+          />
+        )}
+
+        {/* @component: Modal de confirmación para eliminar URL */}
+        {showDeleteConfirmation && (
+          <ConfirmationModal
+            isOpen={showDeleteConfirmation}
+            onClose={() => setShowDeleteConfirmation(false)}
+            onConfirm={confirmDeleteUrl}
+            title="Eliminar URL"
+            message={`¿Estás seguro que deseas eliminar esta URL?\n\n${urlToDelete?.url}`}
+            confirmText="Eliminar"
+            cancelText="Cancelar"
+            type="danger"
           />
         )}
       </div>
