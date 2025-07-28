@@ -83,20 +83,25 @@ interface TestingCardEditModalProps {
  */
 const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSave, onClose, editingId }) => {
   // @state: Datos del formulario
-  const [formData, setFormData] = useState<TestingCardData & { metricas?: MetricaWithFrontendProps[] }>({
-    ...node.data,
-    titulo: node.data.titulo || '',
-    hipotesis: node.data.hipotesis || '',
-    descripcion: node.data.descripcion || '',
-    dia_inicio: node.data.dia_inicio || '',
-    dia_fin: node.data.dia_fin || '',
-    id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
-    id_experimento_tipo: node.data.id_experimento_tipo || 0,
-    status: node.data.status || 'En validación',
-    metricas: node.data.metricas || [],
-    documentationUrls: node.data.documentationUrls || [],
-    attachments: node.data.attachments || [],
-    collaborators: node.data.collaborators || [],
+  const [formData, setFormData] = useState<TestingCardData & { metricas?: MetricaWithFrontendProps[] }>(() => {
+    console.log('[TestingCardEditModal] Inicializando formData con node.data:', node.data);
+    console.log('[TestingCardEditModal] id_experimento_tipo inicial:', node.data.id_experimento_tipo);
+    
+    return {
+      ...node.data,
+      titulo: node.data.titulo || '',
+      hipotesis: node.data.hipotesis || '',
+      descripcion: node.data.descripcion || '',
+      dia_inicio: node.data.dia_inicio || '',
+      dia_fin: node.data.dia_fin || '',
+      id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
+      id_experimento_tipo: typeof node.data.id_experimento_tipo === 'number' ? node.data.id_experimento_tipo : 0,
+      status: node.data.status || 'En validación',
+      metricas: node.data.metricas || [],
+      documentationUrls: node.data.documentationUrls || [],
+      attachments: node.data.attachments || [],
+      collaborators: node.data.collaborators || [],
+    };
   });
   // @state: Loading y feedback
   const [loading, setLoading] = useState(false);
@@ -176,13 +181,39 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       setLoading(true);
       obtenerTestingCardPorId(node.data.id)
         .then((data) => {
-          setFormData({ ...formData, ...data });
+          console.log('[useEffect BD] Datos cargados desde BD:', data);
+          console.log('[useEffect BD] id_experimento_tipo desde BD:', data.id_experimento_tipo);
+          setFormData(prev => ({ 
+            ...prev, 
+            ...data,
+            // Asegurar que el id_experimento_tipo se tome correctamente desde la BD
+            id_experimento_tipo: data.id_experimento_tipo || prev.id_experimento_tipo || 0
+          }));
         })
         .catch(() => setErrorMsg('Error al cargar datos de la BD'))
         .finally(() => setLoading(false));
     }
     // eslint-disable-next-line
   }, [node.data.id]);
+
+  /**
+   * Efecto para verificar la preselección del tipo de experimento
+   * @function useEffect
+   */
+  useEffect(() => {
+    if (testingCardPlaybooks.length > 0 && formData.id_experimento_tipo) {
+      console.log('[useEffect preselección] TestingCardPlaybooks cargados:', testingCardPlaybooks.length);
+      console.log('[useEffect preselección] id_experimento_tipo actual:', formData.id_experimento_tipo);
+      
+      const playbookEncontrado = testingCardPlaybooks.find(p => p.pagina === formData.id_experimento_tipo);
+      if (playbookEncontrado) {
+        console.log('[useEffect preselección] ✅ Playbook encontrado:', playbookEncontrado.titulo);
+      } else {
+        console.log('[useEffect preselección] ⚠️ Playbook no encontrado para id:', formData.id_experimento_tipo);
+        console.log('[useEffect preselección] IDs disponibles:', testingCardPlaybooks.map(p => p.pagina));
+      }
+    }
+  }, [testingCardPlaybooks, formData.id_experimento_tipo]);
 
   /**
    * Efecto para cargar métricas cuando se abre la sección de métricas

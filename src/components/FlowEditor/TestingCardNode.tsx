@@ -175,6 +175,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         <h3 className="card-title">{data.titulo}</h3>
         <p className="card-description">{data.descripcion}</p>
 
+        
+
         <button
           onClick={toggleExpanded}
           className="expand-button"
