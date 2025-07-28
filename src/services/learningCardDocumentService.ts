@@ -304,7 +304,10 @@ export const getFileExtension = (fileName: string): string => {
  * @param {string} mimeType - Tipo MIME del archivo.
  * @returns {boolean} True si es una imagen.
  */
-export const isImage = (mimeType: string): boolean => {
+export const isImage = (mimeType: string | undefined | null): boolean => {
+  if (!mimeType || typeof mimeType !== 'string') {
+    return false;
+  }
   return mimeType.startsWith('image/');
 };
 
@@ -313,7 +316,10 @@ export const isImage = (mimeType: string): boolean => {
  * @param {string} mimeType - Tipo MIME del archivo.
  * @returns {boolean} True si es un video.
  */
-export const isVideo = (mimeType: string): boolean => {
+export const isVideo = (mimeType: string | undefined | null): boolean => {
+  if (!mimeType || typeof mimeType !== 'string') {
+    return false;
+  }
   return mimeType.startsWith('video/');
 };
 
@@ -322,7 +328,10 @@ export const isVideo = (mimeType: string): boolean => {
  * @param {string} mimeType - Tipo MIME del archivo.
  * @returns {boolean} True si es un audio.
  */
-export const isAudio = (mimeType: string): boolean => {
+export const isAudio = (mimeType: string | undefined | null): boolean => {
+  if (!mimeType || typeof mimeType !== 'string') {
+    return false;
+  }
   return mimeType.startsWith('audio/');
 };
 

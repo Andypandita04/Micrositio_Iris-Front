@@ -229,7 +229,13 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   /**
    * Obtiene el icono de Lucide para un tipo de documento
    */
-  const getDocumentIconComponent = (mimeType: string) => {
+  const getDocumentIconComponent = (mimeType: string | undefined | null) => {
+    // Validación defensiva: si mimeType es undefined, null o vacío, usar icono por defecto
+    if (!mimeType || typeof mimeType !== 'string') {
+      console.warn('[LearningCardEditModal] mimeType inválido o undefined:', mimeType);
+      return File;
+    }
+
     if (mimeType.startsWith('image/')) return Image;
     if (mimeType === 'application/pdf') return FileText;
     if (mimeType.includes('word')) return File;
@@ -259,7 +265,10 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const handleViewDocument = (documento: LearningCardDocument) => {
     console.log('[LearningCardEditModal] Abriendo documento:', documento.document_name);
     
-    if (isImage(documento.document_type) || documento.document_type === 'application/pdf') {
+    // Validación defensiva del document_type
+    const documentType = documento.document_type || '';
+    
+    if (isImage(documentType) || documentType === 'application/pdf') {
       // Abrir en nueva pestaña para PDFs e imágenes
       window.open(documento.document_url, '_blank');
     } else {
@@ -347,6 +356,12 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     return (
       <div className="documentos-list">
         {documentos.map((documento) => {
+          // Validación defensiva: asegurar que el documento tenga todas las propiedades necesarias
+          if (!documento || !documento.id || !documento.document_name) {
+            console.warn('[LearningCardEditModal] Documento inválido encontrado:', documento);
+            return null; // No renderizar documentos inválidos
+          }
+
           const IconComponent = getDocumentIconComponent(documento.document_type);
           
           return (
