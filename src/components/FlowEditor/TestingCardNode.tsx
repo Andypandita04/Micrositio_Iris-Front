@@ -14,6 +14,8 @@ import {
 import { TestingCardData } from './types';
 import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard } from '../../services/urlTestingCardService';
+import TestingCardPlaybookService from '../../services/TestingCardPlaybookService';
+import { TestingCardPlaybook } from '../../types/testingCardPlaybook';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -36,6 +38,10 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
   const [urls, setUrls] = useState<UrlTestingCard[]>([]);
   const [loadingUrls, setLoadingUrls] = useState(false);
 
+  // Estado para el TestingCardPlaybook asociado
+  const [playbook, setPlaybook] = useState<TestingCardPlaybook | null>(null);
+  const [loadingPlaybook, setLoadingPlaybook] = useState(false);
+
   const toggleExpanded = () => setIsExpanded(prev => !prev);
 
   // Cargar métricas y URLs cuando se expande el componente
@@ -56,6 +62,29 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
       });
     }
   }, [isExpanded, data.id_testing_card]);
+
+  // Cargar el playbook cuando cambie el id_experimento_tipo
+  useEffect(() => {
+    if (data.id_experimento_tipo && data.id_experimento_tipo > 0) {
+      cargarPlaybook();
+    }
+  }, [data.id_experimento_tipo]);
+
+  const cargarPlaybook = async () => {
+    if (!data.id_experimento_tipo || data.id_experimento_tipo <= 0) return;
+    
+    try {
+      setLoadingPlaybook(true);
+      const playbookService = new TestingCardPlaybookService();
+      const playbookData = await playbookService.obtenerPorPagina(data.id_experimento_tipo);
+      setPlaybook(playbookData);
+    } catch (error) {
+      console.error('Error al cargar playbook:', error);
+      setPlaybook(null);
+    } finally {
+      setLoadingPlaybook(false);
+    }
+  };
 
   const cargarMetricas = async () => {
     try {
@@ -118,6 +147,66 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
     return url.substring(0, maxLength) + '...';
   };
 
+  /**
+   * Renderiza la información del TestingCardPlaybook asociado
+   */
+  const renderPlaybookInfo = () => {
+    if (loadingPlaybook) {
+      return (
+        <div className="playbook-info loading" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          marginBottom: '8px'
+        }}>
+          Cargando información del experimento...
+        </div>
+      );
+    }
+
+    if (!playbook) {
+      return null; // No mostrar nada si no hay playbook
+    }
+
+    return (
+      <div className="playbook-info" style={{
+        marginBottom: '12px',
+        padding: '8px 12px',
+        backgroundColor: 'rgba(108, 99, 255, 0.05)',
+        borderLeft: '3px solid #6C63FF',
+        borderRadius: '4px'
+      }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#6C63FF',
+          marginBottom: '4px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          Tipo de Experimento
+        </div>
+        <div style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: 'var(--theme-text-primary)',
+          marginBottom: '2px'
+        }}>
+          {playbook.titulo}
+        </div>
+        <div style={{
+          fontSize: '11px',
+          color: 'var(--theme-text-secondary)',
+          display: 'flex',
+          gap: '12px'
+        }}>
+          <span><strong>Campo:</strong> {playbook.campo}</span>
+          <span><strong>Tipo:</strong> {playbook.tipo}</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderMetricas = () => {
     if (loadingMetricas) {
       return (
@@ -175,7 +264,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
         <h3 className="card-title">{data.titulo}</h3>
         <p className="card-description">{data.descripcion}</p>
 
-        
+        {/* Información del TestingCardPlaybook */}
+        {renderPlaybookInfo()}
 
         <button
           onClick={toggleExpanded}
