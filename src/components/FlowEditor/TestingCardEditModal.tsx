@@ -43,6 +43,8 @@ import { obtenerTestingCardPorId, actualizarTestingCard } from '../../services/t
 import { obtenerPorTestingCard, eliminar, crear } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlTestingCardService';
 import { TestingCardDocument, getDocumentsByTestingCard, deleteDocument, isImage, uploadDocument } from '../../services/testingCardDocumentService';
+import TestingCardPlaybookService from '../../services/TestingCardPlaybookService';
+import { TestingCardPlaybook } from '../../types/testingCardPlaybook';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -89,7 +91,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
     dia_inicio: node.data.dia_inicio || '',
     dia_fin: node.data.dia_fin || '',
     id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
-    id_experimento_tipo: node.data.id_experimento_tipo || 1,
+    id_experimento_tipo: node.data.id_experimento_tipo || 0,
     status: node.data.status || 'En validación',
     metricas: node.data.metricas || [],
     documentationUrls: node.data.documentationUrls || [],
@@ -139,6 +141,11 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   const [documentoAEliminar, setDocumentoAEliminar] = useState<TestingCardDocument | null>(null);
   const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
 
+  // @state: Estados para TestingCardPlaybook
+  const [testingCardPlaybooks, setTestingCardPlaybooks] = useState<TestingCardPlaybook[]>([]);
+  const [loadingPlaybooks, setLoadingPlaybooks] = useState(false);
+  const [playbooksError, setPlaybooksError] = useState<string | null>(null);
+
   /**
    * Efecto para manejar el cierre del modal con tecla ESC
    * @function useEffect
@@ -157,6 +164,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
    */
   useEffect(() => {
     cargarEmpleados();
+    cargarTestingCardPlaybooks();
   }, []);
 
   /**
@@ -249,6 +257,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         // creado, actualizado, id eliminados por tipado
       } = formData;
       const payload = {
+        id: editingId, // Agregamos el ID requerido por TestingCardData
         id_testing_card: id_testing_card,
         titulo: titulo.trim(),
         hipotesis: hipotesis.trim(),
@@ -256,7 +265,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         dia_inicio: dia_inicio || '',
         dia_fin: dia_fin || '',
         id_responsable: Number(id_responsable) || -1,
-        id_experimento_tipo: Number(id_experimento_tipo) || 1,
+        id_experimento_tipo: Number(id_experimento_tipo) || 0,
         status: status || 'En validación',
         //metricas: Array.isArray(metricas) ? metricas : [],
         //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
@@ -919,6 +928,25 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
   };
 
   /**
+   * Carga la lista de TestingCardPlaybooks
+   * @function cargarTestingCardPlaybooks
+   */
+  const cargarTestingCardPlaybooks = async () => {
+    setLoadingPlaybooks(true);
+    setPlaybooksError(null);
+    try {
+      const playbookService = new TestingCardPlaybookService();
+      const data = await playbookService.listarTodos();
+      setTestingCardPlaybooks(data);
+    } catch (error: any) {
+      console.error('Error al cargar TestingCardPlaybooks:', error);
+      setPlaybooksError('Error al cargar tipos de experimento');
+    } finally {
+      setLoadingPlaybooks(false);
+    }
+  };
+
+  /**
    * Obtiene el nombre completo de un empleado
    * @function getNombreCompleto
    * @param {Empleado} empleado - Objeto empleado
@@ -1041,18 +1069,51 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             <div className="testing-form-group">
               <label htmlFor="id_experimento_tipo" className="testing-form-label">
                 Tipo de Experimento
+                {loadingPlaybooks && (
+                  <span style={{ marginLeft: 8, fontSize: '12px', color: '#6C63FF' }}>
+                    (Cargando...)
+                  </span>
+                )}
+                {playbooksError && (
+                  <span style={{ marginLeft: 8, fontSize: '12px', color: '#ff4444' }}>
+                    ({playbooksError})
+                  </span>
+                )}
               </label>
               <select
                 id="id_experimento_tipo"
                 value={formData.id_experimento_tipo}
                 onChange={(e) => setFormData({...formData, id_experimento_tipo: Number(e.target.value)})}
                 className="testing-input"
+                disabled={loadingPlaybooks}
               >
-                <option value={1}>Entrevista</option>
-                <option value={2}>Prototipo</option>
-                <option value={3}>Encuesta</option>
-                <option value={4}>A/B Test</option>
+                <option value={0}>Selecciona un tipo de experimento</option>
+                {testingCardPlaybooks.map((playbook) => (
+                  <option key={playbook.pagina} value={playbook.pagina}>
+                    {playbook.titulo} - {playbook.campo} ({playbook.tipo})
+                  </option>
+                ))}
               </select>
+              {/* Mostrar información adicional del playbook seleccionado */}
+              {formData.id_experimento_tipo > 0 && (() => {
+                const selectedPlaybook = testingCardPlaybooks.find(p => p.pagina === formData.id_experimento_tipo);
+                return selectedPlaybook ? (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: '#f8f9ff',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#666'
+                  }}>
+                    <div><strong>Campo:</strong> {selectedPlaybook.campo}</div>
+                    <div><strong>Tipo:</strong> {selectedPlaybook.tipo}</div>
+                    {selectedPlaybook.descripcion && (
+                      <div><strong>Descripción:</strong> {selectedPlaybook.descripcion}</div>
+                    )}
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
 
