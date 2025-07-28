@@ -304,6 +304,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     if (documentoAEliminar) {
       try {
         console.log('[LearningCardEditModal] Eliminando documento:', documentoAEliminar.id);
+        console.log('[LearningCardEditModal] Datos del documento:', documentoAEliminar);
+        
         await deleteDocument(documentoAEliminar.id);
         
         // Actualizar la lista eliminando el documento
@@ -312,10 +314,21 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         setSuccessMsg('Documento eliminado exitosamente');
         setTimeout(() => setSuccessMsg(''), 3000);
         console.log('[LearningCardEditModal] ✅ Documento eliminado exitosamente');
-      } catch (error) {
+      } catch (error: any) {
         console.error('[LearningCardEditModal] Error al eliminar documento:', error);
-        setErrorMsg('Error al eliminar documento');
-        setTimeout(() => setErrorMsg(''), 3000);
+        
+        // Mostrar mensaje de error más específico
+        let errorMessage = 'Error al eliminar documento';
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        }
+        
+        setErrorMsg(errorMessage);
+        setTimeout(() => setErrorMsg(''), 5000);
       }
     }
     setShowDeleteDocumentConfirmation(false);

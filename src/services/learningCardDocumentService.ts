@@ -240,13 +240,43 @@ export const getDocumentById = async (documentId: string): Promise<LearningCardD
  * @returns {Promise<void>}
  */
 export const deleteDocument = async (documentId: string): Promise<void> => {
-  const endpoint = `/api/learning-card/documents/${documentId}`;
-  console.log('[learningCardDocumentService] Eliminando documento:', endpoint);
-  
-  const response = await apiClient.delete<DocumentDeleteResponse>(endpoint);
+  try {
+    // Validar que el documentId sea válido
+    if (!documentId || typeof documentId !== 'string' || documentId.trim() === '') {
+      throw new Error('ID de documento inválido o vacío');
+    }
 
-  if (!response.data.success) {
-    throw new Error(response.data.message || 'Error al eliminar documento');
+    const endpoint = `/api/learning-card/documents/${documentId}`;
+    console.log('[learningCardDocumentService] Eliminando documento:', endpoint);
+    console.log('[learningCardDocumentService] Document ID:', documentId);
+    
+    const response = await apiClient.delete<DocumentDeleteResponse>(endpoint);
+    console.log('[learningCardDocumentService] Respuesta del servidor:', response.data);
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Error al eliminar documento');
+    }
+    
+    console.log('[learningCardDocumentService] ✅ Documento eliminado exitosamente');
+  } catch (error: any) {
+    console.error('[learningCardDocumentService] ❌ Error al eliminar documento:', error);
+    
+    // Log detallado del error
+    if (error.response) {
+      console.error('[learningCardDocumentService] Status:', error.response.status);
+      console.error('[learningCardDocumentService] Data:', error.response.data);
+      console.error('[learningCardDocumentService] Headers:', error.response.headers);
+      
+      // Lanzar error con mensaje del backend si está disponible
+      const backendMessage = error.response.data?.message || error.response.data?.detail || 'Error interno del servidor';
+      throw new Error(`Error ${error.response.status}: ${backendMessage}`);
+    } else if (error.request) {
+      console.error('[learningCardDocumentService] No response:', error.request);
+      throw new Error('No se pudo conectar con el servidor');
+    } else {
+      console.error('[learningCardDocumentService] Error config:', error.message);
+      throw error;
+    }
   }
 };
 
