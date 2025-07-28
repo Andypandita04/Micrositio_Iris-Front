@@ -768,3 +768,85 @@
 .link-text:hover {
   text-decoration: underline;
 }
+
+/* =================================================================
+   DOCUMENTOS SECTION - Sección de documentos asociados
+   ================================================================= */
+
+.documentos-section {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: var(--theme-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--theme-border-primary);
+}
+
+.documentos-label {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.documentos-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.documento-item {
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  background: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-secondary);
+  transition: all var(--transition-fast);
+}
+
+.documento-item:hover {
+  background: var(--theme-bg-hover);
+  border-color: var(--color-primary-purple);
+  transform: translateX(2px);
+}
+
+.documento-name {
+  transition: color var(--transition-fast);
+}
+
+.documento-name:hover {
+  color: var(--color-primary-purple) !important;
+}
+
+.documentos-loading,
+.documentos-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  color: var(--theme-text-secondary);
+  font-style: italic;
+}
+
+/* Iconos de documentos */
+.documento-item i {
+  transition: color var(--transition-fast);
+}
+
+.documento-item:hover i {
+  color: var(--color-primary-purple);
+}
+
+/* Botones de acción de documentos */
+.documento-item button {
+  transition: all var(--transition-fast);
+  border-radius: var(--border-radius-sm);
+}
+
+.documento-item button:hover {
+  background: var(--theme-bg-hover);
+  color: var(--color-primary-purple);
+  transform: scale(1.1);
+}
