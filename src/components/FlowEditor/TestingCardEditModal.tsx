@@ -1119,11 +1119,13 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 disabled={loadingPlaybooks}
               >
                 <option value={0}>Selecciona un tipo de experimento</option>
-                {testingCardPlaybooks.map((playbook) => (
-                  <option key={playbook.pagina} value={playbook.pagina}>
-                    {playbook.titulo} - {playbook.campo} ({playbook.tipo})
-                  </option>
-                ))}
+                {testingCardPlaybooks
+                  .sort((a, b) => a.titulo.localeCompare(b.titulo))
+                  .map((playbook) => (
+                    <option key={playbook.pagina} value={playbook.pagina}>
+                      {playbook.titulo} - {playbook.campo} ({playbook.tipo})
+                    </option>
+                  ))}
               </select>
               {/* Mostrar información adicional del playbook seleccionado */}
               {formData.id_experimento_tipo > 0 && (() => {
@@ -1413,8 +1415,6 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               </label>
               <input
                 type="date"
-                id="dia_fin"
-                value={formData.dia_fin}
                 onChange={(e) => setFormData({...formData, dia_fin: e.target.value})}
                 className="testing-input"
                 min={formData.dia_inicio}
