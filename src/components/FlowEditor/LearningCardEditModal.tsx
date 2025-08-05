@@ -645,14 +645,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           <div className="testing-form-group">
             <label htmlFor="result" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Resultados Obtenidos
+              Resultados Obtenidos (observamos...)
             </label>
             <textarea
               id="result"
               value={formData.resultado ?? ''}
               onChange={(e) => setFormData({...formData, resultado: e.target.value})}
               className={`testing-input textarea ${errors.resultado ? 'input-error' : ''}`}
-              placeholder="Describe los resultados del experimento"
+              placeholder="Resultados Obtenidos (observamos...)"
               rows={3}
             />
             {errors.resultado && <span className="testing-error-text">{errors.resultado}</span>}
@@ -662,14 +662,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           <div className="testing-form-group">
             <label htmlFor="insight" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Hallazgo Accionable
+              Hallazgo Accionable (por ende, haremos...)
             </label>
             <textarea
               id="insight"
               value={formData.hallazgo ?? ''}
               onChange={(e) => setFormData({ ...formData, hallazgo: e.target.value })}
               className={`testing-input textarea ${errors.hallazgo ? 'input-error' : ''}`}
-              placeholder="¿Qué aprendizajes podemos aplicar?"
+              placeholder="Hallazgo Accionable (por ende, haremos...)"
               rows={3}
             />
             {errors.hallazgo && <span className="testing-error-text">{errors.hallazgo}</span>}
