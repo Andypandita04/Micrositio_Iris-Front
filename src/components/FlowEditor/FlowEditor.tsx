@@ -328,8 +328,8 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
         padre_id: parseInt(padreId, 10),
         id_secuencia: Number(idSecuencia), // Mismo id_secuencia que el padre
         titulo: `Nueva Testing Card ${Date.now()}`,
-        hipotesis: 'Hipótesis por definir',
-        descripcion: 'Descripción por definir',
+        hipotesis: 'Hipótesis (creemos que . . .) ',
+        descripcion: 'Descripción (para eso haremos . . .)',
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
         id_responsable: 1, // Valor por defecto

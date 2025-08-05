@@ -1082,14 +1082,14 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           <div className="testing-form-group">
             <label htmlFor="hipotesis" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Hipótesis
+              Hipótesis (creemos que... )
             </label>
             <textarea
               id="hipotesis"
               value={formData.hipotesis}
               onChange={(e) => setFormData({...formData, hipotesis: e.target.value})}
               className={`testing-input textarea ${errors.hipotesis ? 'input-error' : ''}`}
-              placeholder="Creemos que..."
+              placeholder="Hipótesis (creemos que... )"
               rows={2}
             />
             {errors.hipotesis && <span className="testing-error-text">{errors.hipotesis}</span>}
@@ -1151,19 +1151,110 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           <div className="testing-form-group">
             <label htmlFor="descripcion" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Descripción
+              Descripción (para eso haremos... )
             </label>
             <textarea
               id="descripcion"
               value={formData.descripcion}
               onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
               className={`testing-input textarea ${errors.descripcion ? 'input-error' : ''}`}
-              placeholder="Describe cómo realizarás el experimento"
+              placeholder="Descripción (para eso haremos... )"
               rows={3}
             />
             {errors.descripcion && <span className="testing-error-text">{errors.descripcion}</span>}
           </div>
 
+          {/* @section: Métricas expandibles */}
+          <div className="testing-form-section">
+            <button 
+              type="button" 
+              className="testing-form-section-toggle"
+              onClick={() => setShowMetrics(!showMetrics)}
+            >
+              <ChevronDown className={`toggle-icon ${showMetrics ? 'open' : ''}`} />
+              <span>Métricas (y mediremos... )</span>
+            </button>
+            
+            {showMetrics && (
+              <div className="testing-form-section-content">
+                {loadingMetricas && (
+                  <div className="testing-metrics-loading">
+                    <span>Cargando métricas...</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
+                  <div className="testing-metrics-empty">
+                    <span>No hay métricas definidas para esta Testing Card</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
+                  const metricWithFrontend = metric as MetricaWithFrontendProps;
+                  return (
+                  <div key={metric.id_metrica || index} className="testing-metric-row">
+                    <input
+                      type="text"
+                      value={metric.nombre}
+                      onChange={(e) => handleMetricChange(index, 'nombre', e.target.value)}
+                      className="testing-input small"
+                      placeholder="Nombre métrica"
+                    />
+                    <select
+                      value={metric.operador}
+                      onChange={(e) => handleMetricChange(index, 'operador', e.target.value)}
+                      className="testing-input small"
+                    >
+                      <option value="">Seleccionar operador</option>
+                      <option value=">">&gt;</option>
+                      <option value="<">&lt;</option>
+                      <option value="=">=</option>
+                      <option value=">=">&gt;=</option>
+                      <option value="<=">&lt;=</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={metric.criterio}
+                      onChange={(e) => handleMetricChange(index, 'criterio', e.target.value)}
+                      className="testing-input small"
+                      placeholder="Criterio"
+                    />
+                    <div className="testing-metric-actions">
+                      {metricWithFrontend.needsCreation ? (
+                        <button 
+                          type="button" 
+                          className="testing-save-btn"
+                          onClick={() => iniciarCreacionMetrica(index)}
+                          title="Guardar métrica en la base de datos"
+                        >
+                          <Save size={14} />
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          className="testing-remove-btn"
+                          onClick={() => removeMetric(index)}
+                          title="Eliminar métrica"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  );
+                })}
+                <button 
+                  type="button" 
+                  className="testing-add-btn"
+                  onClick={addMetric}
+                >
+                  <Plus size={14} />
+                  Añadir Métrica
+                </button>
+              </div>
+            )}
+          </div>
+          
           {/* @section: Documentación expandible */}
           <div className="testing-form-section">
             <button 
@@ -1296,91 +1387,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             )}
           </div>
 
-          {/* @section: Métricas expandibles */}
-          <div className="testing-form-section">
-            <button 
-              type="button" 
-              className="testing-form-section-toggle"
-              onClick={() => setShowMetrics(!showMetrics)}
-            >
-              <ChevronDown className={`toggle-icon ${showMetrics ? 'open' : ''}`} />
-              <span>Métricas a Medir</span>
-            </button>
-            
-            {showMetrics && (
-              <div className="testing-form-section-content">
-                {loadingMetricas && (
-                  <div className="testing-metrics-loading">
-                    <span>Cargando métricas...</span>
-                  </div>
-                )}
-                
-                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
-                  <div className="testing-metrics-empty">
-                    <span>No hay métricas definidas para esta Testing Card</span>
-                  </div>
-                )}
-                
-                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
-                  const metricWithFrontend = metric as MetricaWithFrontendProps;
-                  return (
-                  <div key={metric.id_metrica || index} className="testing-metric-row">
-                    <input
-                      type="text"
-                      value={metric.nombre}
-                      onChange={(e) => handleMetricChange(index, 'nombre', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Nombre métrica"
-                    />
-                    <input
-                      type="text"
-                      value={metric.operador}
-                      onChange={(e) => handleMetricChange(index, 'operador', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Operador"
-                    />
-                    <input
-                      type="text"
-                      value={metric.criterio}
-                      onChange={(e) => handleMetricChange(index, 'criterio', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Criterio"
-                    />
-                    <div className="testing-metric-actions">
-                      {metricWithFrontend.needsCreation ? (
-                        <button 
-                          type="button" 
-                          className="testing-save-btn"
-                          onClick={() => iniciarCreacionMetrica(index)}
-                          title="Guardar métrica en la base de datos"
-                        >
-                          <Save size={14} />
-                        </button>
-                      ) : (
-                        <button 
-                          type="button" 
-                          className="testing-remove-btn"
-                          onClick={() => removeMetric(index)}
-                          title="Eliminar métrica"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  );
-                })}
-                <button 
-                  type="button" 
-                  className="testing-add-btn"
-                  onClick={addMetric}
-                >
-                  <Plus size={14} />
-                  Añadir Métrica
-                </button>
-              </div>
-            )}
-          </div>
+          
 
           {/* @section: Fechas y responsable */}
           <div className="testing-form-row">

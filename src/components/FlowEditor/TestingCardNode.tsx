@@ -231,8 +231,8 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             <div className="metrica-header">
               <BarChart3 size={14} />
               <span className="metrica-nombre">{metrica.nombre}</span>
-            </div>
-            <div className="metrica-criterio">
+            {/*</div>
+            <div className="metrica-criterio">*/}
               <span className="metrica-operador">{metrica.operador}</span>
               <span className="metrica-valor">{metrica.criterio}</span>
             </div>
