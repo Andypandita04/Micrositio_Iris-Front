@@ -126,9 +126,10 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         .map(rel => rel.id_empleado);
       
       setEquipoIds(equipoActivo);
-      setEquipoIdsOriginales(equipoActivo); // Guardar para comparar cambios
+      setEquipoIdsOriginales([...equipoActivo]); // Hacer una copia para evitar problemas de referencia
       
       console.log('📋 Equipo actual cargado:', equipoActivo);
+      console.log('📋 Equipo IDs originales:', equipoActivo);
     } catch (error) {
       console.error('Error al cargar equipo actual:', error);
       setErrors(prev => ({ ...prev, equipo: 'Error al cargar el equipo actual' }));
@@ -219,7 +220,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         id_lider: formData.id_lider,
         fecha_inicio: formData.fecha_inicio || null,
         fecha_fin_estimada: formData.fecha_fin_estimada || null,
-        estado: formData.estado
+        estado: formData.estado.toUpperCase() // Asegurar que esté en mayúsculas
       };
 
       console.log('🚀 Enviando al backend:', data);
@@ -400,7 +401,10 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           <select
             id="estado"
             value={formData.estado}
-            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' }))}
+            onChange={e => setFormData(prev => ({ 
+              ...prev, 
+              estado: e.target.value.toUpperCase() as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' 
+            }))}
             className={`${styles.input} ${styles.select}`}
             disabled={loading}
             required
