@@ -7,6 +7,13 @@ import styles from './EditarProyectoModal.module.css';
 import { actualizarProyecto } from '../../../services/proyectosService';
 import { obtenerEmpleados } from '../../../services/empleadosService';
 import EmpleadoSelector from '../../Proyectos/components/EmpleadoSelector';
+import EquipoSelector from '../../Proyectos/components/EquipoSelector'; // Nuevo import
+import { 
+  obtenerPorProyecto, 
+  crear as crearCelulaProyecto, 
+  actualizarActivo 
+} from '../../../services/celulaProyectoService'; // Nuevo import
+
 //import { form } from 'framer-motion/m';
 
 //import { form } from 'framer-motion/m';
@@ -51,36 +58,35 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
   const [formData, setFormData] = useState({
     nombre: proyecto.nombre,
     descripcion: proyecto.descripcion,
-    id_lider: proyecto.id_lider, // Se inicializará cuando se carguen los empleados
-    fecha_inicio: proyecto.fecha_inicio || '', // <-- nuevo
-    fecha_fin_estimada: proyecto.fecha_fin_estimada || '', // <-- nuevo,
-
-    estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO' // <-- actualizado
-
+    id_lider: proyecto.id_lider,
+    fecha_inicio: proyecto.fecha_inicio || '',
+    fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
+    estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO'
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [equipoIds, setEquipoIds] = useState<number[]>([]); // Nuevo estado
+  const [equipoIdsOriginales, setEquipoIdsOriginales] = useState<number[]>([]); // Para comparar cambios
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
 
-  // Cargar empleados cuando se abre el modal
+  // Cargar empleados y equipo actual cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      // Primero establecer los datos del formulario
       const liderId = proyecto.id_lider || 0;
       
       setFormData({
         nombre: proyecto.nombre,
         descripcion: proyecto.descripcion,
-        id_lider: liderId, // Usar el id_lider del proyecto
+        id_lider: liderId,
         fecha_inicio: proyecto.fecha_inicio || '',
         fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
         estado: proyecto.estado || 'ACTIVO' 
       });
       setErrors({});
       
-      // Luego cargar empleados
       cargarEmpleados();
+      cargarEquipoActual(); // Nueva función
     }
   }, [isOpen, proyecto]);
 
@@ -90,7 +96,6 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       setErrors(prev => ({ ...prev, empleados: '' }));
       const empleadosData = await obtenerEmpleados();
 
-      // Mapear empleados al formato esperado
       const empleadosMapeados: Empleado[] = empleadosData.map((empleado: any) => ({
         id_empleado: empleado.id_empleado,
         nombre_pila: empleado.nombre_pila,
@@ -100,13 +105,33 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         activo: empleado.activo
       }));
 
-
       setEmpleados(empleadosMapeados);
     } catch (error) {
       console.error('Error al cargar empleados:', error);
       setErrors(prev => ({ ...prev, empleados: 'Error al cargar empleados' }));
     } finally {
       setLoadingEmpleados(false);
+    }
+  };
+
+  // Nueva función para cargar el equipo actual del proyecto
+  const cargarEquipoActual = async () => {
+    try {
+      setErrors(prev => ({ ...prev, equipo: '' }));
+      const relaciones = await obtenerPorProyecto(Number(proyecto.id));
+      
+      // Filtrar solo las relaciones activas y excluir al líder
+      const equipoActivo = relaciones
+        .filter(rel => rel.activo && rel.id_empleado !== proyecto.id_lider)
+        .map(rel => rel.id_empleado);
+      
+      setEquipoIds(equipoActivo);
+      setEquipoIdsOriginales(equipoActivo); // Guardar para comparar cambios
+      
+      console.log('📋 Equipo actual cargado:', equipoActivo);
+    } catch (error) {
+      console.error('Error al cargar equipo actual:', error);
+      setErrors(prev => ({ ...prev, equipo: 'Error al cargar el equipo actual' }));
     }
   };
 
@@ -129,18 +154,65 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Nueva función para actualizar el equipo del proyecto
+  const actualizarEquipoProyecto = async () => {
+    try {
+      const equipoIdsActuales = equipoIds.filter(id => id !== formData.id_lider);
+      
+      // Empleados que se agregaron (están en equipoIdsActuales pero no en equipoIdsOriginales)
+      const empleadosAgregar = equipoIdsActuales.filter(id => !equipoIdsOriginales.includes(id));
+      
+      // Empleados que se quitaron (están en equipoIdsOriginales pero no en equipoIdsActuales)
+      const empleadosQuitar = equipoIdsOriginales.filter(id => !equipoIdsActuales.includes(id));
+
+      console.log('👥 Actualizando equipo:');
+      console.log('  ➕ Agregar:', empleadosAgregar);
+      console.log('  ➖ Quitar:', empleadosQuitar);
+
+      // Crear relaciones para nuevos empleados
+      if (empleadosAgregar.length > 0) {
+        await crearCelulaProyecto(empleadosAgregar, Number(proyecto.id), true);
+        console.log('✅ Empleados agregados exitosamente');
+      }
+
+      // Desactivar relaciones de empleados quitados
+      if (empleadosQuitar.length > 0) {
+        // Obtener las relaciones actuales para encontrar los IDs de las relaciones a desactivar
+        const relacionesActuales = await obtenerPorProyecto(Number(proyecto.id));
+        
+        for (const empleadoId of empleadosQuitar) {
+          const relacion = relacionesActuales.find(rel => 
+            rel.id_empleado === empleadoId && rel.activo
+          );
+          
+          if (relacion) {
+            await actualizarActivo(relacion.id, false);
+            console.log(`✅ Empleado ${empleadoId} desactivado exitosamente`);
+          }
+        }
+      }
+
+      if (empleadosAgregar.length === 0 && empleadosQuitar.length === 0) {
+        console.log('ℹ️ No hay cambios en el equipo');
+      }
+
+    } catch (error) {
+      console.error('❌ Error al actualizar equipo:', error);
+      throw new Error('Error al actualizar el equipo del proyecto');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     console.log('📤 Datos a enviar:', formData);
-
 
     if (!validateForm()) return;
 
     try {
       setLoading(true);
 
-      // Mapea los campos al formato del backend
+      // 1. Actualizar datos básicos del proyecto
       const data = {
         titulo: formData.nombre,
         descripcion: formData.descripcion,
@@ -152,12 +224,14 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
       console.log('🚀 Enviando al backend:', data);
 
-      // Actualiza el proyecto en el backend
       const proyectoActualizado = await actualizarProyecto(Number(proyecto.id), data);
       
-      console.log('✅ Respuesta del backend:', proyectoActualizado);
+      console.log('✅ Proyecto actualizado:', proyectoActualizado);
 
-      // Mapea la respuesta al tipo Proyecto del front
+      // 2. Actualizar equipo del proyecto
+      await actualizarEquipoProyecto();
+
+      // 3. Mapear la respuesta al tipo Proyecto del front
       const proyectoMapeado = {
         ...proyecto,
         nombre: proyectoActualizado.titulo,
@@ -171,7 +245,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       console.log('📦 Proyecto mapeado para el frontend:', proyectoMapeado);
 
       onProyectoActualizado(proyectoMapeado);
-      console.log('🎉 Proyecto actualizado exitosamente!');
+      console.log('🎉 Proyecto y equipo actualizados exitosamente!');
       
       onClose();
     } catch (error) {
@@ -184,6 +258,18 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
   const handleLiderSelect = (empleadoId: number) => {
     setFormData(prev => ({ ...prev, id_lider: empleadoId }));
+    
+    // Si el nuevo líder estaba en el equipo, quitarlo del equipo
+    if (equipoIds.includes(empleadoId)) {
+      setEquipoIds(prev => prev.filter(id => id !== empleadoId));
+    }
+  };
+
+  // Nueva función para manejar cambios en el equipo
+  const handleEquipoChange = (ids: number[]) => {
+    // Asegurarse de que el líder no esté en el equipo
+    const equipoSinLider = ids.filter(id => id !== formData.id_lider);
+    setEquipoIds(equipoSinLider);
   };
 
   const getNombreCompleto = (empleado: Empleado) => {
@@ -291,6 +377,22 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           {errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
         </div>
 
+        {/* Nuevo: Selector de equipo */}
+        <EquipoSelector
+          empleados={empleados.filter(emp => emp.id_empleado !== formData.id_lider && emp.activo)}
+          loading={loading}
+          loadingEmpleados={loadingEmpleados}
+          errors={errors}
+          selectedIds={equipoIds}
+          onSelect={handleEquipoChange}
+          cargarEmpleados={cargarEmpleados}
+          getNombreCompleto={getNombreCompleto}
+          getIniciales={getIniciales}
+          getAvatarColor={getAvatarColor}
+          label="Colaboradores del Proyecto"
+        />
+        {errors.equipo && <span className={styles.error}>{errors.equipo}</span>}
+
         <div className={styles['form-group']}>
           <label htmlFor="estado" className={styles.label}>
             Estado del Proyecto *
@@ -308,28 +410,6 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
             <option value="COMPLETADO">COMPLETADO</option>
           </select>
         </div>
-
-
-
-        <div className={styles['form-group']}>
-          <label htmlFor="estado" className={styles.label}>
-            Estado del Proyecto *
-          </label>
-          <select
-            id="estado"
-            value={formData.estado}
-            onChange={e => setFormData(prev => ({ ...prev, estado: e.target.value }))}
-            className={`${styles.input} ${styles.select}`}
-            disabled={loading}
-            required
-          >
-            <option value="ACTIVO">ACTIVO</option>
-            <option value="INACTIVO">INACTIVO</option>
-            <option value="COMPLETADO">COMPLETADO</option>
-          </select>
-        </div>
-
-
 
         <div className={styles['form-group']}>
           <label htmlFor="fecha_inicio" className={styles.label}>
