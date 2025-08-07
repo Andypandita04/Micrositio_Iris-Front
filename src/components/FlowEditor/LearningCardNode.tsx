@@ -7,10 +7,12 @@ import {
   ChevronDown,
   FileText,
   Lightbulb,
-  ExternalLink
+  ExternalLink,
+  BarChart3
 } from 'lucide-react';
 import { LearningCardData } from './types';
 import { UrlLearningCard, obtenerPorLearningCard } from '../../services/urlLearningCardService';
+import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
 import './styles/LearningCardNode.css';
 
 /**
@@ -61,15 +63,23 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   const [urls, setUrls] = useState<UrlLearningCard[]>([]);
   const [loadingUrls, setLoadingUrls] = useState(false);
 
+  // Estado para las métricas asociadas al Testing Card
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+
   /**
-   * Carga las URLs cuando se expande el contenido y hay un ID válido
+   * Carga las URLs y métricas cuando se expande el contenido y hay un ID válido
    */
   useEffect(() => {
     if (isExpanded && data.id_learning_card) {
       cargarUrls();
+      // Cargar métricas usando el id_testing_card de la LearningCard
+      if (data.id_testing_card) {
+        cargarMetricas();
+      }
     }
     // eslint-disable-next-line
-  }, [isExpanded, data.id_learning_card]);
+  }, [isExpanded, data.id_learning_card, data.id_testing_card]);
 
   /**
    * Carga las URLs desde la base de datos
@@ -86,6 +96,24 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
       setUrls([]);
     } finally {
       setLoadingUrls(false);
+    }
+  };
+
+  /**
+   * Carga las métricas desde la base de datos usando el id_testing_card
+   */
+  const cargarMetricas = async () => {
+    if (!data.id_testing_card) return;
+    
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(data.id_testing_card);
+      setMetricas(metricasData || []);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar métricas:', error);
+      setMetricas([]);
+    } finally {
+      setLoadingMetricas(false);
     }
   };
 
@@ -125,6 +153,97 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
     }
     
     return url.substring(0, maxLength) + '...';
+  };
+
+  /**
+   * Renderiza las métricas del Testing Card asociado con sus resultados
+   */
+  const renderMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          <span>Cargando métricas...</span>
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          <span>No hay métricas definidas para el Testing Card asociado</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
+        {metricas.map((metrica) => (
+          <div 
+            key={metrica.id_metrica} 
+            className="metrica-item"
+            style={{
+              padding: '8px 12px',
+              backgroundColor: 'var(--theme-bg-secondary)',
+              borderRadius: '6px',
+              border: '1px solid var(--theme-border)',
+              fontSize: '12px'
+            }}
+          >
+            <div className="metrica-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '4px'
+            }}>
+              <BarChart3 size={14} />
+              <span className="metrica-nombre" style={{ fontWeight: '600' }}>
+                {metrica.nombre}
+              </span>
+              <span className="metrica-operador" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '11px'
+              }}>
+                {metrica.operador}
+              </span>
+              <span className="metrica-valor" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '11px'
+              }}>
+                {metrica.criterio}
+              </span>
+            </div>
+            {/* Mostrar el resultado si existe */}
+            {metrica.resultado && (
+              <div className="metrica-resultado" style={{
+                padding: '4px 8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '4px',
+                color: 'var(--theme-text-primary)',
+                fontSize: '11px',
+                marginTop: '4px',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <strong>Resultado obtenido:</strong> {metrica.resultado}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -231,8 +350,29 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
           />
         </button>
 
+
         {/* Contenido expandible con información adicional */}
         <div className={`expandable-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
+          
+          {/* Sección de métricas del Testing Card asociado */}
+          {isExpanded && (
+            <div className="metricas-section" style={{ marginBottom: '16px' }}>
+              <div className="metricas-label" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)',
+                marginBottom: '8px'
+              }}>
+                <BarChart3 size={12} style={{ marginRight: '4px' }} />
+                Métricas 
+              </div>
+              {renderMetricas()}
+            </div>
+          )}
+          
           {/* Sección de URLs de documentación */}
           {isExpanded && (
             <div className="links-section">

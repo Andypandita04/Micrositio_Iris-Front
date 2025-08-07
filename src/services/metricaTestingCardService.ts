@@ -11,6 +11,7 @@ export interface MetricaTestingCard {
   criterio: string;
   created_at: string;
   updated_at: string;
+  resultado?: string;
 }
 
 /**
@@ -82,4 +83,21 @@ export const eliminar = async (id_metrica: number): Promise<void> => {
   await apiClient.delete('/metrica_testing_card', {
     data: { id_metrica_testing_card: id_metrica },
   });
+};
+
+/**
+ * Actualiza el resultado de una métrica específica.
+ * @param {number} id_metrica - ID de la métrica a actualizar.
+ * @param {string} resultado - Nuevo resultado de la métrica.
+ * @returns {Promise<MetricaTestingCard>} Métrica actualizada.
+ */
+export const actualizarResultado = async (
+  id_metrica: number,
+  resultado: string
+): Promise<MetricaTestingCard> => {
+  const response = await apiClient.patch('/metrica_testing_card/resultado', {
+    id_metrica_testing_card: id_metrica,
+    resultado,
+  });
+  return response.data;
 };
