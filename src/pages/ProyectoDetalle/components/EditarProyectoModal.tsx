@@ -6,18 +6,15 @@ import Button from '../../../components/ui/Button/Button';
 import styles from './EditarProyectoModal.module.css';
 import { actualizarProyecto } from '../../../services/proyectosService';
 import { obtenerEmpleados } from '../../../services/empleadosService';
+import { obtenerTodas } from '../../../services/categoriaService'; // Nuevo import
 import EmpleadoSelector from '../../Proyectos/components/EmpleadoSelector';
-import EquipoSelector from '../../Proyectos/components/EquipoSelector'; // Nuevo import
+import EquipoSelector from '../../Proyectos/components/EquipoSelector';
 import { 
   obtenerPorProyecto, 
   crear as crearCelulaProyecto, 
   actualizarActivo,
   eliminar 
-} from '../../../services/celulaProyectoService'; // Nuevo import
-
-//import { form } from 'framer-motion/m';
-
-//import { form } from 'framer-motion/m';
+} from '../../../services/celulaProyectoService';
 
 interface Empleado {
   id_empleado: number;
@@ -28,6 +25,13 @@ interface Empleado {
   correo: string;
   numero_empleado: string;
   activo: boolean;
+}
+
+// Nueva interfaz para categoría
+interface Categoria {
+  id_categoria: number;
+  nombre: string;
+  descripcion?: string;
 }
 
 interface EditarProyectoModalProps {
@@ -60,18 +64,21 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     nombre: proyecto.nombre,
     descripcion: proyecto.descripcion,
     id_lider: proyecto.id_lider,
+    id_categoria: proyecto.id_categoria || 1, // Nueva propiedad
     fecha_inicio: proyecto.fecha_inicio || '',
     fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
     estado: proyecto.estado || 'ACTIVO' as 'ACTIVO' | 'INACTIVO' | 'COMPLETADO'
   });
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
-  const [equipoIds, setEquipoIds] = useState<number[]>([]); // Nuevo estado
-  const [equipoIdsOriginales, setEquipoIdsOriginales] = useState<number[]>([]); // Para comparar cambios
+  const [categorias, setCategorias] = useState<Categoria[]>([]); // Nuevo estado
+  const [equipoIds, setEquipoIds] = useState<number[]>([]);
+  const [equipoIdsOriginales, setEquipoIdsOriginales] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [loadingCategorias, setLoadingCategorias] = useState(false); // Nuevo estado
 
-  // Cargar empleados y equipo actual cuando se abre el modal
+  // Cargar empleados, categorías y equipo actual cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
       const liderId = proyecto.id_lider || 0;
@@ -80,6 +87,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         nombre: proyecto.nombre,
         descripcion: proyecto.descripcion,
         id_lider: liderId,
+        id_categoria: proyecto.id_categoria || 0, // Cargar categoría actual
         fecha_inicio: proyecto.fecha_inicio || '',
         fecha_fin_estimada: proyecto.fecha_fin_estimada || '',
         estado: proyecto.estado || 'ACTIVO' 
@@ -87,7 +95,8 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
       setErrors({});
       
       cargarEmpleados();
-      cargarEquipoActual(); // Nueva función
+      cargarCategorias(); // Nueva función
+      cargarEquipoActual();
     }
   }, [isOpen, proyecto]);
 
@@ -115,7 +124,29 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
     }
   };
 
-  // Nueva función para cargar el equipo actual del proyecto
+  // Nueva función para cargar categorías
+  const cargarCategorias = async () => {
+    try {
+      setLoadingCategorias(true);
+      setErrors(prev => ({ ...prev, categorias: '' }));
+      const categoriasData = await obtenerTodas();
+
+      const categoriasMapeadas: Categoria[] = categoriasData.map((categoria: any) => ({
+        id_categoria: categoria.id_categoria,
+        nombre: categoria.nombre,
+        descripcion: categoria.descripcion
+      }));
+
+      setCategorias(categoriasMapeadas);
+      console.log('📂 Categorías cargadas:', categoriasMapeadas);
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+      setErrors(prev => ({ ...prev, categorias: 'Error al cargar categorías' }));
+    } finally {
+      setLoadingCategorias(false);
+    }
+  };
+
   const cargarEquipoActual = async () => {
     try {
       setErrors(prev => ({ ...prev, equipo: '' }));
@@ -150,6 +181,10 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
 
     if (!formData.id_lider || formData.id_lider === 0) {
       newErrors.id_lider = 'Debes seleccionar un líder para el proyecto';
+    }
+
+    if (!formData.id_categoria || formData.id_categoria === 0) {
+      newErrors.id_categoria = 'Debes seleccionar una categoría para el proyecto';
     }
 
     setErrors(newErrors);
@@ -246,9 +281,10 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         titulo: formData.nombre,
         descripcion: formData.descripcion,
         id_lider: formData.id_lider,
+        id_categoria: formData.id_categoria, // Incluir categoría
         fecha_inicio: formData.fecha_inicio || null,
         fecha_fin_estimada: formData.fecha_fin_estimada || null,
-        estado: formData.estado.toUpperCase() // Asegurar que esté en mayúsculas
+        estado: formData.estado.toUpperCase()
       };
 
       console.log('🚀 Enviando al backend:', data);
@@ -266,6 +302,7 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         nombre: proyectoActualizado.titulo,
         descripcion: proyectoActualizado.descripcion,
         id_lider: proyectoActualizado.id_lider,
+        id_categoria: proyectoActualizado.id_categoria, // Incluir categoría
         estado: proyectoActualizado.estado,
         fecha_inicio: proyectoActualizado.fecha_inicio,
         fecha_fin_estimada: proyectoActualizado.fecha_fin_estimada
@@ -375,7 +412,44 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
           {errors.descripcion && <span className={styles.error}>{errors.descripcion}</span>}
         </div>
 
-        {/* Selector de líder con grid bonito y colores */}
+        {/* Nuevo: Selector de categoría */}
+        <div className={styles['form-group']}>
+          <label htmlFor="id_categoria" className={styles.label}>
+            Categoría del Proyecto *
+            {categorias.length > 0 && formData.id_categoria ? (
+              (() => {
+                const cat = categorias.find(c => c.id_categoria === formData.id_categoria);
+                return cat ? (
+                  <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
+                    (Seleccionado: {cat.nombre})
+                  </span>
+                ) : null;
+              })()
+            ) : null}
+          </label>
+          <select
+            id="id_categoria"
+            value={formData.id_categoria}
+            onChange={(e) => setFormData(prev => ({ ...prev, id_categoria: parseInt(e.target.value) }))}
+            className={`${styles.input} ${styles.select} ${errors.id_categoria ? styles['input-error'] : ''}`}
+            disabled={loading || loadingCategorias}
+          >
+            <option value={0}>Selecciona una categoría</option>
+            {categorias.map(categoria => (
+              <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                {categoria.nombre}
+                {categoria.descripcion && ` - ${categoria.descripcion}`}
+              </option>
+            ))}
+          </select>
+          {loadingCategorias && (
+            <span className={styles.info}>Cargando categorías...</span>
+          )}
+          {errors.categorias && <span className={styles.error}>{errors.categorias}</span>}
+          {errors.id_categoria && <span className={styles.error}>{errors.id_categoria}</span>}
+        </div>
+
+        {/* Selector de líder */}
         <div className={styles['form-group']}>
           <label htmlFor="id_lider" className={styles.label}>
             Líder del Proyecto *
@@ -401,12 +475,12 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
             getNombreCompleto={getNombreCompleto}
             getIniciales={getIniciales}
             getAvatarColor={getAvatarColor}
-            hideLabel={true} // Ocultar el label del EmpleadoSelector
+            hideLabel={true}
           />
           {errors.id_lider && <span className={styles.error}>{errors.id_lider}</span>}
         </div>
 
-        {/* Nuevo: Selector de equipo */}
+        {/* Selector de equipo */}
         <EquipoSelector
           empleados={empleados.filter(emp => emp.id_empleado !== formData.id_lider && emp.activo)}
           loading={loading}
