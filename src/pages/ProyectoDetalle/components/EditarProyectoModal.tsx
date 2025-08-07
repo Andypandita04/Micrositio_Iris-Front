@@ -11,7 +11,8 @@ import EquipoSelector from '../../Proyectos/components/EquipoSelector'; // Nuevo
 import { 
   obtenerPorProyecto, 
   crear as crearCelulaProyecto, 
-  actualizarActivo 
+  actualizarActivo,
+  eliminar 
 } from '../../../services/celulaProyectoService'; // Nuevo import
 
 //import { form } from 'framer-motion/m';
@@ -176,19 +177,46 @@ const EditarProyectoModal: React.FC<EditarProyectoModalProps> = ({
         console.log('✅ Empleados agregados exitosamente');
       }
 
-      // Desactivar relaciones de empleados quitados
+      // Eliminar relaciones de empleados quitados usando el endpoint eliminar
       if (empleadosQuitar.length > 0) {
-        // Obtener las relaciones actuales para encontrar los IDs de las relaciones a desactivar
-        const relacionesActuales = await obtenerPorProyecto(Number(proyecto.id));
-        
-        for (const empleadoId of empleadosQuitar) {
-          const relacion = relacionesActuales.find(rel => 
-            rel.id_empleado === empleadoId && rel.activo
-          );
+        try {
+          // Obtener las relaciones actuales para encontrar los IDs de las relaciones a eliminar
+          const relacionesActuales = await obtenerPorProyecto(Number(proyecto.id));
           
-          if (relacion) {
-            await actualizarActivo(relacion.id, false);
-            console.log(`✅ Empleado ${empleadoId} desactivado exitosamente`);
+          for (const empleadoId of empleadosQuitar) {
+            const relacion = relacionesActuales.find(rel => 
+              rel.id_empleado === empleadoId && rel.activo
+            );
+            
+            if (relacion) {
+              // Usar eliminar en lugar de actualizarActivo
+              await eliminar(relacion.id);
+              console.log(`✅ Empleado ${empleadoId} eliminado exitosamente (ID relación: ${relacion.id})`);
+            } else {
+              console.warn(`⚠️ No se encontró relación activa para empleado ${empleadoId}`);
+            }
+          }
+        } catch (eliminarError) {
+          console.error('❌ Error al eliminar empleados:', eliminarError);
+          
+          // Fallback: intentar con actualizarActivo
+          console.log('🔄 Intentando desactivar en lugar de eliminar...');
+          const relacionesActuales = await obtenerPorProyecto(Number(proyecto.id));
+          
+          for (const empleadoId of empleadosQuitar) {
+            const relacion = relacionesActuales.find(rel => 
+              rel.id_empleado === empleadoId && rel.activo
+            );
+            
+            if (relacion) {
+              try {
+                await actualizarActivo(relacion.id, false);
+                console.log(`✅ Empleado ${empleadoId} desactivado exitosamente (fallback)`);
+              } catch (fallbackError) {
+                console.error(`❌ Error al desactivar empleado ${empleadoId}:`, fallbackError);
+                throw new Error(`No se pudo eliminar ni desactivar al empleado ${empleadoId}`);
+              }
+            }
           }
         }
       }
