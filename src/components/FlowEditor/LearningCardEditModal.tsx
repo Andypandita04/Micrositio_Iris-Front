@@ -97,11 +97,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [documentoAEliminar, setDocumentoAEliminar] = useState<LearningCardDocument | null>(null);
   const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
 
-  // Estados para métricas del Testing Card asociado
+  // Estados para métricas del Testing Card asociado - NUEVO ENFOQUE
   const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
   const [loadingMetricas, setLoadingMetricas] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
-  const [metricasModificadas, setMetricasModificadas] = useState<{[key: number]: string}>({});
+  const [savingMetrica, setSavingMetrica] = useState<number | null>(null);
+  
+  // Nuevo estado: mapa de resultados editables por ID único
+  const [resultadosEditables, setResultadosEditables] = useState<{[uniqueKey: string]: string}>({});
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -197,66 +200,167 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   }, [showMetrics, formData.id_testing_card]);
 
   /**
-   * Carga las métricas del Testing Card asociado
+   * Carga las métricas del Testing Card asociado - NUEVO ENFOQUE
    */
   const cargarMetricas = async () => {
-    if (!formData.id_testing_card) return;
+    if (!formData.id_testing_card) {
+      console.warn('[cargarMetricas] No hay id_testing_card disponible');
+      return;
+    }
     
     try {
       setLoadingMetricas(true);
-      const metricasData = await obtenerPorTestingCard(formData.id_testing_card);
-      setMetricas(metricasData || []);
+      console.log('[cargarMetricas] Cargando métricas para Testing Card ID:', formData.id_testing_card);
       
-      // Inicializar metricasModificadas con valores actuales
-      const metricasModificadasInit: {[key: number]: string} = {};
-      metricasData.forEach(metrica => {
-        metricasModificadasInit[metrica.id_metrica] = metrica.resultado || '';
+      const metricasData = await obtenerPorTestingCard(formData.id_testing_card);
+      console.log('[cargarMetricas] Métricas recibidas del backend:', metricasData);
+      
+      // Validación defensiva
+      const metricasArray = Array.isArray(metricasData) ? metricasData : [];
+      
+      if (metricasArray.length === 0) {
+        console.info('[cargarMetricas] No se encontraron métricas para este Testing Card');
+        setMetricas([]);
+        setResultadosEditables({});
+        return;
+      }
+      
+      // Procesar métricas y crear claves únicas
+      const resultadosIniciales: {[uniqueKey: string]: string} = {};
+      metricasArray.forEach((metrica, index) => {
+        console.log(`[cargarMetricas] Procesando métrica ${index + 1}:`, {
+          completa: metrica,
+          id: metrica.id,
+          nombre: metrica.nombre,
+          resultado: metrica.resultado
+        });
+        
+        // Crear clave única usando múltiples campos para garantizar unicidad
+        const uniqueKey = `${metrica.id || index}_${metrica.nombre || 'sin_nombre'}_${metrica.id_testing_card}`;
+        resultadosIniciales[uniqueKey] = metrica.resultado ? String(metrica.resultado) : '';
+        
+        console.log(`[cargarMetricas] Clave única generada: "${uniqueKey}" con resultado: "${metrica.resultado || ''}"`);
       });
-      setMetricasModificadas(metricasModificadasInit);
+      
+      setMetricas(metricasArray);
+      setResultadosEditables(resultadosIniciales);
+      
+      console.log('[cargarMetricas] ✅ Métricas cargadas exitosamente:', {
+        cantidad: metricasArray.length,
+        resultadosIniciales
+      });
       
     } catch (error) {
-      console.error('[LearningCardEditModal] Error al cargar métricas:', error);
+      console.error('[cargarMetricas] ❌ Error al cargar métricas:', error);
       setMetricas([]);
+      setResultadosEditables({});
     } finally {
       setLoadingMetricas(false);
     }
   };
 
   /**
-   * Maneja el cambio en el resultado de una métrica
+   * Genera una clave única para identificar una métrica
    */
-  const handleMetricResultChange = (idMetrica: number, nuevoResultado: string) => {
-    setMetricasModificadas(prev => ({
+  const generarClaveUnicaMetrica = (metrica: MetricaTestingCard, index: number): string => {
+    return `${metrica.id || index}_${metrica.nombre || 'sin_nombre'}_${metrica.id_testing_card}`;
+  };
+
+  /**
+   * Maneja el cambio en el resultado de una métrica - NUEVO ENFOQUE
+   */
+  const handleCambioResultadoMetrica = (metrica: MetricaTestingCard, index: number, nuevoValor: string) => {
+    const claveUnica = generarClaveUnicaMetrica(metrica, index);
+    console.log('[handleCambioResultadoMetrica]', {
+      metrica: metrica.nombre,
+      claveUnica,
+      nuevoValor,
+      id: metrica.id
+    });
+    
+    setResultadosEditables(prev => ({
       ...prev,
-      [idMetrica]: nuevoResultado
+      [claveUnica]: nuevoValor
     }));
   };
 
   /**
-   * Guarda el resultado de una métrica específica
+   * Guarda el resultado de una métrica específica - NUEVO ENFOQUE ROBUSTO
    */
-  const guardarResultadoMetrica = async (idMetrica: number) => {
-    const nuevoResultado = metricasModificadas[idMetrica];
+  const guardarResultadoMetricaNuevo = async (metrica: MetricaTestingCard, index: number) => {
+    const claveUnica = generarClaveUnicaMetrica(metrica, index);
+    const nuevoResultado = resultadosEditables[claveUnica];
     
-    if (nuevoResultado === undefined) return;
+    console.log('[guardarResultadoMetricaNuevo] 🚀 Iniciando guardado con:', {
+      metrica: {
+        id: metrica.id,
+        nombre: metrica.nombre,
+        id_testing_card: metrica.id_testing_card
+      },
+      claveUnica,
+      nuevoResultado,
+      index
+    });
+    
+    // Validaciones iniciales
+    if (!metrica) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Métrica no válida');
+      setErrorMsg('Error: métrica no válida');
+      return;
+    }
+    
+    if (metrica.id === undefined || metrica.id === null) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ ID de métrica no válido:', metrica.id);
+      setErrorMsg('Error: ID de métrica no válido');
+      return;
+    }
+    
+    if (nuevoResultado === undefined || nuevoResultado === null) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Resultado no válido:', nuevoResultado);
+      setErrorMsg('Error: resultado no válido');
+      return;
+    }
     
     try {
-      await actualizarResultado(idMetrica, nuevoResultado);
+      setSavingMetrica(metrica.id);
+      console.log('[guardarResultadoMetricaNuevo] 📡 Llamando API con:', {
+        id: metrica.id,
+        resultado: nuevoResultado
+      });
       
-      // Actualizar la métrica en el estado local
-      setMetricas(prev => prev.map(metrica => 
-        metrica.id_metrica === idMetrica 
-          ? { ...metrica, resultado: nuevoResultado }
-          : metrica
-      ));
+      // Llamada a la API con el endpoint que funciona en Postman
+      // CLAVE: Usar metrica.id (no metrica.id_metrica) porque ese es el campo correcto
+      const metricaActualizada = await actualizarResultado(metrica.id, nuevoResultado);
+      console.log('[guardarResultadoMetricaNuevo] ✅ Respuesta de API:', metricaActualizada);
       
-      setSuccessMsg('Resultado de métrica actualizado exitosamente');
+      // Actualizar el estado local con la métrica actualizada
+      setMetricas(prevMetricas => 
+        prevMetricas.map(m => 
+          m.id === metrica.id 
+            ? { ...m, resultado: nuevoResultado }
+            : m
+        )
+      );
+      
+      setSuccessMsg(`Resultado de métrica "${metrica.nombre}" actualizado exitosamente`);
       setTimeout(() => setSuccessMsg(''), 3000);
       
-    } catch (error) {
-      console.error('[LearningCardEditModal] Error al actualizar resultado de métrica:', error);
-      setErrorMsg('Error al actualizar el resultado de la métrica');
-      setTimeout(() => setErrorMsg(''), 3000);
+      console.log('[guardarResultadoMetricaNuevo] ✅ Guardado exitoso para métrica:', metrica.nombre);
+      
+    } catch (error: any) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Error al actualizar métrica:', error);
+      
+      let mensajeError = 'Error al actualizar el resultado de la métrica';
+      if (error?.response?.data?.message) {
+        mensajeError = error.response.data.message;
+      } else if (error?.message) {
+        mensajeError = error.message;
+      }
+      
+      setErrorMsg(mensajeError);
+      setTimeout(() => setErrorMsg(''), 5000);
+    } finally {
+      setSavingMetrica(null);
     }
   };
 
@@ -292,9 +396,23 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
     return (
       <div className="metricas-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {metricas.map((metrica) => (
+        {metricas.map((metrica, index) => {
+          const claveUnica = generarClaveUnicaMetrica(metrica, index);
+          const valorActual = resultadosEditables[claveUnica] || '';
+          const estaGuardando = savingMetrica === metrica.id;
+          
+          console.log('[renderSeccionMetricas] Renderizando métrica:', {
+            index,
+            nombre: metrica.nombre,
+            id: metrica.id,
+            claveUnica,
+            valorActual,
+            metricaCompleta: metrica
+          });
+          
+          return (
           <div 
-            key={metrica.id_metrica} 
+            key={claveUnica}
             className="metrica-item"
             style={{
               padding: '12px',
@@ -335,32 +453,36 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="text"
-                  value={metricasModificadas[metrica.id_metrica] || ''}
-                  onChange={(e) => handleMetricResultChange(metrica.id_metrica, e.target.value)}
+                  value={valorActual}
+                  onChange={(e) => handleCambioResultadoMetrica(metrica, index, e.target.value)}
                   placeholder="Ingresa el resultado obtenido..."
+                  disabled={estaGuardando}
                   style={{
                     flex: 1,
                     padding: '6px 8px',
                     border: '1px solid var(--theme-border)',
                     borderRadius: '4px',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    opacity: estaGuardando ? 0.7 : 1
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => guardarResultadoMetrica(metrica.id_metrica)}
+                  onClick={() => guardarResultadoMetricaNuevo(metrica, index)}
+                  disabled={estaGuardando}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: 'var(--theme-primary)',
+                    backgroundColor: estaGuardando ? 'var(--theme-text-secondary)' : 'var(--theme-primary)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '11px',
                     fontWeight: '600',
-                    cursor: 'pointer'
+                    cursor: estaGuardando ? 'not-allowed' : 'pointer',
+                    minWidth: '70px'
                   }}
                 >
-                  Guardar
+                  {estaGuardando ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
@@ -380,7 +502,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
