@@ -15,7 +15,8 @@ import {
   FileVideo,
   FileAudio,
   FileSpreadsheet,
-  Presentation
+  Presentation,
+  BarChart3
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
@@ -30,6 +31,7 @@ import {
   deleteDocument, 
   isImage 
 } from '../../services/learningCardDocumentService';
+import { MetricaTestingCard, obtenerPorTestingCard, actualizarResultado } from '../../services/metricaTestingCardService';
 import './styles/TestingCardEditModal.css';
 
 /**
@@ -94,6 +96,12 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [loadingDocumentos, setLoadingDocumentos] = useState(false);
   const [documentoAEliminar, setDocumentoAEliminar] = useState<LearningCardDocument | null>(null);
   const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
+
+  // Estados para métricas del Testing Card asociado
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [metricasModificadas, setMetricasModificadas] = useState<{[key: number]: string}>({});
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
@@ -178,6 +186,204 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     cargarUrls();
     cargarDocumentos();
   }, [editingIdLC]);
+
+  /**
+   * Efecto para cargar métricas cuando se abre la sección de métricas
+   */
+  useEffect(() => {
+    if (showMetrics && formData.id_testing_card) {
+      cargarMetricas();
+    }
+  }, [showMetrics, formData.id_testing_card]);
+
+  /**
+   * Carga las métricas del Testing Card asociado
+   */
+  const cargarMetricas = async () => {
+    if (!formData.id_testing_card) return;
+    
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(formData.id_testing_card);
+      setMetricas(metricasData || []);
+      
+      // Inicializar metricasModificadas con valores actuales
+      const metricasModificadasInit: {[key: number]: string} = {};
+      metricasData.forEach(metrica => {
+        metricasModificadasInit[metrica.id_metrica] = metrica.resultado || '';
+      });
+      setMetricasModificadas(metricasModificadasInit);
+      
+    } catch (error) {
+      console.error('[LearningCardEditModal] Error al cargar métricas:', error);
+      setMetricas([]);
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Maneja el cambio en el resultado de una métrica
+   */
+  const handleMetricResultChange = (idMetrica: number, nuevoResultado: string) => {
+    setMetricasModificadas(prev => ({
+      ...prev,
+      [idMetrica]: nuevoResultado
+    }));
+  };
+
+  /**
+   * Guarda el resultado de una métrica específica
+   */
+  const guardarResultadoMetrica = async (idMetrica: number) => {
+    const nuevoResultado = metricasModificadas[idMetrica];
+    
+    if (nuevoResultado === undefined) return;
+    
+    try {
+      await actualizarResultado(idMetrica, nuevoResultado);
+      
+      // Actualizar la métrica en el estado local
+      setMetricas(prev => prev.map(metrica => 
+        metrica.id_metrica === idMetrica 
+          ? { ...metrica, resultado: nuevoResultado }
+          : metrica
+      ));
+      
+      setSuccessMsg('Resultado de métrica actualizado exitosamente');
+      setTimeout(() => setSuccessMsg(''), 3000);
+      
+    } catch (error) {
+      console.error('[LearningCardEditModal] Error al actualizar resultado de métrica:', error);
+      setErrorMsg('Error al actualizar el resultado de la métrica');
+      setTimeout(() => setErrorMsg(''), 3000);
+    }
+  };
+
+  /**
+   * Renderiza la sección de métricas
+   */
+  const renderSeccionMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          Cargando métricas...
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          No hay métricas definidas para el Testing Card asociado
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {metricas.map((metrica) => (
+          <div 
+            key={metrica.id_metrica} 
+            className="metrica-item"
+            style={{
+              padding: '12px',
+              backgroundColor: 'var(--theme-bg-secondary)',
+              borderRadius: '8px',
+              border: '1px solid var(--theme-border)',
+              fontSize: '13px'
+            }}
+          >
+            <div className="metrica-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <BarChart3 size={16} />
+              <span className="metrica-nombre" style={{ fontWeight: '600', flex: 1 }}>
+                {metrica.nombre}
+              </span>
+              <span className="metrica-criterio" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '12px'
+              }}>
+                {metrica.operador} {metrica.criterio}
+              </span>
+            </div>
+            
+            <div className="metrica-resultado" style={{ marginTop: '8px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '4px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)'
+              }}>
+                Resultado obtenido:
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={metricasModificadas[metrica.id_metrica] || ''}
+                  onChange={(e) => handleMetricResultChange(metrica.id_metrica, e.target.value)}
+                  placeholder="Ingresa el resultado obtenido..."
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    border: '1px solid var(--theme-border)',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => guardarResultadoMetrica(metrica.id_metrica)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: 'var(--theme-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+            
+            {/* Mostrar resultado actual si existe */}
+            {metrica.resultado && (
+              <div style={{
+                marginTop: '8px',
+                padding: '6px 8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: 'var(--theme-text-secondary)',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <strong>Resultado actual:</strong> {metrica.resultado}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Funciones para manejar URLs
   const addDocumentationUrl = async (url: string) => {
@@ -673,6 +879,63 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
               rows={3}
             />
             {errors.hallazgo && <span className="testing-error-text">{errors.hallazgo}</span>}
+          </div>
+
+          {/* @section: Métricas del Testing Card asociado */}
+          <div className="testing-form-section">
+            <button
+              type="button"
+              className="testing-form-section-toggle"
+              onClick={() => setShowMetrics(!showMetrics)}
+            >
+              <span className={`toggle-icon${showMetrics ? ' open' : ''}`}>▼</span>
+              <span>Métricas del Testing Card</span>
+              {metricas.length > 0 && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  background: 'var(--theme-primary)', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  padding: '2px 8px',
+                  fontWeight: '600'
+                }}>
+                  {metricas.length} métrica{metricas.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </button>
+
+            {showMetrics && (
+              <div className="testing-form-section-content">
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <BarChart3 size={14} />
+                    Resultados de Métricas
+                    {metricas.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '10px', 
+                        background: 'var(--theme-primary)', 
+                        color: 'white', 
+                        borderRadius: '10px', 
+                        padding: '2px 6px' 
+                      }}>
+                        {metricas.length}
+                      </span>
+                    )}
+                  </h4>
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--theme-text-secondary)',
+                    marginBottom: '12px',
+                    fontStyle: 'italic'
+                  }}>
+                    Actualiza los resultados obtenidos para cada métrica del Testing Card asociado:
+                  </p>
+                  {renderSeccionMetricas()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* @section: Documentación expandible */}
