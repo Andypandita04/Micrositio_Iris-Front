@@ -396,7 +396,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
       const nuevaLC = await crearLearningCard({
         id_testing_card: testingCardIdNumber,
         resultado: 'Nuevo aprendizaje',
-        estado: 'CUMPLIDO',
+        estado: 'ACEPTADA',
       });
 
       console.log('[FlowEditor] Nueva Learning Card creada:', nuevaLC);

@@ -49,10 +49,10 @@ interface LearningCardNodeProps {
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
   // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir, Validada
   const statusMap: Record<string, { label: string; className: string }> = {
-    'cumplido': { label: 'Cumplido', className: 'learning-status-cumplido' },
-    'rechazado': { label: 'Rechazado', className: 'learning-status-rechazado' },
-    'repetir': { label: 'Repetir', className: 'learning-status-repetir' },
-    'validada': { label: 'Validada', className: 'learning-status-validada' },
+    'ACEPTADA': { label: 'ACEPTADA', className: 'learning-status-cumplido' },
+    'RECHAZADA': { label: 'RECHAZADA', className: 'learning-status-rechazado' },
+    'REITERAR': { label: 'REITERAR', className: 'learning-status-repetir' },
+    'MAL PLANTEADA': { label: 'MAL PLANTEADA', className: 'learning-status-validada' },
   };
   const statusKey = (data.estado || '').toLowerCase();
   const statusInfo = statusMap[statusKey];
