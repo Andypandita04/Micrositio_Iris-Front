@@ -97,7 +97,7 @@ export interface LearningCardData {
   id_testing_card: number;
   resultado: string | null;
   hallazgo: string | null;
-  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR' | 'VALIDADA';
+  estado: 'ACEPTADA' | 'RECHAZADA' | 'REITERAR' | 'MAL PLANTEADA';
   created_at: string;
   updated_at: string;
   attachments?: Attachment[];

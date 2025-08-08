@@ -108,10 +108,10 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
   // Opciones de estado para la Learning Card
   const statusOptions = [
-    { value: 'CUMPLIDO', label: 'Cumplido' },
-    { value: 'RECHAZADO', label: 'Rechazado' },
-    { value: 'REPETIR', label: 'Repetir' },
-    { value: 'VALIDADA', label: 'Validada' },
+    { value: 'ACEPTADA', label: 'Aceptada' },
+    { value: 'RECHAZADA', label: 'Rechazada' },
+    { value: 'REITERAR', label: 'Reiterar' },
+    { value: 'MAL PLANTEADA', label: 'Mal planteada' },
   ];
 
   /**

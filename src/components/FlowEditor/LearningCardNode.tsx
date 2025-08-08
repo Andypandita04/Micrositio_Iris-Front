@@ -47,15 +47,14 @@ interface LearningCardNodeProps {
  * - Responsive y compatible con modo oscuro
  */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
-  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir, Validada
+  // Estado visual para la Learning Card: Aceptada, Rechazada, Reiterar, Mal planteada
   const statusMap: Record<string, { label: string; className: string }> = {
     'ACEPTADA': { label: 'ACEPTADA', className: 'learning-status-cumplido' },
     'RECHAZADA': { label: 'RECHAZADA', className: 'learning-status-rechazado' },
     'REITERAR': { label: 'REITERAR', className: 'learning-status-repetir' },
     'MAL PLANTEADA': { label: 'MAL PLANTEADA', className: 'learning-status-validada' },
   };
-  const statusKey = (data.estado || '').toLowerCase();
-  const statusInfo = statusMap[statusKey];
+  const statusInfo = statusMap[data.estado];
   // Estado para controlar si el contenido está expandido
   const [isExpanded, setIsExpanded] = useState(false);
   
