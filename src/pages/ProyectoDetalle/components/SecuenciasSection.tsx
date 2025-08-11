@@ -83,27 +83,6 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
   const [secuenciaToEdit, setSecuenciaToEdit] = useState<Secuencia | null>(null);
 
   /**
-   * Formatea una fecha para mostrar en formato localizado
-   * @function formatearFecha
-   * @param {string} fecha - Fecha en formato ISO string
-   * @returns {string} Fecha formateada en español
-   */
-  const formatearFecha = (fecha: string) => {
-    if (!fecha || fecha === '') {
-      return 'Fecha no disponible';
-    }
-    try {
-      return new Date(fecha).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return 'Fecha inválida';
-    }
-  };
-
-  /**
    * Formatea fecha de día específico (dia_inicio/dia_fin)
    * @function formatearDia
    * @param {string} dia - Fecha en formato ISO string o fecha simple
@@ -287,14 +266,6 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
 
                   {/* @section: Información de fechas */}
                   <div className={styles['secuencia-fechas']}>
-                    {/* Fecha de creación */}
-                    <div className={styles['secuencia-fecha-item']}>
-                      <span className={styles['secuencia-fecha-label']}>Creada:</span>
-                      <span className={styles['secuencia-fecha-valor']}>
-                        {formatearFecha(secuencia.fechaCreacion)}
-                      </span>
-                    </div>
-
                     {/* Día de inicio - mostrar siempre, pero indicar si no hay fecha */}
                     <div className={styles['secuencia-fecha-item']}>
                       <span className={styles['secuencia-fecha-label']}>Inicio:</span>
