@@ -22,7 +22,8 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
     descripcion: '',
     id_proyecto: 0,
     dia_inicio: '',
-    dia_fin: ''
+    dia_fin: '',
+    estado: 'EN PLANEACION'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,7 +36,8 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
         descripcion: secuencia.descripcion,
         id_proyecto: Number(secuencia.proyectoId),
         dia_inicio: secuencia.dia_inicio || '',
-        dia_fin: secuencia.dia_fin || ''
+        dia_fin: secuencia.dia_fin || '',
+        estado: secuencia.estado
       });
     }
   }, [secuencia]);
@@ -73,6 +75,11 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
         newErrors.dia_fin = 'La fecha de fin debe ser posterior a la fecha de inicio';
       }
     }
+
+    // Validación de estado (opcional, ya que tiene valor por defecto)
+    if (!formData.estado) {
+      newErrors.estado = 'Debe seleccionar un estado para la secuencia';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -89,6 +96,7 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
         descripcion: formData.descripcion.trim(),
         dia_inicio: formData.dia_inicio || undefined,
         dia_fin: formData.dia_fin || undefined,
+        estado: formData.estado || secuencia.estado,
       };
       await actualizarSecuencia(Number(secuencia.id), updatedSecuencia);
       await onSecuenciaEditada({ 
@@ -96,7 +104,7 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
         id: secuencia.id, 
         proyectoId: secuencia.proyectoId, 
         fechaCreacion: secuencia.fechaCreacion, 
-        estado: secuencia.estado,
+        estado: formData.estado || secuencia.estado,
         dia_inicio: formData.dia_inicio || undefined,
         dia_fin: formData.dia_fin || undefined
       });
@@ -187,6 +195,34 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
               <div className={getCharacterCountClass(formData.descripcion.length, 200)}>
                 {formData.descripcion.length}/200 caracteres
               </div>
+            </div>
+
+            {/* Campo de estado */}
+            <div className={styles['form-group']}>
+              <label htmlFor="estado" className={styles['form-label']}>
+                Estado de la Secuencia
+              </label>
+              <select
+                id="estado"
+                value={formData.estado || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  estado: e.target.value as 'EN PLANEACION'| 'EN VALIDACION'| 'EN ANALISIS' |'CANCELADO' | 'TERMINADO'
+                }))}
+                className={`${styles['form-input']} ${errors.estado ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              >
+                <option value="EN PLANEACION">En Planeación</option>
+                <option value="EN VALIDACION">En Validación</option>
+                <option value="EN ANALISIS">En Análisis</option>
+                <option value="CANCELADO">Cancelado</option>
+                <option value="TERMINADO">Terminado</option>
+              </select>
+              {errors.estado && (
+                <span className={styles['form-error']}>
+                  {errors.estado}
+                </span>
+              )}
             </div>
 
             {/* Campo de fecha de inicio */}

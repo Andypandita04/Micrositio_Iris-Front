@@ -15,4 +15,5 @@ export interface CreateSecuenciaData {
   id_proyecto: number;
   dia_inicio?: string;
   dia_fin?: string;
+  estado?: 'EN PLANEACION'| 'EN VALIDACION'| 'EN ANALISIS' |'CANCELADO' | 'TERMINADO';
 }
