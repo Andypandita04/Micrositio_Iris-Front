@@ -205,6 +205,27 @@
   color: var(--theme-text-secondary);
 }
 
+/* @section: Contador de testing cards */
+.secuencia-testing-counter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--theme-border);
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-tertiary);
+}
+
+.secuencia-testing-counter-icon {
+  color: var(--color-primary-purple);
+}
+
+.secuencia-testing-counter-text {
+  font-weight: var(--font-weight-medium);
+}
+
 .empty-secuencias {
   text-align: center;
   padding: var(--spacing-2xl);

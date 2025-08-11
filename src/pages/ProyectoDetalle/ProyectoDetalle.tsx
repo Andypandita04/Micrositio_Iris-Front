@@ -15,6 +15,7 @@ import styles from './ProyectoDetalle.module.css';
 import { eliminarSecuencia, obtenerSecuenciasPorProyecto, crearSecuencia } from '../../services/secuenciaService';
 import { obtenerProyectoPorId } from '../../services/proyectosService';
 import { eliminarProyecto } from '../../services/proyectosService';
+import { obtenerTestingCardsPorSecuencia } from '../../services/testingCardService';
 
 
 /**
@@ -59,6 +60,42 @@ const ProyectoDetalle: React.FC = () => {
   const [isDeletingProject, setIsDeletingProject] = useState(false);
 
   /**
+   * Helper para recalcular conteos de testing cards
+   * @function recalcularTestingCardsCount
+   * @param {any[]} secuenciasArray - Array de secuencias del backend
+   * @returns {Promise<Secuencia[]>} Secuencias mapeadas con conteos actualizados
+   */
+  const recalcularTestingCardsCount = async (secuenciasArray: any[]): Promise<Secuencia[]> => {
+    const secuenciasFiltradas = secuenciasArray.filter(s => s && s.id !== undefined);
+
+    // Calcular conteos de testing cards en paralelo para cada secuencia
+    return await Promise.all(
+      secuenciasFiltradas.map(async (s: any) => {
+        let testingCardsCount = 0;
+        try {
+          const testingCards = await obtenerTestingCardsPorSecuencia(s.id);
+          testingCardsCount = Array.isArray(testingCards) ? testingCards.length : 0;
+        } catch (error) {
+          console.warn(`Error al obtener testing cards para secuencia ${s.id}:`, error);
+          testingCardsCount = 0;
+        }
+
+        return {
+          id: s.id?.toString() ?? '',
+          nombre: s.nombre ?? '',
+          descripcion: s.descripcion ?? '',
+          proyectoId: s.id_proyecto?.toString() ?? '',
+          fechaCreacion: s.created_at ?? '',
+          estado: s.estado || 'EN PLANEACION',
+          dia_inicio: s.dia_inicio,
+          dia_fin: s.dia_fin,
+          testing_cards_count: testingCardsCount,
+        };
+      })
+    );
+  };
+
+  /**
    * Efecto para cargar datos del proyecto y secuencias
    * @function useEffect
    */
@@ -85,24 +122,14 @@ const ProyectoDetalle: React.FC = () => {
           };
           setProyecto(proyectoMapeado);
 
-          // 2. Obtener secuencias (ACTUALIZADO)
+          // 2. Obtener secuencias y calcular conteos de testing cards
           const secuenciasData = await obtenerSecuenciasPorProyecto(id);
 
           // Asegúrate de que sea un array
           const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
 
-          const secuenciasMapeadas = secuenciasArray
-            .filter(s => s && s.id !== undefined) // filtra elementos undefined o sin id
-            .map((s: any) => ({
-              id: s.id?.toString() ?? '',
-              nombre: s.nombre ?? '',
-              descripcion: s.descripcion ?? '',
-              proyectoId: s.id_proyecto?.toString() ?? '',
-              fechaCreacion: s.created_at ?? '',
-              estado: s.estado || 'EN PLANEACION',
-              dia_inicio: s.dia_inicio,
-              dia_fin: s.dia_fin,
-            }));
+          // Usar helper para calcular conteos
+          const secuenciasMapeadas = await recalcularTestingCardsCount(secuenciasArray);
           setSecuencias(secuenciasMapeadas);
 
           if (secuenciasMapeadas.length > 0) {
@@ -181,18 +208,9 @@ const ProyectoDetalle: React.FC = () => {
       if (proyectoId) {
         const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
         const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
-        const secuenciasMapeadas = secuenciasArray
-          .filter(s => s && s.id !== undefined)
-          .map((s: any) => ({
-            id: s.id?.toString() ?? '',
-            nombre: s.nombre ?? '',
-            descripcion: s.descripcion ?? '',
-            proyectoId: s.id_proyecto?.toString() ?? '',
-            fechaCreacion: s.created_at ?? '',
-            estado: s.estado || 'EN PLANEACION',
-            dia_inicio: s.dia_inicio,
-            dia_fin: s.dia_fin,
-          }));
+
+        // Usar helper para calcular conteos
+        const secuenciasMapeadas = await recalcularTestingCardsCount(secuenciasArray);
         setSecuencias(secuenciasMapeadas);
         // Seleccionar la última secuencia creada
         if (secuenciasMapeadas.length > 0) {
@@ -231,18 +249,9 @@ const ProyectoDetalle: React.FC = () => {
       if (proyectoId) {
         const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
         const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
-        const secuenciasMapeadas = secuenciasArray
-          .filter(s => s && s.id !== undefined)
-          .map((s: any) => ({
-            id: s.id?.toString() ?? '',
-            nombre: s.nombre ?? '',
-            descripcion: s.descripcion ?? '',
-            proyectoId: s.id_proyecto?.toString() ?? '',
-            fechaCreacion: s.created_at ?? '',
-            estado: s.estado || 'EN PLANEACION',
-            dia_inicio: s.dia_inicio,
-            dia_fin: s.dia_fin,
-          }));
+
+        // Usar helper para calcular conteos
+        const secuenciasMapeadas = await recalcularTestingCardsCount(secuenciasArray);
         setSecuencias(secuenciasMapeadas);
         // Seleccionar la primera secuencia si existe
         if (secuenciasMapeadas.length > 0) {
@@ -263,6 +272,33 @@ const ProyectoDetalle: React.FC = () => {
    */
   const handleDeleteProject = () => {
     setShowDeleteProjectModal(true);
+  };
+
+  /**
+   * Función para actualizar conteos cuando se crean/eliminan testing cards
+   * @function actualizarConteoTestingCards
+   */
+  const actualizarConteoTestingCards = async () => {
+    if (proyectoId) {
+      try {
+        const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
+        const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
+
+        // Usar helper para calcular conteos
+        const secuenciasMapeadas = await recalcularTestingCardsCount(secuenciasArray);
+        setSecuencias(secuenciasMapeadas);
+
+        // Mantener la secuencia seleccionada actualizada
+        if (secuenciaSeleccionada) {
+          const secuenciaActualizada = secuenciasMapeadas.find(s => s.id === secuenciaSeleccionada.id);
+          if (secuenciaActualizada) {
+            setSecuenciaSeleccionada(secuenciaActualizada);
+          }
+        }
+      } catch (error) {
+        console.error('Error al actualizar conteos de testing cards:', error);
+      }
+    }
   };
 
   /**
@@ -410,18 +446,9 @@ const ProyectoDetalle: React.FC = () => {
             if (proyectoId) {
               const secuenciasData = await obtenerSecuenciasPorProyecto(Number(proyectoId));
               const secuenciasArray = Array.isArray(secuenciasData) ? secuenciasData : [];
-              const secuenciasMapeadas = secuenciasArray
-                .filter(s => s && s.id !== undefined)
-                .map((s: any) => ({
-                  id: s.id?.toString() ?? '',
-                  nombre: s.nombre ?? '',
-                  descripcion: s.descripcion ?? '',
-                  proyectoId: s.id_proyecto?.toString() ?? '',
-                  fechaCreacion: s.created_at ?? '',
-                  estado: s.estado || 'EN PLANEACION',
-                  dia_inicio: s.dia_inicio,
-                  dia_fin: s.dia_fin,
-                }));
+
+              // Usar helper para calcular conteos
+              const secuenciasMapeadas = await recalcularTestingCardsCount(secuenciasArray);
               setSecuencias(secuenciasMapeadas);
               // Mantener la secuencia seleccionada si existe
               if (secuenciaSeleccionada) {
@@ -438,6 +465,7 @@ const ProyectoDetalle: React.FC = () => {
         <FlowEditorSection
           secuenciaSeleccionada={secuenciaSeleccionada}
           onGuardarCambios={handleGuardarCambios}
+          onTestingCardsChange={actualizarConteoTestingCards}
         />
 
         {/* @component: Modal de edición de proyecto */}

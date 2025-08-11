@@ -8,11 +8,13 @@ import styles from './FlowEditorSection.module.css';
 interface FlowEditorSectionProps {
   secuenciaSeleccionada: Secuencia | null;
   onGuardarCambios?: () => void;
+  onTestingCardsChange?: () => void;
 }
 
 const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
   secuenciaSeleccionada,
   onGuardarCambios,
+  onTestingCardsChange,
 }) => {
   const flowEditorRef = useRef<FlowEditorRef>(null);
 
@@ -99,6 +101,7 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
           ref={flowEditorRef}
           key={`flow-${secuenciaSeleccionada.id}`}
           idSecuencia={secuenciaSeleccionada.id}
+          onTestingCardsChange={onTestingCardsChange}
         />
       </div>
     </div>

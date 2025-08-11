@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, FlaskConical } from 'lucide-react';
 import { Secuencia } from '../../../types/secuencia';
 import Button from '../../../components/ui/Button/Button';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal/ConfirmationModal';
@@ -93,11 +93,28 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
       return 'Fecha no disponible';
     }
     try {
-      return new Date(dia).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      // Para evitar problemas de zona horaria, parseamos la fecha como fecha local
+      // Si la fecha viene en formato YYYY-MM-DD, la tratamos como fecha local
+      const fechaParts = dia.split('-');
+      if (fechaParts.length === 3) {
+        const year = parseInt(fechaParts[0]);
+        const month = parseInt(fechaParts[1]) - 1; // Los meses en JS son 0-indexed
+        const day = parseInt(fechaParts[2]);
+        const fecha = new Date(year, month, day);
+        
+        return fecha.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } else {
+        // Fallback para otros formatos
+        return new Date(dia).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
     } catch (error) {
       return 'Fecha inválida';
     }
@@ -279,6 +296,14 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                       <span className={styles['secuencia-fecha-label']}>Fin:</span>
                       <span className={styles['secuencia-fecha-valor']}>
                         {secuencia.dia_fin ? formatearDia(secuencia.dia_fin) : 'No definido'}
+                      </span>
+                    </div>
+
+                    {/* @section: Contador de testing cards */}
+                    <div className={styles['secuencia-testing-counter']}>
+                      <FlaskConical size={14} className={styles['secuencia-testing-counter-icon']} />
+                      <span className={styles['secuencia-testing-counter-text']}>
+                        {secuencia.testing_cards_count || 0} experimentos
                       </span>
                     </div>
                   </div>

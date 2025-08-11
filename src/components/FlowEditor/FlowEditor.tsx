@@ -37,6 +37,7 @@ import {
 
 interface FlowEditorProps {
   idSecuencia?: string | number;
+  onTestingCardsChange?: () => void;
 }
 
 export interface FlowEditorRef {
@@ -49,7 +50,7 @@ const nodeTypes: any = {
   learning: LearningCardNode,
 };
 
-const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, ref) => {
+const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia, onTestingCardsChange }, ref) => {
   const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -292,7 +293,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
         id_responsable: 1, // Cambia por el id de usuario real si lo tienes
-        status: 'En desarrollo'
+        status: 'EN PLANEACION'
       };
       // console.log('[FlowEditor] Enviando payload para crear Testing Card:', payload);
       const nuevaCard = await crearTestingCard(payload);
@@ -328,6 +329,11 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
       };
       setNodes([testingNode]);
       setEdges([]); // Sin conexiones al inicio
+
+      // Notificar al componente padre que cambió el conteo
+      if (onTestingCardsChange) {
+        onTestingCardsChange();
+      }
     } catch (error) {
       console.error('[FlowEditor] Error creando primera Testing Card:', error);
     }
@@ -397,6 +403,11 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
           style: { stroke: '#6C63FF' },
         },
       ]);
+      
+      // Notificar al componente padre que cambió el conteo
+      if (onTestingCardsChange) {
+        onTestingCardsChange();
+      }
       
     } catch (error) {
       console.error('[FlowEditor] Error creando Testing Card hija:', error);
@@ -529,6 +540,11 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
       // Eliminar del frontend
       setNodes(nds => nds.filter(node => node.id !== nodeToDelete.id));
       setEdges(eds => eds.filter(edge => edge.source !== nodeToDelete.id && edge.target !== nodeToDelete.id));
+      
+      // Notificar al componente padre que cambió el conteo
+      if (onTestingCardsChange) {
+        onTestingCardsChange();
+      }
       
       setShowDeleteModal(false);
       setDeleteId(null);

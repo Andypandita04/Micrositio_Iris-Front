@@ -7,6 +7,7 @@ export interface Secuencia {
   estado: 'EN PLANEACION'| 'EN VALIDACION'| 'EN ANALISIS' |'CANCELADO' | 'TERMINADO',
   dia_inicio?: string;
   dia_fin?: string;
+  testing_cards_count?: number;
 }
 
 export interface CreateSecuenciaData {
