@@ -79,15 +79,23 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
 
   // Función para convertir LearningCard del servicio a LearningCardData del componente
   const convertToLearningCardData = (lc: LearningCard): LearningCardData => {
-    return {
+    console.log('[convertToLearningCardData] Input:', lc);
+    console.log('[convertToLearningCardData] id_responsable input:', lc.id_responsable, 'tipo:', typeof lc.id_responsable);
+    
+    const result = {
       id_learning_card: lc.id_learning_card,
       id_testing_card: lc.id_testing_card,
       resultado: lc.resultado || null,
       hallazgo: lc.hallazgo || null,
       estado: lc.estado,
+      id_responsable: lc.id_responsable,
       created_at: new Date().toISOString(), // Valor por defecto
       updated_at: new Date().toISOString(), // Valor por defecto
     };
+    
+    console.log('[convertToLearningCardData] Output:', result);
+    console.log('[convertToLearningCardData] id_responsable output:', result.id_responsable);
+    return result;
   };
 
   const fetchInitialData = async () => {
@@ -216,11 +224,16 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
         console.log('[FlowEditor] learningCards final antes del bucle:', learningCards, 'Longitud:', learningCards.length);
         
         for (const lc of learningCards) {
+          console.log('[FlowEditor] Learning Card RAW desde API:', lc);
+          console.log('[FlowEditor] Campos disponibles en LC:', Object.keys(lc));
+          console.log('[FlowEditor] id_responsable RAW:', lc.id_responsable, 'tipo:', typeof lc.id_responsable);
+          
           const learningCardData = convertToLearningCardData(lc);
           console.log('[FlowEditor] Creando Learning Card:', {
             id_learning_card: learningCardData.id_learning_card,
             id_testing_card: learningCardData.id_testing_card,
-            resultado: learningCardData.resultado
+            resultado: learningCardData.resultado,
+            id_responsable: learningCardData.id_responsable
           });
           
           // Obtener posición del nodo learning
@@ -397,6 +410,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
         id_testing_card: testingCardIdNumber,
         resultado: 'Nuevo aprendizaje',
         estado: 'ACEPTADA',
+        id_responsable: 1, // Valor por defecto - puedes cambiar esto según tu lógica
       });
 
       console.log('[FlowEditor] Nueva Learning Card creada:', nuevaLC);
@@ -613,7 +627,34 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
           nodeTypes={nodeTypes}
           fitView
           onNodeClick={(_, node) => {
-            console.log('Click en nodo:', node);
+            console.log('=== INFORMACIÓN DEL NODO ===');
+            console.log('Tipo:', node.type);
+            console.log('ID del nodo:', node.id);
+            
+            if (node.type === 'learning') {
+              const learningData = node.data as LearningCardData;
+              console.log('--- Learning Card ---');
+              console.log('ID Learning Card:', learningData.id_learning_card);
+              console.log('ID Testing Card:', learningData.id_testing_card);
+              console.log('Resultado:', learningData.resultado);
+              console.log('Hallazgo:', learningData.hallazgo);
+              console.log('Estado:', learningData.estado);
+              console.log('ID Responsable:', learningData.id_responsable);
+              console.log('Creado:', learningData.created_at);
+              console.log('Actualizado:', learningData.updated_at);
+            } else if (node.type === 'testing') {
+              const testingData = node.data as TestingCardData;
+              console.log('--- Testing Card ---');
+              console.log('ID Testing Card:', testingData.id_testing_card);
+              console.log('Título:', testingData.titulo);
+              console.log('Hipótesis:', testingData.hipotesis);
+              console.log('Status:', testingData.status);
+              console.log('ID Responsable:', testingData.id_responsable);
+              console.log('Descripción:', testingData.descripcion);
+            }
+            
+            console.log('Objeto completo:', node);
+            console.log('===========================');
           }}
         >
           <Background variant={BackgroundVariant.Dots} />
@@ -674,7 +715,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
               (n.data as TestingCardData).id_testing_card?.toString() === deleteId
             )?.data as TestingCardData)?.titulo || `con ID ${deleteId}`
             : ''
-        }"? Esta acción no se puede deshacer.`}
+        }"? Esta acción no se puede deshacer. Considere que las testing card hijas se borraran también`}
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"
