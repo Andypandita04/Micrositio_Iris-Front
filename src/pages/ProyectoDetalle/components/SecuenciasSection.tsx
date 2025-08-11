@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit } from 'lucide-react';
 import { Secuencia } from '../../../types/secuencia';
 import Button from '../../../components/ui/Button/Button';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal/ConfirmationModal';
@@ -89,11 +89,39 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
    * @returns {string} Fecha formateada en español
    */
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!fecha || fecha === '') {
+      return 'Fecha no disponible';
+    }
+    try {
+      return new Date(fecha).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
+  };
+
+  /**
+   * Formatea fecha de día específico (dia_inicio/dia_fin)
+   * @function formatearDia
+   * @param {string} dia - Fecha en formato ISO string o fecha simple
+   * @returns {string} Fecha formateada en español
+   */
+  const formatearDia = (dia: string) => {
+    if (!dia || dia === '') {
+      return 'Fecha no disponible';
+    }
+    try {
+      return new Date(dia).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
   };
 
   /**
@@ -164,6 +192,16 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
     handleCloseEditModal();
   };
 
+  /**
+   * Convierte el estado a un nombre de clase CSS válido
+   * @function getEstadoClassName
+   * @param {string} estado - Estado de la secuencia
+   * @returns {string} Nombre de clase CSS válido
+   */
+  const getEstadoClassName = (estado: string) => {
+    return estado.replace(/\s+/g, '_');
+  };
+
   return (
     <div className={styles['secuencias-section']}>
       {/* @section: Header de la sección */}
@@ -215,7 +253,7 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                     <h3 className={styles['secuencia-nombre']}>{secuencia.nombre}</h3>
                     <div className={styles['secuencia-actions']}>
                       {/* @component: Badge de estado */}
-                      <span className={`${styles['secuencia-estado']} ${styles[`estado-${secuencia.estado}`]}`}>
+                      <span className={`${styles['secuencia-estado']} ${styles[`estado-${getEstadoClassName(secuencia.estado)}`]}`}>
                         {secuencia.estado}
                       </span>
 
@@ -247,9 +285,31 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                     {secuencia.descripcion}
                   </p>
 
-                  {/* @section: Fecha de creación */}
-                  <div className={styles['secuencia-fecha']}>
-                    Creada: {formatearFecha(secuencia.fechaCreacion)}
+                  {/* @section: Información de fechas */}
+                  <div className={styles['secuencia-fechas']}>
+                    {/* Fecha de creación */}
+                    <div className={styles['secuencia-fecha-item']}>
+                      <span className={styles['secuencia-fecha-label']}>Creada:</span>
+                      <span className={styles['secuencia-fecha-valor']}>
+                        {formatearFecha(secuencia.fechaCreacion)}
+                      </span>
+                    </div>
+
+                    {/* Día de inicio - mostrar siempre, pero indicar si no hay fecha */}
+                    <div className={styles['secuencia-fecha-item']}>
+                      <span className={styles['secuencia-fecha-label']}>Inicio:</span>
+                      <span className={styles['secuencia-fecha-valor']}>
+                        {secuencia.dia_inicio ? formatearDia(secuencia.dia_inicio) : 'No definido'}
+                      </span>
+                    </div>
+
+                    {/* Día de fin - mostrar siempre, pero indicar si no hay fecha */}
+                    <div className={styles['secuencia-fecha-item']}>
+                      <span className={styles['secuencia-fecha-label']}>Fin:</span>
+                      <span className={styles['secuencia-fecha-valor']}>
+                        {secuencia.dia_fin ? formatearDia(secuencia.dia_fin) : 'No definido'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

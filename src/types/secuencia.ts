@@ -4,7 +4,9 @@ export interface Secuencia {
   descripcion: string;
   proyectoId: string;
   fechaCreacion: string;
-  estado: 'activa' | 'pausada' | 'completada';
+  estado: 'EN PLANEACION'| 'EN VALIDACION'| 'EN ANALISIS' |'CANCELADO' | 'TERMINADO',
+  dia_inicio?: string;
+  dia_fin?: string;
 }
 
 export interface CreateSecuenciaData {

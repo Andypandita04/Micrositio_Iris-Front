@@ -99,7 +99,9 @@ const ProyectoDetalle: React.FC = () => {
               descripcion: s.descripcion ?? '',
               proyectoId: s.id_proyecto?.toString() ?? '',
               fechaCreacion: s.created_at ?? '',
-              estado: s.estado || 'activa',
+              estado: s.estado || 'EN PLANEACION',
+              dia_inicio: s.dia_inicio,
+              dia_fin: s.dia_fin,
             }));
           setSecuencias(secuenciasMapeadas);
 
@@ -187,7 +189,9 @@ const ProyectoDetalle: React.FC = () => {
             descripcion: s.descripcion ?? '',
             proyectoId: s.id_proyecto?.toString() ?? '',
             fechaCreacion: s.created_at ?? '',
-            estado: s.estado || 'activa',
+            estado: s.estado || 'EN PLANEACION',
+            dia_inicio: s.dia_inicio,
+            dia_fin: s.dia_fin,
           }));
         setSecuencias(secuenciasMapeadas);
         // Seleccionar la última secuencia creada
@@ -235,7 +239,9 @@ const ProyectoDetalle: React.FC = () => {
             descripcion: s.descripcion ?? '',
             proyectoId: s.id_proyecto?.toString() ?? '',
             fechaCreacion: s.created_at ?? '',
-            estado: s.estado || 'activa',
+            estado: s.estado || 'EN PLANEACION',
+            dia_inicio: s.dia_inicio,
+            dia_fin: s.dia_fin,
           }));
         setSecuencias(secuenciasMapeadas);
         // Seleccionar la primera secuencia si existe
@@ -412,7 +418,9 @@ const ProyectoDetalle: React.FC = () => {
                   descripcion: s.descripcion ?? '',
                   proyectoId: s.id_proyecto?.toString() ?? '',
                   fechaCreacion: s.created_at ?? '',
-                  estado: s.estado || 'activa',
+                  estado: s.estado || 'EN PLANEACION',
+                  dia_inicio: s.dia_inicio,
+                  dia_fin: s.dia_fin,
                 }));
               setSecuencias(secuenciasMapeadas);
               // Mantener la secuencia seleccionada si existe
