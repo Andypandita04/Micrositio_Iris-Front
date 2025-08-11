@@ -16,7 +16,8 @@ import {
   FileAudio,
   FileSpreadsheet,
   Presentation,
-  BarChart3
+  BarChart3,
+  Users
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
@@ -32,7 +33,21 @@ import {
   isImage 
 } from '../../services/learningCardDocumentService';
 import { MetricaTestingCard, obtenerPorTestingCard, actualizarResultado } from '../../services/metricaTestingCardService';
+import { obtenerEmpleados } from '../../services/empleadosService';
+import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import './styles/TestingCardEditModal.css';
+
+// Interface para Empleado
+interface Empleado {
+  id_empleado: number;
+  nombre_pila: string;
+  apellido_paterno: string;
+  apellido_materno?: string;
+  celular?: string;
+  correo: string;
+  numero_empleado: string;
+  activo: boolean;
+}
 
 /**
  * Props para el componente LearningCardEditModal
@@ -74,7 +89,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     ...node.data,
     resultado: node.data.resultado || '',
     hallazgo: node.data.hallazgo || '',
-    estado: node.data.estado || 'CUMPLIDO',
+    estado: node.data.estado || 'ACEPTADA',
+    id_responsable: node.data.id_responsable || 0,
   });
 
   // @state: Loading y feedback
@@ -96,6 +112,11 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [loadingDocumentos, setLoadingDocumentos] = useState(false);
   const [documentoAEliminar, setDocumentoAEliminar] = useState<LearningCardDocument | null>(null);
   const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
+
+  // Estados para empleados
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [empleadosError, setEmpleadosError] = useState<string | null>(null);
 
   // Estados para métricas del Testing Card asociado - NUEVO ENFOQUE
   const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
@@ -198,6 +219,13 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
       cargarMetricas();
     }
   }, [showMetrics, formData.id_testing_card]);
+
+  /**
+   * Efecto para cargar empleados al montar el componente
+   */
+  useEffect(() => {
+    cargarEmpleados();
+  }, []);
 
   /**
    * Carga las métricas del Testing Card asociado - NUEVO ENFOQUE
@@ -842,6 +870,56 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   };
 
   /**
+   * Carga la lista de empleados
+   * @function cargarEmpleados
+   */
+  const cargarEmpleados = async () => {
+    setLoadingEmpleados(true);
+    setEmpleadosError(null);
+    try {
+      const data = await obtenerEmpleados();
+      setEmpleados(data);
+    } catch (error: any) {
+      setEmpleadosError('Error al cargar empleados');
+    } finally {
+      setLoadingEmpleados(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo de un empleado
+   * @function getNombreCompleto
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Nombre completo del empleado
+   */
+  const getNombreCompleto = (empleado: Empleado) => {
+    return `${empleado.nombre_pila} ${empleado.apellido_paterno}${empleado.apellido_materno ? ' ' + empleado.apellido_materno : ''}`;
+  };
+
+  /**
+   * Obtiene las iniciales de un empleado
+   * @function getIniciales
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Iniciales del empleado
+   */
+  const getIniciales = (empleado: Empleado) => {
+    const nombres = [empleado.nombre_pila, empleado.apellido_paterno, empleado.apellido_materno].filter(Boolean);
+    return nombres.map(n => (n ? n[0] : '')).join('').toUpperCase();
+  };
+
+  const avatarColors = [
+    '#6C63FF', '#FF6584', '#43E6FC', '#FFD166', '#06D6A0', '#FFB5E8', '#B5FFFC', '#B5FFD6', '#B5B5FF', '#FFB5B5'
+  ];
+
+  /**
+   * Obtiene el color del avatar según el índice
+   * @function getAvatarColor
+   * @param {number} index - Índice del empleado
+   * @returns {string} Color del avatar
+   */
+  const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
+
+  /**
    * Maneja el envío del formulario
    * @function handleSubmit
    * @param {React.FormEvent} e - Evento del formulario
@@ -860,6 +938,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         resultado,
         hallazgo,
         estado,
+        id_responsable,
       } = formData;
       
       const payload = {
@@ -868,7 +947,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         id_testing_card: id_testing_card,
         resultado: resultado?.trim() || '',
         hallazgo: hallazgo?.trim() || '',
-        estado: estado || 'CUMPLIDO',
+        estado: estado || 'ACEPTADA',
+        id_responsable: id_responsable || 0,
       };
       
       // Log para depuración
@@ -1192,6 +1272,38 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                 </div>
               </div>
             )}
+          </div>
+
+          {/* @section: Responsable */}
+          <div className="testing-form-group">
+            <label htmlFor="id_responsable" className="testing-form-label">
+              <Users className="testing-form-icon" />
+              Responsable
+              {empleados.length > 0 && formData.id_responsable ? (
+                (() => {
+                  const emp = empleados.find(e => e.id_empleado === formData.id_responsable);
+                  return emp ? (
+                    <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
+                      (Seleccionado: {getNombreCompleto(emp)})
+                    </span>
+                  ) : null;
+                })()
+              ) : null}
+            </label>
+            {/* Selector de responsable (empleado) */}
+            <EmpleadoSelector
+              empleados={empleados}
+              loading={loadingEmpleados}
+              loadingEmpleados={loadingEmpleados}
+              errors={{...errors, empleados: empleadosError || ''}}
+              selectedId={formData.id_responsable}
+              onSelect={(id: number) => setFormData({ ...formData, id_responsable: id })}
+              cargarEmpleados={cargarEmpleados}
+              getNombreCompleto={getNombreCompleto}
+              getIniciales={getIniciales}
+              getAvatarColor={getAvatarColor}
+              hideLabel={true}
+            />
           </div>
 
           {/* @section: Botones de acción */}

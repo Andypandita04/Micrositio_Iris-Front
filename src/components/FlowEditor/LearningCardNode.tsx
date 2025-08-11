@@ -8,11 +8,13 @@ import {
   FileText,
   Lightbulb,
   ExternalLink,
-  BarChart3
+  BarChart3,
+  User
 } from 'lucide-react';
 import { LearningCardData } from './types';
 import { UrlLearningCard, obtenerPorLearningCard } from '../../services/urlLearningCardService';
 import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
+import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import './styles/LearningCardNode.css';
 
 /**
@@ -66,6 +68,10 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
   const [loadingMetricas, setLoadingMetricas] = useState(false);
 
+  // Estado para el empleado responsable
+  const [responsable, setResponsable] = useState<Empleado | null>(null);
+  const [loadingResponsable, setLoadingResponsable] = useState(false);
+
   /**
    * Carga las URLs y métricas cuando se expande el contenido y hay un ID válido
    */
@@ -76,9 +82,13 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
       if (data.id_testing_card) {
         cargarMetricas();
       }
+      // Cargar información del responsable
+      if (data.id_responsable) {
+        cargarResponsable();
+      }
     }
     // eslint-disable-next-line
-  }, [isExpanded, data.id_learning_card, data.id_testing_card]);
+  }, [isExpanded, data.id_learning_card, data.id_testing_card, data.id_responsable]);
 
   /**
    * Carga las URLs desde la base de datos
@@ -114,6 +124,40 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
     } finally {
       setLoadingMetricas(false);
     }
+  };
+
+  /**
+   * Carga la información del empleado responsable
+   */
+  const cargarResponsable = async () => {
+    if (!data.id_responsable) return;
+    
+    try {
+      setLoadingResponsable(true);
+      const empleados = await obtenerEmpleados();
+      const empleadoEncontrado = empleados.find((emp: Empleado) => emp.id_empleado === data.id_responsable);
+      setResponsable(empleadoEncontrado || null);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar responsable:', error);
+      setResponsable(null);
+    } finally {
+      setLoadingResponsable(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo de un empleado
+   */
+  const getNombreCompleto = (empleado: Empleado) => {
+    return `${empleado.nombre_pila} ${empleado.apellido_paterno}${empleado.apellido_materno ? ' ' + empleado.apellido_materno : ''}`;
+  };
+
+  /**
+   * Obtiene las iniciales de un empleado
+   */
+  const getIniciales = (empleado: Empleado) => {
+    const nombres = [empleado.nombre_pila, empleado.apellido_paterno, empleado.apellido_materno].filter(Boolean);
+    return nombres.map(n => (n ? n[0] : '')).join('').toUpperCase();
   };
 
   /**
@@ -192,7 +236,9 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
       }}>
         {metricas.map((metrica) => (
           <div 
-            key={metrica.id_metrica} 
+            key={metrica.id} 
+            //key={metrica.id_metrica} 
+
             className="metrica-item"
             style={{
               padding: '8px 12px',
@@ -369,6 +415,93 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
                 Métricas 
               </div>
               {renderMetricas()}
+            </div>
+          )}
+
+          {/* Sección del responsable */}
+          {isExpanded && (
+            <div className="responsable-section" style={{ marginBottom: '16px' }}>
+              <div className="responsable-label" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)',
+                marginBottom: '8px'
+              }}>
+                <User size={12} style={{ marginRight: '4px' }} />
+                Responsable
+              </div>
+              
+              {loadingResponsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  Cargando responsable...
+                </div>
+              )}
+
+              {!loadingResponsable && !responsable && data.id_responsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No se encontró información del responsable
+                </div>
+              )}
+
+              {!loadingResponsable && !data.id_responsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No hay responsable asignado
+                </div>
+              )}
+
+              {!loadingResponsable && responsable && (
+                <div className="responsable-info" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  backgroundColor: 'var(--theme-bg-secondary)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--theme-border)',
+                  fontSize: '12px'
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#6C63FF',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    fontWeight: 'bold'
+                  }}>
+                    {getIniciales(responsable)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--theme-text-primary)' }}>
+                      {getNombreCompleto(responsable)}
+                    </div>
+                    <div style={{ color: 'var(--theme-text-secondary)', fontSize: '11px' }}>
+                      {responsable.correo}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           

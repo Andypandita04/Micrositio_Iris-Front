@@ -98,6 +98,7 @@ export interface LearningCardData {
   resultado: string | null;
   hallazgo: string | null;
   estado: 'ACEPTADA' | 'RECHAZADA' | 'REITERAR' | 'MAL PLANTEADA';
+  id_responsable: number;
   created_at: string;
   updated_at: string;
   attachments?: Attachment[];
