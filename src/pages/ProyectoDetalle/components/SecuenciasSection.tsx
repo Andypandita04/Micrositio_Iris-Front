@@ -16,6 +16,8 @@ interface SecuenciasSectionProps {
   secuencias: Secuencia[];
   /** Secuencia actualmente seleccionada */
   secuenciaSeleccionada: Secuencia | null;
+  /** Título del proyecto */
+  tituloProyecto?: string;
   /** Función callback para seleccionar una secuencia */
   onSecuenciaSelect: (secuencia: Secuencia) => void;
   /** Función callback para crear una nueva secuencia */
@@ -64,6 +66,7 @@ interface SecuenciasSectionProps {
 const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
   secuencias,
   secuenciaSeleccionada,
+  tituloProyecto,
   onSecuenciaSelect,
   onNuevaSecuencia,
   onEliminarSecuencia,
@@ -203,6 +206,9 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
       {/* @section: Header de la sección */}
       <div className={styles['secuencias-header']}>
         <div className={styles['secuencias-title-container']}>
+          <h1 className={styles['proyecto-titulo']}>
+            {tituloProyecto || 'Sin título'}
+          </h1>
           <h2 className={styles['secuencias-title']}>Secuencias del Proyecto</h2>
           <p className={styles['secuencias-description']}>
             Selecciona una secuencia para visualizar y editar su flujo de trabajo

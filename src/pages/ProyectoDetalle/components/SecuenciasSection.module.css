@@ -12,6 +12,18 @@
   background-color: var(--theme-bg-secondary);
 }
 
+.proyecto-titulo {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+  /* Comentar el gradiente temporalmente para debuggear */
+  /* background: linear-gradient(135deg, var(--color-primary-purple), var(--color-primary-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text; */
+}
+
 .secuencias-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);

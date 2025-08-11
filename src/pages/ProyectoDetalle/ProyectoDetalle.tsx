@@ -439,6 +439,7 @@ const ProyectoDetalle: React.FC = () => {
         <SecuenciasSection
           secuencias={secuencias}
           secuenciaSeleccionada={secuenciaSeleccionada}
+          tituloProyecto={proyecto.nombre}
           onSecuenciaSelect={handleSecuenciaSelect}
           onNuevaSecuencia={handleNuevaSecuencia}
           onEliminarSecuencia={handleEliminarSecuencia}
