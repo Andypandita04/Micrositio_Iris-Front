@@ -13,4 +13,6 @@ export interface CreateSecuenciaData {
   nombre: string;
   descripcion: string;
   id_proyecto: number;
+  dia_inicio?: string;
+  dia_fin?: string;
 }
