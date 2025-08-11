@@ -206,10 +206,10 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
       {/* @section: Header de la sección */}
       <div className={styles['secuencias-header']}>
         <div className={styles['secuencias-title-container']}>
-          <h1 className={styles['proyecto-titulo']}>
+          <h2 className={styles['secuencias-title']}>Secuencias del Proyecto:</h2>
+          <h3 className={styles['proyecto-titulo']}>
             {tituloProyecto || 'Sin título'}
-          </h1>
-          <h2 className={styles['secuencias-title']}>Secuencias del Proyecto</h2>
+          </h3>
           <p className={styles['secuencias-description']}>
             Selecciona una secuencia para visualizar y editar su flujo de trabajo
           </p>
