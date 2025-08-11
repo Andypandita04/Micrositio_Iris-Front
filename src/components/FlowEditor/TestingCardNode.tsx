@@ -368,14 +368,14 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
             className={`status-badge ${data.status.toLowerCase().replace(' ', '-')}`}
             style={{
               backgroundColor:
-                data.status === 'En validación'
+                data.status === 'EN VALIDACION'
                   ? '#facc15'
-                  : data.status === 'En desarrollo'
+                  : data.status === 'EN PLANEACION'
                   ? '#22c55e'
-                  : data.status === 'En ejecución'
+                  : data.status === 'EN ANALISIS'
                   ? '#2563eb'
-                  : data.status === 'Terminado'
-                  ? '#ef4444'
+                  : data.status === 'TERMINADO'
+                  ? '#ef4444'                  
                   : '#9ca3af',
               color: '#fff',
               borderRadius: 8,

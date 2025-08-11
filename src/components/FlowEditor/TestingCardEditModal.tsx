@@ -96,7 +96,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       dia_fin: node.data.dia_fin || '',
       id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
       id_experimento_tipo: typeof node.data.id_experimento_tipo === 'number' ? node.data.id_experimento_tipo : 0,
-      status: node.data.status || 'En validación',
+      status: node.data.status || 'EN VALIDACION',
       metricas: node.data.metricas || [],
       documentationUrls: node.data.documentationUrls || [],
       attachments: node.data.attachments || [],
@@ -183,6 +183,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .then((data) => {
           console.log('[useEffect BD] Datos cargados desde BD:', data);
           console.log('[useEffect BD] id_experimento_tipo desde BD:', data.id_experimento_tipo);
+          console.log('[useEffect BD] status desde BD:', data.status);
           setFormData(prev => ({ 
             ...prev, 
             ...data,
@@ -297,7 +298,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         dia_fin: dia_fin || '',
         id_responsable: Number(id_responsable) || -1,
         id_experimento_tipo: Number(id_experimento_tipo) || 0,
-        status: status || 'En validación',
+        status: status || 'EN VALIDACION',
         //metricas: Array.isArray(metricas) ? metricas : [],
         //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
         //attachments: Array.isArray(attachments) ? attachments : [],
@@ -1050,16 +1051,15 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 padding: '2px 10px',
                 minWidth: 80,
                 textAlign: 'center',
-                textTransform: 'capitalize',
                 letterSpacing: 0.5,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
               }}
             >
-              <option value="En desarrollo">En desarrollo</option>
-              <option value="En validación">En validación</option>
-              <option value="En ejecución">En ejecución</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Terminado">Terminado</option>
+              <option value="EN PLANEACION">EN PLANEACION</option>
+              <option value="EN VALIDACION">EN VALIDACION</option>
+              <option value="EN ANALISIS">EN ANALISIS</option>
+              <option value="CANCELADO">CANCELADO</option>
+              <option value="TERMINADO">TERMINADO</option>
             </select>
           </div>
           {/* @section: Información básica */}
@@ -1412,9 +1412,11 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               <label htmlFor="dia_fin" className="testing-form-label">
                 <Calendar className="testing-form-icon" />
                 Fecha Fin
-              </label>
+              </label>f
               <input
                 type="date"
+                id="dia_fin"
+                value={formData.dia_fin}
                 onChange={(e) => setFormData({...formData, dia_fin: e.target.value})}
                 className="testing-input"
                 min={formData.dia_inicio}

@@ -347,7 +347,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
         dia_fin: new Date().toISOString().slice(0, 10),
         id_responsable: 1, // Valor por defecto
         id_experimento_tipo: 15, // Valor por defecto
-        status: 'En validación',
+        status: 'EN PLANEACION',
       };
       
       // console.log('[FlowEditor] Payload para Testing Card hija:', payload);
@@ -608,7 +608,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia }, 
           ...node,
           data: {
             ...node.data,
-            status: currentStatus === 'En desarrollo' ? 'En validación' : 'En desarrollo',
+            status: currentStatus === 'EN PLANEACION' ? 'EN VALIDACION' : currentStatus === 'EN VALIDACION' ? 'EN ANALISIS' : currentStatus === 'EN ANALISIS' ? 'TERMINADO' : 'CANCELADO',
           },
         };
       }
