@@ -15,7 +15,9 @@ import {
   FileVideo,
   FileAudio,
   FileSpreadsheet,
-  Presentation
+  Presentation,
+  BarChart3,
+  Users
 } from 'lucide-react';
 import { Node } from 'reactflow';
 import { LearningCardData } from './types';
@@ -30,7 +32,22 @@ import {
   deleteDocument, 
   isImage 
 } from '../../services/learningCardDocumentService';
+import { MetricaTestingCard, obtenerPorTestingCard, actualizarResultado } from '../../services/metricaTestingCardService';
+import { obtenerEmpleados } from '../../services/empleadosService';
+import EmpleadoSelector from '../../pages/Proyectos/components/EmpleadoSelector';
 import './styles/TestingCardEditModal.css';
+
+// Interface para Empleado
+interface Empleado {
+  id_empleado: number;
+  nombre_pila: string;
+  apellido_paterno: string;
+  apellido_materno?: string;
+  celular?: string;
+  correo: string;
+  numero_empleado: string;
+  activo: boolean;
+}
 
 /**
  * Props para el componente LearningCardEditModal
@@ -72,7 +89,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     ...node.data,
     resultado: node.data.resultado || '',
     hallazgo: node.data.hallazgo || '',
-    estado: node.data.estado || 'CUMPLIDO',
+    estado: node.data.estado || 'ACEPTADA',
+    id_responsable: node.data.id_responsable || 0,
   });
 
   // @state: Loading y feedback
@@ -95,12 +113,26 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   const [documentoAEliminar, setDocumentoAEliminar] = useState<LearningCardDocument | null>(null);
   const [showDeleteDocumentConfirmation, setShowDeleteDocumentConfirmation] = useState(false);
 
+  // Estados para empleados
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [loadingEmpleados, setLoadingEmpleados] = useState(false);
+  const [empleadosError, setEmpleadosError] = useState<string | null>(null);
+
+  // Estados para métricas del Testing Card asociado - NUEVO ENFOQUE
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [savingMetrica, setSavingMetrica] = useState<number | null>(null);
+  
+  // Nuevo estado: mapa de resultados editables por ID único
+  const [resultadosEditables, setResultadosEditables] = useState<{[uniqueKey: string]: string}>({});
+
   // Opciones de estado para la Learning Card
   const statusOptions = [
-    { value: 'CUMPLIDO', label: 'Cumplido' },
-    { value: 'RECHAZADO', label: 'Rechazado' },
-    { value: 'REPETIR', label: 'Repetir' },
-    { value: 'VALIDADA', label: 'Validada' },
+    { value: 'ACEPTADA', label: 'Aceptada' },
+    { value: 'RECHAZADA', label: 'Rechazada' },
+    { value: 'REITERAR', label: 'Reiterar' },
+    { value: 'MAL PLANTEADA', label: 'Mal planteada' },
   ];
 
   /**
@@ -178,6 +210,331 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
     cargarUrls();
     cargarDocumentos();
   }, [editingIdLC]);
+
+  /**
+   * Efecto para cargar métricas cuando se abre la sección de métricas
+   */
+  useEffect(() => {
+    if (showMetrics && formData.id_testing_card) {
+      cargarMetricas();
+    }
+  }, [showMetrics, formData.id_testing_card]);
+
+  /**
+   * Efecto para cargar empleados al montar el componente
+   */
+  useEffect(() => {
+    cargarEmpleados();
+  }, []);
+
+  /**
+   * Carga las métricas del Testing Card asociado - NUEVO ENFOQUE
+   */
+  const cargarMetricas = async () => {
+    if (!formData.id_testing_card) {
+      console.warn('[cargarMetricas] No hay id_testing_card disponible');
+      return;
+    }
+    
+    try {
+      setLoadingMetricas(true);
+      console.log('[cargarMetricas] Cargando métricas para Testing Card ID:', formData.id_testing_card);
+      
+      const metricasData = await obtenerPorTestingCard(formData.id_testing_card);
+      console.log('[cargarMetricas] Métricas recibidas del backend:', metricasData);
+      
+      // Validación defensiva
+      const metricasArray = Array.isArray(metricasData) ? metricasData : [];
+      
+      if (metricasArray.length === 0) {
+        console.info('[cargarMetricas] No se encontraron métricas para este Testing Card');
+        setMetricas([]);
+        setResultadosEditables({});
+        return;
+      }
+      
+      // Procesar métricas y crear claves únicas
+      const resultadosIniciales: {[uniqueKey: string]: string} = {};
+      metricasArray.forEach((metrica, index) => {
+        console.log(`[cargarMetricas] Procesando métrica ${index + 1}:`, {
+          completa: metrica,
+          id: metrica.id,
+          nombre: metrica.nombre,
+          resultado: metrica.resultado
+        });
+        
+        // Crear clave única usando múltiples campos para garantizar unicidad
+        const uniqueKey = `${metrica.id || index}_${metrica.nombre || 'sin_nombre'}_${metrica.id_testing_card}`;
+        resultadosIniciales[uniqueKey] = metrica.resultado ? String(metrica.resultado) : '';
+        
+        console.log(`[cargarMetricas] Clave única generada: "${uniqueKey}" con resultado: "${metrica.resultado || ''}"`);
+      });
+      
+      setMetricas(metricasArray);
+      setResultadosEditables(resultadosIniciales);
+      
+      console.log('[cargarMetricas] ✅ Métricas cargadas exitosamente:', {
+        cantidad: metricasArray.length,
+        resultadosIniciales
+      });
+      
+    } catch (error) {
+      console.error('[cargarMetricas] ❌ Error al cargar métricas:', error);
+      setMetricas([]);
+      setResultadosEditables({});
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Genera una clave única para identificar una métrica
+   */
+  const generarClaveUnicaMetrica = (metrica: MetricaTestingCard, index: number): string => {
+    return `${metrica.id || index}_${metrica.nombre || 'sin_nombre'}_${metrica.id_testing_card}`;
+  };
+
+  /**
+   * Maneja el cambio en el resultado de una métrica - NUEVO ENFOQUE
+   */
+  const handleCambioResultadoMetrica = (metrica: MetricaTestingCard, index: number, nuevoValor: string) => {
+    const claveUnica = generarClaveUnicaMetrica(metrica, index);
+    console.log('[handleCambioResultadoMetrica]', {
+      metrica: metrica.nombre,
+      claveUnica,
+      nuevoValor,
+      id: metrica.id
+    });
+    
+    setResultadosEditables(prev => ({
+      ...prev,
+      [claveUnica]: nuevoValor
+    }));
+  };
+
+  /**
+   * Guarda el resultado de una métrica específica - NUEVO ENFOQUE ROBUSTO
+   */
+  const guardarResultadoMetricaNuevo = async (metrica: MetricaTestingCard, index: number) => {
+    const claveUnica = generarClaveUnicaMetrica(metrica, index);
+    const nuevoResultado = resultadosEditables[claveUnica];
+    
+    console.log('[guardarResultadoMetricaNuevo] 🚀 Iniciando guardado con:', {
+      metrica: {
+        id: metrica.id,
+        nombre: metrica.nombre,
+        id_testing_card: metrica.id_testing_card
+      },
+      claveUnica,
+      nuevoResultado,
+      index
+    });
+    
+    // Validaciones iniciales
+    if (!metrica) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Métrica no válida');
+      setErrorMsg('Error: métrica no válida');
+      return;
+    }
+    
+    if (metrica.id === undefined || metrica.id === null) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ ID de métrica no válido:', metrica.id);
+      setErrorMsg('Error: ID de métrica no válido');
+      return;
+    }
+    
+    if (nuevoResultado === undefined || nuevoResultado === null) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Resultado no válido:', nuevoResultado);
+      setErrorMsg('Error: resultado no válido');
+      return;
+    }
+    
+    try {
+      setSavingMetrica(metrica.id);
+      console.log('[guardarResultadoMetricaNuevo] 📡 Llamando API con:', {
+        id: metrica.id,
+        resultado: nuevoResultado
+      });
+      
+      // Llamada a la API con el endpoint que funciona en Postman
+      // CLAVE: Usar metrica.id (no metrica.id_metrica) porque ese es el campo correcto
+      const metricaActualizada = await actualizarResultado(metrica.id, nuevoResultado);
+      console.log('[guardarResultadoMetricaNuevo] ✅ Respuesta de API:', metricaActualizada);
+      
+      // Actualizar el estado local con la métrica actualizada
+      setMetricas(prevMetricas => 
+        prevMetricas.map(m => 
+          m.id === metrica.id 
+            ? { ...m, resultado: nuevoResultado }
+            : m
+        )
+      );
+      
+      setSuccessMsg(`Resultado de métrica "${metrica.nombre}" actualizado exitosamente`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      
+      console.log('[guardarResultadoMetricaNuevo] ✅ Guardado exitoso para métrica:', metrica.nombre);
+      
+    } catch (error: any) {
+      console.error('[guardarResultadoMetricaNuevo] ❌ Error al actualizar métrica:', error);
+      
+      let mensajeError = 'Error al actualizar el resultado de la métrica';
+      if (error?.response?.data?.message) {
+        mensajeError = error.response.data.message;
+      } else if (error?.message) {
+        mensajeError = error.message;
+      }
+      
+      setErrorMsg(mensajeError);
+      setTimeout(() => setErrorMsg(''), 5000);
+    } finally {
+      setSavingMetrica(null);
+    }
+  };
+
+  /**
+   * Renderiza la sección de métricas
+   */
+  const renderSeccionMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          Cargando métricas...
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          No hay métricas definidas para el Testing Card asociado
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {metricas.map((metrica, index) => {
+          const claveUnica = generarClaveUnicaMetrica(metrica, index);
+          const valorActual = resultadosEditables[claveUnica] || '';
+          const estaGuardando = savingMetrica === metrica.id;
+          
+          console.log('[renderSeccionMetricas] Renderizando métrica:', {
+            index,
+            nombre: metrica.nombre,
+            id: metrica.id,
+            claveUnica,
+            valorActual,
+            metricaCompleta: metrica
+          });
+          
+          return (
+          <div 
+            key={claveUnica}
+            className="metrica-item"
+            style={{
+              padding: '12px',
+              backgroundColor: 'var(--theme-bg-secondary)',
+              borderRadius: '8px',
+              border: '1px solid var(--theme-border)',
+              fontSize: '13px'
+            }}
+          >
+            <div className="metrica-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '8px'
+            }}>
+              <BarChart3 size={16} />
+              <span className="metrica-nombre" style={{ fontWeight: '600', flex: 1 }}>
+                {metrica.nombre}
+              </span>
+              <span className="metrica-criterio" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '12px'
+              }}>
+                {metrica.operador} {metrica.criterio}
+              </span>
+            </div>
+            
+            <div className="metrica-resultado" style={{ marginTop: '8px' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '4px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)'
+              }}>
+                Resultado obtenido:
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  value={valorActual}
+                  onChange={(e) => handleCambioResultadoMetrica(metrica, index, e.target.value)}
+                  placeholder="Ingresa el resultado obtenido..."
+                  disabled={estaGuardando}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    border: '1px solid var(--theme-border)',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    opacity: estaGuardando ? 0.7 : 1
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => guardarResultadoMetricaNuevo(metrica, index)}
+                  disabled={estaGuardando}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: estaGuardando ? 'var(--theme-text-secondary)' : 'var(--theme-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    cursor: estaGuardando ? 'not-allowed' : 'pointer',
+                    minWidth: '70px'
+                  }}
+                >
+                  {estaGuardando ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+            
+            {/* Mostrar resultado actual si existe */}
+            {metrica.resultado && (
+              <div style={{
+                marginTop: '8px',
+                padding: '6px 8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: 'var(--theme-text-secondary)',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <strong>Resultado actual:</strong> {metrica.resultado}
+              </div>
+            )}
+          </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Funciones para manejar URLs
   const addDocumentationUrl = async (url: string) => {
@@ -513,6 +870,56 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
   };
 
   /**
+   * Carga la lista de empleados
+   * @function cargarEmpleados
+   */
+  const cargarEmpleados = async () => {
+    setLoadingEmpleados(true);
+    setEmpleadosError(null);
+    try {
+      const data = await obtenerEmpleados();
+      setEmpleados(data);
+    } catch (error: any) {
+      setEmpleadosError('Error al cargar empleados');
+    } finally {
+      setLoadingEmpleados(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo de un empleado
+   * @function getNombreCompleto
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Nombre completo del empleado
+   */
+  const getNombreCompleto = (empleado: Empleado) => {
+    return `${empleado.nombre_pila} ${empleado.apellido_paterno}${empleado.apellido_materno ? ' ' + empleado.apellido_materno : ''}`;
+  };
+
+  /**
+   * Obtiene las iniciales de un empleado
+   * @function getIniciales
+   * @param {Empleado} empleado - Objeto empleado
+   * @returns {string} Iniciales del empleado
+   */
+  const getIniciales = (empleado: Empleado) => {
+    const nombres = [empleado.nombre_pila, empleado.apellido_paterno, empleado.apellido_materno].filter(Boolean);
+    return nombres.map(n => (n ? n[0] : '')).join('').toUpperCase();
+  };
+
+  const avatarColors = [
+    '#6C63FF', '#FF6584', '#43E6FC', '#FFD166', '#06D6A0', '#FFB5E8', '#B5FFFC', '#B5FFD6', '#B5B5FF', '#FFB5B5'
+  ];
+
+  /**
+   * Obtiene el color del avatar según el índice
+   * @function getAvatarColor
+   * @param {number} index - Índice del empleado
+   * @returns {string} Color del avatar
+   */
+  const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
+
+  /**
    * Maneja el envío del formulario
    * @function handleSubmit
    * @param {React.FormEvent} e - Evento del formulario
@@ -531,6 +938,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         resultado,
         hallazgo,
         estado,
+        id_responsable,
       } = formData;
       
       const payload = {
@@ -539,7 +947,8 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
         id_testing_card: id_testing_card,
         resultado: resultado?.trim() || '',
         hallazgo: hallazgo?.trim() || '',
-        estado: estado || 'CUMPLIDO',
+        estado: estado || 'ACEPTADA',
+        id_responsable: id_responsable || 0,
       };
       
       // Log para depuración
@@ -645,14 +1054,14 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           <div className="testing-form-group">
             <label htmlFor="result" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Resultados Obtenidos
+              Resultados Obtenidos (observamos...)
             </label>
             <textarea
               id="result"
               value={formData.resultado ?? ''}
               onChange={(e) => setFormData({...formData, resultado: e.target.value})}
               className={`testing-input textarea ${errors.resultado ? 'input-error' : ''}`}
-              placeholder="Describe los resultados del experimento"
+              placeholder="Resultados Obtenidos (observamos...)"
               rows={3}
             />
             {errors.resultado && <span className="testing-error-text">{errors.resultado}</span>}
@@ -662,17 +1071,74 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           <div className="testing-form-group">
             <label htmlFor="insight" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Hallazgo Accionable
+              Hallazgo Accionable (por ende, haremos...)
             </label>
             <textarea
               id="insight"
               value={formData.hallazgo ?? ''}
               onChange={(e) => setFormData({ ...formData, hallazgo: e.target.value })}
               className={`testing-input textarea ${errors.hallazgo ? 'input-error' : ''}`}
-              placeholder="¿Qué aprendizajes podemos aplicar?"
+              placeholder="Hallazgo Accionable (por ende, haremos...)"
               rows={3}
             />
             {errors.hallazgo && <span className="testing-error-text">{errors.hallazgo}</span>}
+          </div>
+
+          {/* @section: Métricas del Testing Card asociado */}
+          <div className="testing-form-section">
+            <button
+              type="button"
+              className="testing-form-section-toggle"
+              onClick={() => setShowMetrics(!showMetrics)}
+            >
+              <span className={`toggle-icon${showMetrics ? ' open' : ''}`}>▼</span>
+              <span>Métricas del Testing Card</span>
+              {metricas.length > 0 && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  background: 'var(--theme-primary)', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  padding: '2px 8px',
+                  fontWeight: '600'
+                }}>
+                  {metricas.length} métrica{metricas.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </button>
+
+            {showMetrics && (
+              <div className="testing-form-section-content">
+                <div className="documentation-subsection">
+                  <h4 className="subsection-title">
+                    <BarChart3 size={14} />
+                    Resultados de Métricas
+                    {metricas.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '10px', 
+                        background: 'var(--theme-primary)', 
+                        color: 'white', 
+                        borderRadius: '10px', 
+                        padding: '2px 6px' 
+                      }}>
+                        {metricas.length}
+                      </span>
+                    )}
+                  </h4>
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--theme-text-secondary)',
+                    marginBottom: '12px',
+                    fontStyle: 'italic'
+                  }}>
+                    Actualiza los resultados obtenidos para cada métrica del Testing Card asociado:
+                  </p>
+                  {renderSeccionMetricas()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* @section: Documentación expandible */}
@@ -806,6 +1272,38 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                 </div>
               </div>
             )}
+          </div>
+
+          {/* @section: Responsable */}
+          <div className="testing-form-group">
+            <label htmlFor="id_responsable" className="testing-form-label">
+              <Users className="testing-form-icon" />
+              Seleccionar siguiente responsable
+              {empleados.length > 0 && formData.id_responsable ? (
+                (() => {
+                  const emp = empleados.find(e => e.id_empleado === formData.id_responsable);
+                  return emp ? (
+                    <span style={{ marginLeft: 8, fontWeight: 500, color: '#6C63FF' }}>
+                      (Seleccionado: {getNombreCompleto(emp)})
+                    </span>
+                  ) : null;
+                })()
+              ) : null}
+            </label>
+            {/* Selector de responsable (empleado) */}
+            <EmpleadoSelector
+              empleados={empleados}
+              loading={loadingEmpleados}
+              loadingEmpleados={loadingEmpleados}
+              errors={{...errors, empleados: empleadosError || ''}}
+              selectedId={formData.id_responsable}
+              onSelect={(id: number) => setFormData({ ...formData, id_responsable: id })}
+              cargarEmpleados={cargarEmpleados}
+              getNombreCompleto={getNombreCompleto}
+              getIniciales={getIniciales}
+              getAvatarColor={getAvatarColor}
+              hideLabel={true}
+            />
           </div>
 
           {/* @section: Botones de acción */}

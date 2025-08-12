@@ -4,13 +4,14 @@ import apiClient from '../apiClient';
  * Interfaz que representa una métrica de testing card.
  */
 export interface MetricaTestingCard {
-  id_metrica: number;
+  id: number;                    // ← Campo correcto del backend
   id_testing_card: number;
   nombre: string;
   operador: string;
   criterio: string;
-  created_at: string;
-  updated_at: string;
+  resultado?: string | number;   // ← Puede ser string o number
+  creado: string;               // ← Campo correcto del backend
+  actualizado: string;          // ← Campo correcto del backend
 }
 
 /**
@@ -82,4 +83,37 @@ export const eliminar = async (id_metrica: number): Promise<void> => {
   await apiClient.delete('/metrica_testing_card', {
     data: { id_metrica_testing_card: id_metrica },
   });
+};
+
+/**
+ * Actualiza el resultado de una métrica específica.
+ * @param {number} id_metrica - ID de la métrica a actualizar.
+ * @param {string} resultado - Nuevo resultado de la métrica.
+ * @returns {Promise<MetricaTestingCard>} Métrica actualizada.
+ */
+export const actualizarResultado = async (
+  id_metrica: number,
+  resultado: string
+): Promise<MetricaTestingCard> => {
+  // Convertir el resultado a número ya que el backend lo espera así
+  const resultadoNumerico = parseFloat(resultado) || 0;
+  
+  const requestData = {
+    id_metrica_testing_card: id_metrica,
+    resultado: resultadoNumerico  // ← Enviar como número
+  };
+  
+  console.log('[actualizarResultado] Datos de la petición:', requestData);
+  console.log('[actualizarResultado] Resultado convertido:', `"${resultado}" → ${resultadoNumerico}`);
+  console.log('[actualizarResultado] Endpoint:', '/metrica_testing_card/resultado');
+  console.log('[actualizarResultado] Método: PATCH');
+  
+  try {
+    const response = await apiClient.patch('/metrica_testing_card/resultado', requestData);
+    console.log('[actualizarResultado] Respuesta exitosa:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('[actualizarResultado] Error en la petición:', error);
+    throw error;
+  }
 };

@@ -67,7 +67,7 @@ export interface TestingCardData {
   dia_fin: string;
   anexo_url?: string | null;
   id_responsable: number;
-  status: 'En desarrollo' | 'En validación' | 'En ejecución' | 'Cancelado' | 'Terminado';
+  status: 'EN PLANEACION' | 'EN VALIDACION' | 'EN ANALISIS' | 'CANCELADO' | 'TERMINADO';
   created_at?: string;
   updated_at?: string;
   // Opcionales para frontend
@@ -97,7 +97,8 @@ export interface LearningCardData {
   id_testing_card: number;
   resultado: string | null;
   hallazgo: string | null;
-  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR' | 'VALIDADA';
+  estado: 'ACEPTADA' | 'RECHAZADA' | 'REITERAR' | 'MAL PLANTEADA';
+  id_responsable: number;
   created_at: string;
   updated_at: string;
   attachments?: Attachment[];

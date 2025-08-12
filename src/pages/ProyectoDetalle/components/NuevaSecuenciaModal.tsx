@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, AlertCircle, FileText } from 'lucide-react';
+import { X, Save, Plus, AlertCircle, FileText, Calendar } from 'lucide-react';
 import { CreateSecuenciaData } from '../../../types/secuencia';
 import styles from './NuevaSecuenciaModal.module.css';
 
@@ -45,7 +45,9 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
   const [formData, setFormData] = useState<CreateSecuenciaData>({
     nombre: '',
     descripcion: '',
-    id_proyecto: Number(proyectoId)
+    id_proyecto: Number(proyectoId),
+    dia_inicio: '',
+    dia_fin: ''
   });
 
   // Estado para manejar errores de validación
@@ -108,6 +110,16 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
       newErrors.descripcion = 'La descripción no puede exceder 200 caracteres';
     }
 
+    // Validación de fechas
+    if (formData.dia_inicio && formData.dia_fin) {
+      const fechaInicio = new Date(formData.dia_inicio);
+      const fechaFin = new Date(formData.dia_fin);
+      
+      if (fechaInicio >= fechaFin) {
+        newErrors.dia_fin = 'La fecha de fin debe ser posterior a la fecha de inicio';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -127,7 +139,9 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
       const nuevaSecuencia: CreateSecuenciaData = {
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim(),
-        id_proyecto: Number(proyectoId)
+        id_proyecto: Number(proyectoId),
+        dia_inicio: formData.dia_inicio || undefined,
+        dia_fin: formData.dia_fin || undefined
       };
       // Esperar a que el callback termine (debe refrescar la lista y cerrar el modal)
       await onSecuenciaCreada(nuevaSecuencia);
@@ -148,7 +162,9 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
     setFormData({
       nombre: '',
       descripcion: '',
-      id_proyecto: Number(proyectoId)
+      id_proyecto: Number(proyectoId),
+      dia_inicio: '',
+      dia_fin: ''
     });
     setErrors({});
     setIsSubmitting(false);
@@ -268,6 +284,56 @@ const NuevaSecuenciaModal: React.FC<NuevaSecuenciaModalProps> = ({
               <p className={styles['form-help']}>
                 Proporciona una descripción clara que ayude a otros colaboradores a entender
                 el propósito de esta secuencia.
+              </p>
+            </div>
+
+            {/* Campo de fecha de inicio */}
+            <div className={styles['form-group']}>
+              <label htmlFor="dia_inicio" className={styles['form-label']}>
+                <Calendar size={16} className={styles['form-label-icon']} />
+                Fecha de Inicio (Opcional)
+              </label>
+              <input
+                type="date"
+                id="dia_inicio"
+                value={formData.dia_inicio || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, dia_inicio: e.target.value }))}
+                className={`${styles['form-input']} ${errors.dia_inicio ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              />
+              {errors.dia_inicio && (
+                <span className={styles['form-error']}>
+                  <AlertCircle size={14} className={styles['form-error-icon']} />
+                  {errors.dia_inicio}
+                </span>
+              )}
+              <p className={styles['form-help']}>
+                Define cuándo planeas comenzar esta secuencia.
+              </p>
+            </div>
+
+            {/* Campo de fecha de fin */}
+            <div className={styles['form-group']}>
+              <label htmlFor="dia_fin" className={styles['form-label']}>
+                <Calendar size={16} className={styles['form-label-icon']} />
+                Fecha de Finalización (Opcional)
+              </label>
+              <input
+                type="date"
+                id="dia_fin"
+                value={formData.dia_fin || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, dia_fin: e.target.value }))}
+                className={`${styles['form-input']} ${errors.dia_fin ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              />
+              {errors.dia_fin && (
+                <span className={styles['form-error']}>
+                  <AlertCircle size={14} className={styles['form-error-icon']} />
+                  {errors.dia_fin}
+                </span>
+              )}
+              <p className={styles['form-help']}>
+                Establece una fecha límite estimada para completar esta secuencia.
               </p>
             </div>
           </form>

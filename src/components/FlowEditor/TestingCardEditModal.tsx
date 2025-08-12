@@ -96,7 +96,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
       dia_fin: node.data.dia_fin || '',
       id_responsable: typeof node.data.id_responsable === 'number' ? node.data.id_responsable : 0,
       id_experimento_tipo: typeof node.data.id_experimento_tipo === 'number' ? node.data.id_experimento_tipo : 0,
-      status: node.data.status || 'En validación',
+      status: node.data.status || 'EN VALIDACION',
       metricas: node.data.metricas || [],
       documentationUrls: node.data.documentationUrls || [],
       attachments: node.data.attachments || [],
@@ -183,6 +183,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         .then((data) => {
           console.log('[useEffect BD] Datos cargados desde BD:', data);
           console.log('[useEffect BD] id_experimento_tipo desde BD:', data.id_experimento_tipo);
+          console.log('[useEffect BD] status desde BD:', data.status);
           setFormData(prev => ({ 
             ...prev, 
             ...data,
@@ -297,7 +298,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
         dia_fin: dia_fin || '',
         id_responsable: Number(id_responsable) || -1,
         id_experimento_tipo: Number(id_experimento_tipo) || 0,
-        status: status || 'En validación',
+        status: status || 'EN VALIDACION',
         //metricas: Array.isArray(metricas) ? metricas : [],
         //documentationUrls: Array.isArray(documentationUrls) ? documentationUrls : [],
         //attachments: Array.isArray(attachments) ? attachments : [],
@@ -1050,16 +1051,15 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 padding: '2px 10px',
                 minWidth: 80,
                 textAlign: 'center',
-                textTransform: 'capitalize',
                 letterSpacing: 0.5,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
               }}
             >
-              <option value="En desarrollo">En desarrollo</option>
-              <option value="En validación">En validación</option>
-              <option value="En ejecución">En ejecución</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Terminado">Terminado</option>
+              <option value="EN PLANEACION">EN PLANEACION</option>
+              <option value="EN VALIDACION">EN VALIDACION</option>
+              <option value="EN ANALISIS">EN ANALISIS</option>
+              <option value="CANCELADO">CANCELADO</option>
+              <option value="TERMINADO">TERMINADO</option>
             </select>
           </div>
           {/* @section: Información básica */}
@@ -1082,14 +1082,14 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           <div className="testing-form-group">
             <label htmlFor="hipotesis" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Hipótesis
+              Hipótesis (creemos que... )
             </label>
             <textarea
               id="hipotesis"
               value={formData.hipotesis}
               onChange={(e) => setFormData({...formData, hipotesis: e.target.value})}
               className={`testing-input textarea ${errors.hipotesis ? 'input-error' : ''}`}
-              placeholder="Creemos que..."
+              placeholder="Hipótesis (creemos que... )"
               rows={2}
             />
             {errors.hipotesis && <span className="testing-error-text">{errors.hipotesis}</span>}
@@ -1119,11 +1119,13 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                 disabled={loadingPlaybooks}
               >
                 <option value={0}>Selecciona un tipo de experimento</option>
-                {testingCardPlaybooks.map((playbook) => (
-                  <option key={playbook.pagina} value={playbook.pagina}>
-                    {playbook.titulo} - {playbook.campo} ({playbook.tipo})
-                  </option>
-                ))}
+                {testingCardPlaybooks
+                  .sort((a, b) => a.titulo.localeCompare(b.titulo))
+                  .map((playbook) => (
+                    <option key={playbook.pagina} value={playbook.pagina}>
+                      {playbook.titulo} - {playbook.campo} ({playbook.tipo})
+                    </option>
+                  ))}
               </select>
               {/* Mostrar información adicional del playbook seleccionado */}
               {formData.id_experimento_tipo > 0 && (() => {
@@ -1151,19 +1153,110 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
           <div className="testing-form-group">
             <label htmlFor="descripcion" className="testing-form-label">
               <FileText className="testing-form-icon" />
-              Descripción
+              Descripción (para eso haremos... )
             </label>
             <textarea
               id="descripcion"
               value={formData.descripcion}
               onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
               className={`testing-input textarea ${errors.descripcion ? 'input-error' : ''}`}
-              placeholder="Describe cómo realizarás el experimento"
+              placeholder="Descripción (para eso haremos... )"
               rows={3}
             />
             {errors.descripcion && <span className="testing-error-text">{errors.descripcion}</span>}
           </div>
 
+          {/* @section: Métricas expandibles */}
+          <div className="testing-form-section">
+            <button 
+              type="button" 
+              className="testing-form-section-toggle"
+              onClick={() => setShowMetrics(!showMetrics)}
+            >
+              <ChevronDown className={`toggle-icon ${showMetrics ? 'open' : ''}`} />
+              <span>Métricas (y mediremos... )</span>
+            </button>
+            
+            {showMetrics && (
+              <div className="testing-form-section-content">
+                {loadingMetricas && (
+                  <div className="testing-metrics-loading">
+                    <span>Cargando métricas...</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
+                  <div className="testing-metrics-empty">
+                    <span>No hay métricas definidas para esta Testing Card</span>
+                  </div>
+                )}
+                
+                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
+                  const metricWithFrontend = metric as MetricaWithFrontendProps;
+                  return (
+                  <div key={metric.id_metrica || index} className="testing-metric-row">
+                    <input
+                      type="text"
+                      value={metric.nombre}
+                      onChange={(e) => handleMetricChange(index, 'nombre', e.target.value)}
+                      className="testing-input small"
+                      placeholder="Nombre métrica"
+                    />
+                    <select
+                      value={metric.operador}
+                      onChange={(e) => handleMetricChange(index, 'operador', e.target.value)}
+                      className="testing-input small"
+                    >
+                      <option value="">Seleccionar operador</option>
+                      <option value=">">&gt;</option>
+                      <option value="<">&lt;</option>
+                      <option value="=">=</option>
+                      <option value=">=">&gt;=</option>
+                      <option value="<=">&lt;=</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={metric.criterio}
+                      onChange={(e) => handleMetricChange(index, 'criterio', e.target.value)}
+                      className="testing-input small"
+                      placeholder="Criterio"
+                    />
+                    <div className="testing-metric-actions">
+                      {metricWithFrontend.needsCreation ? (
+                        <button 
+                          type="button" 
+                          className="testing-save-btn"
+                          onClick={() => iniciarCreacionMetrica(index)}
+                          title="Guardar métrica en la base de datos"
+                        >
+                          <Save size={14} />
+                        </button>
+                      ) : (
+                        <button 
+                          type="button" 
+                          className="testing-remove-btn"
+                          onClick={() => removeMetric(index)}
+                          title="Eliminar métrica"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  );
+                })}
+                <button 
+                  type="button" 
+                  className="testing-add-btn"
+                  onClick={addMetric}
+                >
+                  <Plus size={14} />
+                  Añadir Métrica
+                </button>
+              </div>
+            )}
+          </div>
+          
           {/* @section: Documentación expandible */}
           <div className="testing-form-section">
             <button 
@@ -1296,91 +1389,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
             )}
           </div>
 
-          {/* @section: Métricas expandibles */}
-          <div className="testing-form-section">
-            <button 
-              type="button" 
-              className="testing-form-section-toggle"
-              onClick={() => setShowMetrics(!showMetrics)}
-            >
-              <ChevronDown className={`toggle-icon ${showMetrics ? 'open' : ''}`} />
-              <span>Métricas a Medir</span>
-            </button>
-            
-            {showMetrics && (
-              <div className="testing-form-section-content">
-                {loadingMetricas && (
-                  <div className="testing-metrics-loading">
-                    <span>Cargando métricas...</span>
-                  </div>
-                )}
-                
-                {!loadingMetricas && formData.metricas && formData.metricas.length === 0 && (
-                  <div className="testing-metrics-empty">
-                    <span>No hay métricas definidas para esta Testing Card</span>
-                  </div>
-                )}
-                
-                {!loadingMetricas && formData.metricas && formData.metricas.map((metric, index) => {
-                  const metricWithFrontend = metric as MetricaWithFrontendProps;
-                  return (
-                  <div key={metric.id_metrica || index} className="testing-metric-row">
-                    <input
-                      type="text"
-                      value={metric.nombre}
-                      onChange={(e) => handleMetricChange(index, 'nombre', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Nombre métrica"
-                    />
-                    <input
-                      type="text"
-                      value={metric.operador}
-                      onChange={(e) => handleMetricChange(index, 'operador', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Operador"
-                    />
-                    <input
-                      type="text"
-                      value={metric.criterio}
-                      onChange={(e) => handleMetricChange(index, 'criterio', e.target.value)}
-                      className="testing-input small"
-                      placeholder="Criterio"
-                    />
-                    <div className="testing-metric-actions">
-                      {metricWithFrontend.needsCreation ? (
-                        <button 
-                          type="button" 
-                          className="testing-save-btn"
-                          onClick={() => iniciarCreacionMetrica(index)}
-                          title="Guardar métrica en la base de datos"
-                        >
-                          <Save size={14} />
-                        </button>
-                      ) : (
-                        <button 
-                          type="button" 
-                          className="testing-remove-btn"
-                          onClick={() => removeMetric(index)}
-                          title="Eliminar métrica"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  );
-                })}
-                <button 
-                  type="button" 
-                  className="testing-add-btn"
-                  onClick={addMetric}
-                >
-                  <Plus size={14} />
-                  Añadir Métrica
-                </button>
-              </div>
-            )}
-          </div>
+          
 
           {/* @section: Fechas y responsable */}
           <div className="testing-form-row">
@@ -1403,7 +1412,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               <label htmlFor="dia_fin" className="testing-form-label">
                 <Calendar className="testing-form-icon" />
                 Fecha Fin
-              </label>
+              </label>f
               <input
                 type="date"
                 id="dia_fin"
