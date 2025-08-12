@@ -1278,7 +1278,7 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
           <div className="testing-form-group">
             <label htmlFor="id_responsable" className="testing-form-label">
               <Users className="testing-form-icon" />
-              Responsable
+              Seleccionar siguiente responsable
               {empleados.length > 0 && formData.id_responsable ? (
                 (() => {
                   const emp = empleados.find(e => e.id_empleado === formData.id_responsable);

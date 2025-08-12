@@ -431,7 +431,7 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
                 marginBottom: '8px'
               }}>
                 <User size={12} style={{ marginRight: '4px' }} />
-                Responsable
+                Siguiente Responsable
               </div>
               
               {loadingResponsable && (
