@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Play, GitBranch, Save } from 'lucide-react';
+import { Play, GitBranch, Save, Bot } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Secuencia } from '../../../types/secuencia';
 import FlowEditor, { FlowEditorRef } from '../../../components/FlowEditor/FlowEditor';
 import Button from '../../../components/ui/Button/Button';
@@ -8,11 +9,13 @@ import styles from './FlowEditorSection.module.css';
 interface FlowEditorSectionProps {
   secuenciaSeleccionada: Secuencia | null;
   onGuardarCambios?: () => void;
+  onTestingCardsChange?: () => void;
 }
 
 const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
   secuenciaSeleccionada,
   onGuardarCambios,
+  onTestingCardsChange,
 }) => {
   const flowEditorRef = useRef<FlowEditorRef>(null);
 
@@ -81,16 +84,25 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
             {secuenciaSeleccionada.nombre}
           </div>
 
-          {onGuardarCambios && (
-            <Button
-              variant="primary"
-              size="small"
-              icon={<Save size={14} />}
-              onClick={handleGuardarCambios}
-            >
-              Guardar
-            </Button>
-          )}
+          <div className={styles['action-buttons']}>
+            {/* @component: Botón de Revisión de Experimentos */}
+            <Link to="/assistant" className={styles['assistant-button']}>
+              <Bot size={14} />
+              <span>Revisión de Experimentos</span>
+            </Link>
+
+            {/* @component: Botón de Guardar */}
+            {onGuardarCambios && (
+              <Button
+                variant="primary"
+                size="small"
+                icon={<Save size={14} />}
+                onClick={handleGuardarCambios}
+              >
+                Guardar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -99,6 +111,7 @@ const FlowEditorSection: React.FC<FlowEditorSectionProps> = ({
           ref={flowEditorRef}
           key={`flow-${secuenciaSeleccionada.id}`}
           idSecuencia={secuenciaSeleccionada.id}
+          onTestingCardsChange={onTestingCardsChange}
         />
       </div>
     </div>

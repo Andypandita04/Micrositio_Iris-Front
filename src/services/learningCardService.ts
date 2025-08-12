@@ -8,7 +8,8 @@ export interface LearningCard {
   id_testing_card: number;
   resultado?: string | null;
   hallazgo?: string | null;
-  estado: 'CUMPLIDO' | 'RECHAZADO' | 'REPETIR' | 'VALIDADA';
+  estado: 'ACEPTADA' | 'RECHAZADA' | 'REITERAR' | 'MAL PLANTEADA';
+  id_responsable: number;
   //created_at: string;
   //updated_at: string;
 }

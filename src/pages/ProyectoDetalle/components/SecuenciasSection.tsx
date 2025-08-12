@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, FlaskConical } from 'lucide-react';
 import { Secuencia } from '../../../types/secuencia';
 import Button from '../../../components/ui/Button/Button';
 import ConfirmationModal from '../../../components/ui/ConfirmationModal/ConfirmationModal';
@@ -16,6 +16,8 @@ interface SecuenciasSectionProps {
   secuencias: Secuencia[];
   /** Secuencia actualmente seleccionada */
   secuenciaSeleccionada: Secuencia | null;
+  /** Título del proyecto */
+  tituloProyecto?: string;
   /** Función callback para seleccionar una secuencia */
   onSecuenciaSelect: (secuencia: Secuencia) => void;
   /** Función callback para crear una nueva secuencia */
@@ -64,6 +66,7 @@ interface SecuenciasSectionProps {
 const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
   secuencias,
   secuenciaSeleccionada,
+  tituloProyecto,
   onSecuenciaSelect,
   onNuevaSecuencia,
   onEliminarSecuencia,
@@ -83,17 +86,41 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
   const [secuenciaToEdit, setSecuenciaToEdit] = useState<Secuencia | null>(null);
 
   /**
-   * Formatea una fecha para mostrar en formato localizado
-   * @function formatearFecha
-   * @param {string} fecha - Fecha en formato ISO string
+   * Formatea fecha de día específico (dia_inicio/dia_fin)
+   * @function formatearDia
+   * @param {string} dia - Fecha en formato ISO string o fecha simple
    * @returns {string} Fecha formateada en español
    */
-  const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const formatearDia = (dia: string) => {
+    if (!dia || dia === '') {
+      return 'Fecha no disponible';
+    }
+    try {
+      // Para evitar problemas de zona horaria, parseamos la fecha como fecha local
+      // Si la fecha viene en formato YYYY-MM-DD, la tratamos como fecha local
+      const fechaParts = dia.split('-');
+      if (fechaParts.length === 3) {
+        const year = parseInt(fechaParts[0]);
+        const month = parseInt(fechaParts[1]) - 1; // Los meses en JS son 0-indexed
+        const day = parseInt(fechaParts[2]);
+        const fecha = new Date(year, month, day);
+        
+        return fecha.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } else {
+        // Fallback para otros formatos
+        return new Date(dia).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    } catch (error) {
+      return 'Fecha inválida';
+    }
   };
 
   /**
@@ -164,12 +191,25 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
     handleCloseEditModal();
   };
 
+  /**
+   * Convierte el estado a un nombre de clase CSS válido
+   * @function getEstadoClassName
+   * @param {string} estado - Estado de la secuencia
+   * @returns {string} Nombre de clase CSS válido
+   */
+  const getEstadoClassName = (estado: string) => {
+    return estado.replace(/\s+/g, '_');
+  };
+
   return (
     <div className={styles['secuencias-section']}>
       {/* @section: Header de la sección */}
       <div className={styles['secuencias-header']}>
         <div className={styles['secuencias-title-container']}>
-          <h2 className={styles['secuencias-title']}>Secuencias del Proyecto</h2>
+          <h2 className={styles['secuencias-title']}>Secuencias del Proyecto:</h2>
+          <h3 className={styles['proyecto-titulo']}>
+            {tituloProyecto || 'Sin título'}
+          </h3>
           <p className={styles['secuencias-description']}>
             Selecciona una secuencia para visualizar y editar su flujo de trabajo
           </p>
@@ -215,7 +255,7 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                     <h3 className={styles['secuencia-nombre']}>{secuencia.nombre}</h3>
                     <div className={styles['secuencia-actions']}>
                       {/* @component: Badge de estado */}
-                      <span className={`${styles['secuencia-estado']} ${styles[`estado-${secuencia.estado}`]}`}>
+                      <span className={`${styles['secuencia-estado']} ${styles[`estado-${getEstadoClassName(secuencia.estado)}`]}`}>
                         {secuencia.estado}
                       </span>
 
@@ -247,9 +287,31 @@ const SecuenciasSection: React.FC<SecuenciasSectionProps> = ({
                     {secuencia.descripcion}
                   </p>
 
-                  {/* @section: Fecha de creación */}
-                  <div className={styles['secuencia-fecha']}>
-                    Creada: {formatearFecha(secuencia.fechaCreacion)}
+                  {/* @section: Información de fechas */}
+                  <div className={styles['secuencia-fechas']}>
+                    {/* Día de inicio - mostrar siempre, pero indicar si no hay fecha */}
+                    <div className={styles['secuencia-fecha-item']}>
+                      <span className={styles['secuencia-fecha-label']}>Inicio:</span>
+                      <span className={styles['secuencia-fecha-valor']}>
+                        {secuencia.dia_inicio ? formatearDia(secuencia.dia_inicio) : 'No definido'}
+                      </span>
+                    </div>
+
+                    {/* Día de fin - mostrar siempre, pero indicar si no hay fecha */}
+                    <div className={styles['secuencia-fecha-item']}>
+                      <span className={styles['secuencia-fecha-label']}>Fin:</span>
+                      <span className={styles['secuencia-fecha-valor']}>
+                        {secuencia.dia_fin ? formatearDia(secuencia.dia_fin) : 'No definido'}
+                      </span>
+                    </div>
+
+                    {/* @section: Contador de testing cards */}
+                    <div className={styles['secuencia-testing-counter']}>
+                      <FlaskConical size={14} className={styles['secuencia-testing-counter-icon']} />
+                      <span className={styles['secuencia-testing-counter-text']}>
+                        {secuencia.testing_cards_count || 0} experimentos
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}

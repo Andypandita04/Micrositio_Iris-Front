@@ -20,8 +20,12 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
   const [formData, setFormData] = useState<CreateSecuenciaData>({
     nombre: '',
     descripcion: '',
-    id_proyecto: 0
+    id_proyecto: 0,
+    dia_inicio: '',
+    dia_fin: '',
+    estado: 'EN PLANEACION'
   });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +34,10 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
       setFormData({
         nombre: secuencia.nombre,
         descripcion: secuencia.descripcion,
-        id_proyecto: Number(secuencia.proyectoId)
+        id_proyecto: Number(secuencia.proyectoId),
+        dia_inicio: secuencia.dia_inicio || '',
+        dia_fin: secuencia.dia_fin || '',
+        estado: secuencia.estado
       });
     }
   }, [secuencia]);
@@ -58,6 +65,22 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
     } else if (formData.descripcion.trim().length > 200) {
       newErrors.descripcion = 'La descripción no puede exceder 200 caracteres';
     }
+    
+    // Validación de fechas
+    if (formData.dia_inicio && formData.dia_fin) {
+      const fechaInicio = new Date(formData.dia_inicio);
+      const fechaFin = new Date(formData.dia_fin);
+      
+      if (fechaInicio >= fechaFin) {
+        newErrors.dia_fin = 'La fecha de fin debe ser posterior a la fecha de inicio';
+      }
+    }
+
+    // Validación de estado (opcional, ya que tiene valor por defecto)
+    if (!formData.estado) {
+      newErrors.estado = 'Debe seleccionar un estado para la secuencia';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -71,9 +94,20 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
         ...secuencia,
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim(),
+        dia_inicio: formData.dia_inicio || undefined,
+        dia_fin: formData.dia_fin || undefined,
+        estado: formData.estado || secuencia.estado,
       };
       await actualizarSecuencia(Number(secuencia.id), updatedSecuencia);
-      await onSecuenciaEditada({ ...updatedSecuencia, id: secuencia.id, proyectoId: secuencia.proyectoId, fechaCreacion: secuencia.fechaCreacion, estado: secuencia.estado });
+      await onSecuenciaEditada({ 
+        ...updatedSecuencia, 
+        id: secuencia.id, 
+        proyectoId: secuencia.proyectoId, 
+        fechaCreacion: secuencia.fechaCreacion, 
+        estado: formData.estado || secuencia.estado,
+        dia_inicio: formData.dia_inicio || undefined,
+        dia_fin: formData.dia_fin || undefined
+      });
       onClose();
     } catch (error) {
       console.error('Error al editar la secuencia:', error);
@@ -161,6 +195,74 @@ const EditSecuenciaModal: React.FC<EditSecuenciaModalProps> = ({
               <div className={getCharacterCountClass(formData.descripcion.length, 200)}>
                 {formData.descripcion.length}/200 caracteres
               </div>
+            </div>
+
+            {/* Campo de estado */}
+            <div className={styles['form-group']}>
+              <label htmlFor="estado" className={styles['form-label']}>
+                Estado de la Secuencia
+              </label>
+              <select
+                id="estado"
+                value={formData.estado || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  estado: e.target.value as 'EN PLANEACION'| 'EN VALIDACION'| 'EN ANALISIS' |'CANCELADO' | 'TERMINADO'
+                }))}
+                className={`${styles['form-input']} ${errors.estado ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              >
+                <option value="EN PLANEACION">En Planeación</option>
+                <option value="EN VALIDACION">En Validación</option>
+                <option value="EN ANALISIS">En Análisis</option>
+                <option value="CANCELADO">Cancelado</option>
+                <option value="TERMINADO">Terminado</option>
+              </select>
+              {errors.estado && (
+                <span className={styles['form-error']}>
+                  {errors.estado}
+                </span>
+              )}
+            </div>
+
+            {/* Campo de fecha de inicio */}
+            <div className={styles['form-group']}>
+              <label htmlFor="dia_inicio" className={styles['form-label']}>
+                Fecha de Inicio (Opcional)
+              </label>
+              <input
+                type="date"
+                id="dia_inicio"
+                value={formData.dia_inicio || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, dia_inicio: e.target.value }))}
+                className={`${styles['form-input']} ${errors.dia_inicio ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              />
+              {errors.dia_inicio && (
+                <span className={styles['form-error']}>
+                  {errors.dia_inicio}
+                </span>
+              )}
+            </div>
+
+            {/* Campo de fecha de fin */}
+            <div className={styles['form-group']}>
+              <label htmlFor="dia_fin" className={styles['form-label']}>
+                Fecha de Finalización (Opcional)
+              </label>
+              <input
+                type="date"
+                id="dia_fin"
+                value={formData.dia_fin || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, dia_fin: e.target.value }))}
+                className={`${styles['form-input']} ${errors.dia_fin ? styles['form-input-error'] : ''}`}
+                disabled={isSubmitting}
+              />
+              {errors.dia_fin && (
+                <span className={styles['form-error']}>
+                  {errors.dia_fin}
+                </span>
+              )}
             </div>
           </form>
         </div>

@@ -7,10 +7,14 @@ import {
   ChevronDown,
   FileText,
   Lightbulb,
-  ExternalLink
+  ExternalLink,
+  BarChart3,
+  User
 } from 'lucide-react';
 import { LearningCardData } from './types';
 import { UrlLearningCard, obtenerPorLearningCard } from '../../services/urlLearningCardService';
+import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
+import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import './styles/LearningCardNode.css';
 
 /**
@@ -45,15 +49,14 @@ interface LearningCardNodeProps {
  * - Responsive y compatible con modo oscuro
  */
 const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) => {
-  // Estado visual para la Learning Card: Cumplido, Rechazado, Repetir, Validada
+  // Estado visual para la Learning Card: Aceptada, Rechazada, Reiterar, Mal planteada
   const statusMap: Record<string, { label: string; className: string }> = {
-    'cumplido': { label: 'Cumplido', className: 'learning-status-cumplido' },
-    'rechazado': { label: 'Rechazado', className: 'learning-status-rechazado' },
-    'repetir': { label: 'Repetir', className: 'learning-status-repetir' },
-    'validada': { label: 'Validada', className: 'learning-status-validada' },
+    'ACEPTADA': { label: 'ACEPTADA', className: 'learning-status-cumplido' },
+    'RECHAZADA': { label: 'RECHAZADA', className: 'learning-status-rechazado' },
+    'REITERAR': { label: 'REITERAR', className: 'learning-status-repetir' },
+    'MAL PLANTEADA': { label: 'MAL PLANTEADA', className: 'learning-status-validada' },
   };
-  const statusKey = (data.estado || '').toLowerCase();
-  const statusInfo = statusMap[statusKey];
+  const statusInfo = statusMap[data.estado];
   // Estado para controlar si el contenido está expandido
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -61,15 +64,31 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
   const [urls, setUrls] = useState<UrlLearningCard[]>([]);
   const [loadingUrls, setLoadingUrls] = useState(false);
 
+  // Estado para las métricas asociadas al Testing Card
+  const [metricas, setMetricas] = useState<MetricaTestingCard[]>([]);
+  const [loadingMetricas, setLoadingMetricas] = useState(false);
+
+  // Estado para el empleado responsable
+  const [responsable, setResponsable] = useState<Empleado | null>(null);
+  const [loadingResponsable, setLoadingResponsable] = useState(false);
+
   /**
-   * Carga las URLs cuando se expande el contenido y hay un ID válido
+   * Carga las URLs y métricas cuando se expande el contenido y hay un ID válido
    */
   useEffect(() => {
     if (isExpanded && data.id_learning_card) {
       cargarUrls();
+      // Cargar métricas usando el id_testing_card de la LearningCard
+      if (data.id_testing_card) {
+        cargarMetricas();
+      }
+      // Cargar información del responsable
+      if (data.id_responsable) {
+        cargarResponsable();
+      }
     }
     // eslint-disable-next-line
-  }, [isExpanded, data.id_learning_card]);
+  }, [isExpanded, data.id_learning_card, data.id_testing_card, data.id_responsable]);
 
   /**
    * Carga las URLs desde la base de datos
@@ -87,6 +106,58 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
     } finally {
       setLoadingUrls(false);
     }
+  };
+
+  /**
+   * Carga las métricas desde la base de datos usando el id_testing_card
+   */
+  const cargarMetricas = async () => {
+    if (!data.id_testing_card) return;
+    
+    try {
+      setLoadingMetricas(true);
+      const metricasData = await obtenerPorTestingCard(data.id_testing_card);
+      setMetricas(metricasData || []);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar métricas:', error);
+      setMetricas([]);
+    } finally {
+      setLoadingMetricas(false);
+    }
+  };
+
+  /**
+   * Carga la información del empleado responsable
+   */
+  const cargarResponsable = async () => {
+    if (!data.id_responsable) return;
+    
+    try {
+      setLoadingResponsable(true);
+      const empleados = await obtenerEmpleados();
+      const empleadoEncontrado = empleados.find((emp: Empleado) => emp.id_empleado === data.id_responsable);
+      setResponsable(empleadoEncontrado || null);
+    } catch (error) {
+      console.error('[LearningCardNode] Error al cargar responsable:', error);
+      setResponsable(null);
+    } finally {
+      setLoadingResponsable(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo de un empleado
+   */
+  const getNombreCompleto = (empleado: Empleado) => {
+    return `${empleado.nombre_pila} ${empleado.apellido_paterno}${empleado.apellido_materno ? ' ' + empleado.apellido_materno : ''}`;
+  };
+
+  /**
+   * Obtiene las iniciales de un empleado
+   */
+  const getIniciales = (empleado: Empleado) => {
+    const nombres = [empleado.nombre_pila, empleado.apellido_paterno, empleado.apellido_materno].filter(Boolean);
+    return nombres.map(n => (n ? n[0] : '')).join('').toUpperCase();
   };
 
   /**
@@ -125,6 +196,99 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
     }
     
     return url.substring(0, maxLength) + '...';
+  };
+
+  /**
+   * Renderiza las métricas del Testing Card asociado con sus resultados
+   */
+  const renderMetricas = () => {
+    if (loadingMetricas) {
+      return (
+        <div className="metricas-loading" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          <span>Cargando métricas...</span>
+        </div>
+      );
+    }
+
+    if (metricas.length === 0) {
+      return (
+        <div className="metricas-empty" style={{
+          fontSize: '12px',
+          color: 'var(--theme-text-secondary)',
+          fontStyle: 'italic',
+          padding: '8px 0'
+        }}>
+          <span>No hay métricas definidas para el Testing Card asociado</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="metricas-list" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
+        {metricas.map((metrica) => (
+          <div 
+            key={metrica.id} 
+            //key={metrica.id_metrica} 
+
+            className="metrica-item"
+            style={{
+              padding: '8px 12px',
+              backgroundColor: 'var(--theme-bg-secondary)',
+              borderRadius: '6px',
+              border: '1px solid var(--theme-border)',
+              fontSize: '12px'
+            }}
+          >
+            <div className="metrica-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '4px'
+            }}>
+              <BarChart3 size={14} />
+              <span className="metrica-nombre" style={{ fontWeight: '600' }}>
+                {metrica.nombre}
+              </span>
+              <span className="metrica-operador" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '11px'
+              }}>
+                {metrica.operador}
+              </span>
+              <span className="metrica-valor" style={{
+                color: 'var(--theme-text-secondary)',
+                fontSize: '11px'
+              }}>
+                {metrica.criterio}
+              </span>
+            </div>
+            {/* Mostrar el resultado si existe */}
+            {metrica.resultado && (
+              <div className="metrica-resultado" style={{
+                padding: '4px 8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '4px',
+                color: 'var(--theme-text-primary)',
+                fontSize: '11px',
+                marginTop: '4px',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <strong>Resultado obtenido:</strong> {metrica.resultado}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -231,8 +395,116 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
           />
         </button>
 
+
         {/* Contenido expandible con información adicional */}
         <div className={`expandable-content ${isExpanded ? 'expanded' : 'collapsed'}`}>
+          
+          {/* Sección de métricas del Testing Card asociado */}
+          {isExpanded && (
+            <div className="metricas-section" style={{ marginBottom: '16px' }}>
+              <div className="metricas-label" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)',
+                marginBottom: '8px'
+              }}>
+                <BarChart3 size={12} style={{ marginRight: '4px' }} />
+                Métricas 
+              </div>
+              {renderMetricas()}
+            </div>
+          )}
+
+          {/* Sección del responsable */}
+          {isExpanded && (
+            <div className="responsable-section" style={{ marginBottom: '16px' }}>
+              <div className="responsable-label" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'var(--theme-text-primary)',
+                marginBottom: '8px'
+              }}>
+                <User size={12} style={{ marginRight: '4px' }} />
+                Siguiente Responsable
+              </div>
+              
+              {loadingResponsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  Cargando responsable...
+                </div>
+              )}
+
+              {!loadingResponsable && !responsable && data.id_responsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No se encontró información del responsable
+                </div>
+              )}
+
+              {!loadingResponsable && !data.id_responsable && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: 'var(--theme-text-secondary)',
+                  fontStyle: 'italic',
+                  padding: '4px 0'
+                }}>
+                  No hay responsable asignado
+                </div>
+              )}
+
+              {!loadingResponsable && responsable && (
+                <div className="responsable-info" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  backgroundColor: 'var(--theme-bg-secondary)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--theme-border)',
+                  fontSize: '12px'
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#6C63FF',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    fontWeight: 'bold'
+                  }}>
+                    {getIniciales(responsable)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '600', color: 'var(--theme-text-primary)' }}>
+                      {getNombreCompleto(responsable)}
+                    </div>
+                    {/*<div style={{ color: 'var(--theme-text-secondary)', fontSize: '11px' }}>
+                      {responsable.correo}
+                    </div>*/}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Sección de URLs de documentación */}
           {isExpanded && (
             <div className="links-section">

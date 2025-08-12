@@ -40,6 +40,37 @@
   align-items: center;
 }
 
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.assistant-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: #9333ea;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: all var(--transition-default);
+  cursor: pointer;
+}
+
+.assistant-button:hover {
+  background-color: #7c3aed;
+  transform: translateY(-1px);
+}
+
+.assistant-button:active {
+  transform: translateY(0);
+}
+
 .secuencia-badge {
   display: flex;
   align-items: center;
