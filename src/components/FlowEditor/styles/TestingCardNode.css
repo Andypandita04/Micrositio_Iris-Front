@@ -770,6 +770,70 @@
 }
 
 /* =================================================================
+   RESPONSABLE SECTION - Sección del responsable asignado
+   ================================================================= */
+
+.responsable-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.responsable-label {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.responsable-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs);
+  background-color: var(--theme-bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--theme-border-primary);
+}
+
+.responsable-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary-purple), var(--color-secondary-purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.responsable-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.responsable-name {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.responsable-email {
+  font-size: var(--font-size-xs);
+  color: var(--theme-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =================================================================
    DOCUMENTOS SECTION - Sección de documentos asociados
    ================================================================= */
 

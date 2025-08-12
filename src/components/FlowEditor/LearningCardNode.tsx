@@ -496,9 +496,9 @@ const LearningCardNode: React.FC<LearningCardNodeProps> = ({ data, selected }) =
                     <div style={{ fontWeight: '600', color: 'var(--theme-text-primary)' }}>
                       {getNombreCompleto(responsable)}
                     </div>
-                    <div style={{ color: 'var(--theme-text-secondary)', fontSize: '11px' }}>
+                    {/*<div style={{ color: 'var(--theme-text-secondary)', fontSize: '11px' }}>
                       {responsable.correo}
-                    </div>
+                    </div>*/}
                   </div>
                 </div>
               )}

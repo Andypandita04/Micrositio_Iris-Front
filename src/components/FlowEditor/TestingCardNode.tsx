@@ -9,13 +9,15 @@ import {
   Target,
   Calendar,
   BarChart3,
-  ExternalLink
+  ExternalLink,
+  User
 } from 'lucide-react';
 import { TestingCardData } from './types';
 import { MetricaTestingCard, obtenerPorTestingCard } from '../../services/metricaTestingCardService';
 import { UrlTestingCard, obtenerPorTestingCard as obtenerUrlsPorTestingCard } from '../../services/urlTestingCardService';
 import TestingCardPlaybookService from '../../services/TestingCardPlaybookService';
 import { TestingCardPlaybook } from '../../types/testingCardPlaybook';
+import { Empleado, obtenerEmpleados } from '../../services/empleadosService';
 import './styles/TestingCardNode.css';
 
 interface TestingCardNodeProps {
@@ -42,6 +44,10 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
   const [playbook, setPlaybook] = useState<TestingCardPlaybook | null>(null);
   const [loadingPlaybook, setLoadingPlaybook] = useState(false);
 
+  // Estados para responsable
+  const [responsable, setResponsable] = useState<Empleado | null>(null);
+  const [loadingResponsable, setLoadingResponsable] = useState(false);
+
   const toggleExpanded = () => setIsExpanded(prev => !prev);
 
   // Cargar métricas y URLs cuando se expande el componente
@@ -55,6 +61,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
       console.log('[TestingCardNode] Condiciones cumplidas, iniciando cargas...');
       cargarMetricas();
       cargarUrls();
+      cargarResponsable();
     } else {
       console.log('[TestingCardNode] Condiciones no cumplidas:', {
         expandido: isExpanded,
@@ -148,6 +155,44 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
   };
 
   /**
+   * Carga el empleado responsable de la testing card
+   */
+  const cargarResponsable = async () => {
+    if (!data.id_responsable) return;
+    
+    try {
+      setLoadingResponsable(true);
+      const empleados = await obtenerEmpleados();
+      const empleadoEncontrado = empleados.find((emp: Empleado) => emp.id_empleado === data.id_responsable);
+      setResponsable(empleadoEncontrado || null);
+    } catch (error) {
+      console.error('Error al cargar responsable:', error);
+      setResponsable(null);
+    } finally {
+      setLoadingResponsable(false);
+    }
+  };
+
+  /**
+   * Obtiene el nombre completo del empleado
+   */
+  const getNombreCompleto = (empleado: Empleado): string => {
+    const apellidoCompleto = empleado.apellido_materno 
+      ? `${empleado.apellido_paterno} ${empleado.apellido_materno}`
+      : empleado.apellido_paterno;
+    return `${empleado.nombre_pila} ${apellidoCompleto}`.trim();
+  };
+
+  /**
+   * Obtiene las iniciales del empleado
+   */
+  const getIniciales = (empleado: Empleado): string => {
+    const inicial1 = empleado.nombre_pila?.charAt(0) || '';
+    const inicial2 = empleado.apellido_paterno?.charAt(0) || '';
+    return (inicial1 + inicial2).toUpperCase();
+  };
+
+  /**
    * Renderiza la información del TestingCardPlaybook asociado
    */
   const renderPlaybookInfo = () => {
@@ -227,7 +272,7 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
     return (
       <div className="metricas-list">
         {metricas.map((metrica) => (
-          <div key={metrica.id_metrica} className="metrica-item">
+          <div key={metrica.id} className="metrica-item">
             <div className="metrica-header">
               <BarChart3 size={14} />
               <span className="metrica-nombre">{metrica.nombre}</span>
@@ -340,6 +385,63 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
                     </a>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sección del Responsable */}
+          <div className="responsable-section">
+            <div className="responsable-label">
+              <User size={12} style={{ marginRight: '4px' }} />
+              Responsable
+            </div>
+            
+            {loadingResponsable && (
+              <div className="loading-responsable" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                Cargando responsable...
+              </div>
+            )}
+
+            {!loadingResponsable && !responsable && data.id_responsable && (
+              <div className="no-responsable" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                Responsable no encontrado
+              </div>
+            )}
+
+            {!loadingResponsable && !data.id_responsable && (
+              <div className="no-responsable" style={{ 
+                fontSize: '12px', 
+                color: 'var(--theme-text-secondary)',
+                fontStyle: 'italic',
+                padding: '4px 0'
+              }}>
+                No hay responsable asignado
+              </div>
+            )}
+
+            {!loadingResponsable && responsable && (
+              <div className="responsable-info">
+                <div className="responsable-avatar">
+                  {getIniciales(responsable)}
+                </div>
+                <div className="responsable-details">
+                  <div className="responsable-name">
+                    {getNombreCompleto(responsable)}
+                  </div>
+                  <div className="responsable-email">
+                    {responsable.correo}
+                  </div>
+                </div>
               </div>
             )}
           </div>
