@@ -335,7 +335,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             <div className={styles['demo-credentials']}>
               <h4>Credenciales de prueba:</h4>
               <p><strong>Alias:</strong> admin</p>
-              <p><strong>Contraseña:</strong> admin123</p>
+              <p><strong>Contraseña:</strong> Admin123</p>
             </div>
 
             {/* @section: Botón de envío */}

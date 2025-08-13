@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { obtenerEmpleadoPorId, Empleado } from '../../services/empleadosService';
 import { 
   User, 
   Mail, 
-  Calendar, 
   Save, 
   Camera, 
-  FolderOpen,
-  ChevronDown,
-  ChevronUp,
   Briefcase,
-  MapPin,
   Phone
 } from 'lucide-react';
 import Button from '../../components/ui/Button/Button';
@@ -44,14 +40,15 @@ const Perfil: React.FC = () => {
   // @context: Contexto de autenticación
   const { user, updateUser } = useAuth();
   
+  // @state: Datos del empleado
+  const [empleado, setEmpleado] = useState<Empleado | null>(null);
+  const [loadingEmpleado, setLoadingEmpleado] = useState(true);
+  
   // @state: Datos del formulario
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    role: user?.role || '',
-    phone: '',
-    location: '',
-    bio: ''
+    name: '',
+    email: '',
+    phone: ''
   });
   
   // @state: Errores de validación
@@ -60,11 +57,52 @@ const Perfil: React.FC = () => {
   // @state: Estado de guardado
   const [isSaving, setIsSaving] = useState(false);
   
-  // @state: Control de sección de proyectos
-  const [showProjects, setShowProjects] = useState(false);
-  
   // @state: Mensaje de éxito
   const [successMessage, setSuccessMessage] = useState('');
+
+  /**
+   * Cargar datos del empleado cuando el usuario esté disponible
+   */
+  useEffect(() => {
+    const cargarDatosEmpleado = async () => {
+      if (user && user.id_empleado) {
+        try {
+          setLoadingEmpleado(true);
+          const datosEmpleado = await obtenerEmpleadoPorId(user.id_empleado);
+          setEmpleado(datosEmpleado);
+          
+          // Actualizar formulario con datos del empleado
+          setFormData({
+            name: `${datosEmpleado.nombre_pila} ${datosEmpleado.apellido_paterno} ${datosEmpleado.apellido_materno || ''}`.trim(),
+            email: datosEmpleado.correo,
+            phone: datosEmpleado.celular || ''
+          });
+        } catch (error) {
+          console.error('Error cargando datos del empleado:', error);
+          // Si no se pueden cargar los datos del empleado, usar datos básicos del usuario
+          setFormData({
+            name: user.name,
+            email: user.email,
+            phone: ''
+          });
+        } finally {
+          setLoadingEmpleado(false);
+        }
+      } else {
+        // Si no hay id_empleado, usar datos básicos del usuario
+        setFormData({
+          name: user?.name || '',
+          email: user?.email || '',
+          phone: ''
+        });
+        setLoadingEmpleado(false);
+      }
+    };
+
+    if (user) {
+      cargarDatosEmpleado();
+    }
+  }, [user]);
 
   /**
    * Valida los campos del formulario
@@ -139,8 +177,7 @@ const Perfil: React.FC = () => {
       // @action: Actualizar usuario en contexto
       updateUser({
         name: formData.name.trim(),
-        email: formData.email.trim(),
-        role: formData.role.trim()
+        email: formData.email.trim()
       });
       
       setSuccessMessage('Perfil actualizado correctamente');
@@ -167,18 +204,36 @@ const Perfil: React.FC = () => {
   };
 
   /**
-   * Formatea la fecha de registro
-   * @function formatJoinDate
-   * @returns {string} Fecha formateada
+   * Obtiene el nombre completo para mostrar
+   * @returns {string} Nombre completo del empleado o usuario
    */
-  const formatJoinDate = (): string => {
-    if (!user?.joinDate) return 'Fecha no disponible';
-    
-    return new Date(user.joinDate).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const getNombreCompleto = (): string => {
+    if (empleado) {
+      return `${empleado.nombre_pila} ${empleado.apellido_paterno} ${empleado.apellido_materno || ''}`.trim();
+    }
+    return user?.name || 'Usuario';
+  };
+
+  /**
+   * Obtiene el email para mostrar
+   * @returns {string} Email del empleado o usuario
+   */
+  const getEmail = (): string => {
+    if (empleado) {
+      return empleado.correo;
+    }
+    return user?.email || '';
+  };
+
+  /**
+   * Obtiene información adicional del empleado
+   * @returns {string} Información adicional como número de empleado
+   */
+  const getInfoAdicional = (): string => {
+    if (empleado) {
+      return `Empleado #${empleado.numero_empleado}`;
+    }
+    return user?.role || '';
   };
 
   // @guard: Verificar que el usuario esté autenticado
@@ -189,6 +244,20 @@ const Perfil: React.FC = () => {
           <div className={styles['error-state']}>
             <h1>Acceso Denegado</h1>
             <p>Debes iniciar sesión para ver tu perfil.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // @guard: Mostrar estado de carga si aún se están cargando los datos del empleado
+  if (loadingEmpleado) {
+    return (
+      <div className={styles['perfil-container']}>
+        <div className={styles['perfil-content']}>
+          <div className={styles['loading-state']}>
+            <h1>Cargando perfil...</h1>
+            <p>Obteniendo información del empleado.</p>
           </div>
         </div>
       </div>
@@ -226,18 +295,20 @@ const Perfil: React.FC = () => {
             </div>
             
             <div className={styles['user-info']}>
-              <h1 className={styles['user-name']}>{user.name}</h1>
-              <p className={styles['user-email']}>{user.email}</p>
-              {user.role && (
-                <p className={styles['user-role']}>
-                  <Briefcase size={16} />
-                  {user.role}
-                </p>
+              {loadingEmpleado ? (
+                <div>Cargando información del empleado...</div>
+              ) : (
+                <>
+                  <h1 className={styles['user-name']}>{getNombreCompleto()}</h1>
+                  <p className={styles['user-email']}>{getEmail()}</p>
+                  {getInfoAdicional() && (
+                    <p className={styles['user-role']}>
+                      <Briefcase size={16} />
+                      {getInfoAdicional()}
+                    </p>
+                  )}
+                </>
               )}
-              <p className={styles['join-date']}>
-                <Calendar size={16} />
-                Miembro desde {formatJoinDate()}
-              </p>
             </div>
           </div>
         </div>
@@ -314,22 +385,6 @@ const Perfil: React.FC = () => {
             {/* @section: Información adicional */}
             <div className={styles['form-row']}>
               <div className={styles['form-group']}>
-                <label htmlFor="role" className={styles['form-label']}>
-                  <Briefcase size={16} />
-                  Cargo/Rol
-                </label>
-                <input
-                  type="text"
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  className={styles['form-input']}
-                  placeholder="Tu cargo o rol"
-                  disabled={isSaving}
-                />
-              </div>
-
-              <div className={styles['form-group']}>
                 <label htmlFor="phone" className={styles['form-label']}>
                   <Phone size={16} />
                   Teléfono
@@ -349,38 +404,6 @@ const Perfil: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles['form-group']}>
-              <label htmlFor="location" className={styles['form-label']}>
-                <MapPin size={16} />
-                Ubicación
-              </label>
-              <input
-                type="text"
-                id="location"
-                value={formData.location}
-                onChange={(e) => handleInputChange('location', e.target.value)}
-                className={styles['form-input']}
-                placeholder="Ciudad, País"
-                disabled={isSaving}
-              />
-            </div>
-
-            <div className={styles['form-group']}>
-              <label htmlFor="bio" className={styles['form-label']}>
-                <User size={16} />
-                Biografía
-              </label>
-              <textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
-                className={`${styles['form-input']} ${styles['form-textarea']}`}
-                placeholder="Cuéntanos un poco sobre ti..."
-                rows={3}
-                disabled={isSaving}
-              />
-            </div>
-
             {/* @section: Botón de guardar */}
             <div className={styles['form-actions']}>
               <Button
@@ -395,42 +418,6 @@ const Perfil: React.FC = () => {
               </Button>
             </div>
           </form>
-        </div>
-
-        {/* @section: Proyectos colaborativos */}
-        <div className={styles['projects-section']}>
-          <button
-            onClick={() => setShowProjects(!showProjects)}
-            className={styles['projects-toggle']}
-          >
-            <div className={styles['toggle-header']}>
-              <FolderOpen size={20} />
-              <span>Mis Proyectos ({user.projects.length})</span>
-            </div>
-            {showProjects ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
-
-          {showProjects && (
-            <div className={styles['projects-content']}>
-              <p className={styles['projects-description']}>
-                Proyectos en los que colaboras actualmente
-              </p>
-              
-              <div className={styles['projects-list']}>
-                {user.projects.map((project, index) => (
-                  <div key={index} className={styles['project-item']}>
-                    <div className={styles['project-icon']}>
-                      <FolderOpen size={16} />
-                    </div>
-                    <div className={styles['project-info']}>
-                      <h4 className={styles['project-name']}>{project}</h4>
-                      <p className={styles['project-status']}>Activo</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
