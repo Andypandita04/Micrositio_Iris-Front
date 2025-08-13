@@ -20,11 +20,11 @@ interface LoginModalProps {
  * 
  * @component LoginModal
  * @description Modal de autenticación que permite a los usuarios iniciar sesión
- * con email y contraseña. Incluye validación en tiempo real, manejo de errores
+ * con alias y contraseña. Incluye validación en tiempo real, manejo de errores
  * y estados de carga.
  * 
  * Características principales:
- * - Validación de email en tiempo real
+ * - Validación de alias en tiempo real
  * - Validación de contraseña (mínimo 8 caracteres)
  * - Toggle de visibilidad de contraseña
  * - Estados de carga durante autenticación
@@ -34,8 +34,8 @@ interface LoginModalProps {
  * - Enfoque automático en campos
  * 
  * Credenciales de prueba:
- * - Email: tester@bolt.ai
- * - Contraseña: Test1234
+ * - Alias: admin
+ * - Contraseña: admin123
  * 
  * @example
  * ```tsx
@@ -54,7 +54,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   
   // @state: Datos del formulario
   const [formData, setFormData] = useState({
-    email: '',
+    alias: '',
     password: ''
   });
   
@@ -96,7 +96,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       // @reset: Limpiar formulario al abrir
-      setFormData({ email: '', password: '' });
+      setFormData({ alias: '', password: '' });
       setErrors({});
       setAuthError('');
       setShowPassword(false);
@@ -104,19 +104,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   /**
-   * Valida el email en tiempo real
-   * @function validateEmail
-   * @param {string} email - Email a validar
+   * Valida el alias en tiempo real
+   * @function validateAlias
+   * @param {string} alias - Alias a validar
    * @returns {string} Mensaje de error o cadena vacía si es válido
    */
-  const validateEmail = (email: string): string => {
-    if (!email.trim()) {
-      return 'El email es requerido';
+  const validateAlias = (alias: string): string => {
+    if (!alias.trim()) {
+      return 'El alias es requerido';
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return 'Ingresa un email válido';
+    if (alias.length < 3) {
+      return 'El alias debe tener al menos 3 caracteres';
+    }
+    
+    if (alias.length > 50) {
+      return 'El alias debe tener máximo 50 caracteres';
+    }
+    
+    // Validar solo alfanuméricos, guiones y guiones bajos
+    const aliasRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!aliasRegex.test(alias)) {
+      return 'El alias solo puede contener letras, números, guiones y guiones bajos';
     }
     
     return '';
@@ -168,8 +177,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
-    const emailError = validateEmail(formData.email);
-    if (emailError) newErrors.email = emailError;
+    const aliasError = validateAlias(formData.alias);
+    if (aliasError) newErrors.alias = aliasError;
     
     const passwordError = validatePassword(formData.password);
     if (passwordError) newErrors.password = passwordError;
@@ -189,12 +198,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     if (!validateForm()) return;
     
     try {
-      const success = await login(formData.email, formData.password);
+      const success = await login(formData.alias, formData.password);
       
       if (success) {
         onClose();
       } else {
-        setAuthError('Email o contraseña incorrectos. Intenta con: tester@bolt.ai / Test1234');
+        setAuthError('Alias o contraseña incorrectos. Verifica tus credenciales.');
       }
     } catch (error) {
       setAuthError('Error de conexión. Intenta nuevamente.');
@@ -218,9 +227,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
    * @returns {boolean} true si el formulario es válido
    */
   const isFormValid = (): boolean => {
-    return formData.email.trim() !== '' && 
+    return formData.alias.trim() !== '' && 
            formData.password.length >= 8 && 
-           validateEmail(formData.email) === '' && 
+           validateAlias(formData.alias) === '' && 
            validatePassword(formData.password) === '';
   };
 
@@ -261,28 +270,28 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           )}
 
           <form onSubmit={handleSubmit} className={styles['login-form']}>
-            {/* @section: Campo de email */}
+            {/* @section: Campo de alias */}
             <div className={styles['form-group']}>
-              <label htmlFor="email" className={styles['form-label']}>
+              <label htmlFor="alias" className={styles['form-label']}>
                 <Mail size={16} className={styles['form-label-icon']} />
-                Email
+                Alias
               </label>
               <div className={styles['input-container']}>
                 <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`${styles['form-input']} ${errors.email ? styles['input-error'] : ''}`}
-                  placeholder="tu@email.com"
+                  type="text"
+                  id="alias"
+                  value={formData.alias}
+                  onChange={(e) => handleInputChange('alias', e.target.value)}
+                  className={`${styles['form-input']} ${errors.alias ? styles['input-error'] : ''}`}
+                  placeholder="tu_alias"
                   disabled={isLoading}
-                  autoComplete="email"
+                  autoComplete="username"
                 />
               </div>
-              {errors.email && (
+              {errors.alias && (
                 <span className={styles['error-text']}>
                   <AlertCircle size={14} />
-                  {errors.email}
+                  {errors.alias}
                 </span>
               )}
             </div>
@@ -325,8 +334,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             {/* @section: Información de credenciales de prueba */}
             <div className={styles['demo-credentials']}>
               <h4>Credenciales de prueba:</h4>
-              <p><strong>Email:</strong> tester@bolt.ai</p>
-              <p><strong>Contraseña:</strong> Test1234</p>
+              <p><strong>Alias:</strong> admin</p>
+              <p><strong>Contraseña:</strong> Admin123</p>
             </div>
 
             {/* @section: Botón de envío */}
