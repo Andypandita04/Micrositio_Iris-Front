@@ -1,151 +1,128 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { login as loginService, verifyToken, setToken, removeToken, BackendUser } from '../services/authService';
 
 /**
- * Interfaz para definir un usuario
- * @interface User
+ * Interfaz para definir un usuario (adaptada para el frontend)
  */
 interface User {
-  /** ID único del usuario */
   id: string;
-  /** Nombre completo del usuario */
   name: string;
-  /** Email del usuario */
   email: string;
-  /** URL del avatar del usuario */
   avatar?: string;
-  /** Lista de proyectos del usuario */
   projects: string[];
-  /** Fecha de registro */
   joinDate: string;
-  /** Rol del usuario */
   role?: string;
+  // Datos adicionales del backend
+  alias: string;
+  tipo: 'EDITOR' | 'VISITANTE';
+  id_empleado: number | null;
+  activo: boolean;
+  proyectosIds?: number[];
 }
 
 /**
  * Interfaz para el contexto de autenticación
- * @interface AuthContextType
  */
 interface AuthContextType {
-  /** Usuario actualmente autenticado */
   user: User | null;
-  /** Si está en proceso de autenticación */
   isLoading: boolean;
-  /** Función para iniciar sesión */
-  login: (email: string, password: string) => Promise<boolean>;
-  /** Función para cerrar sesión */
+  login: (alias: string, password: string) => Promise<boolean>;
   logout: () => void;
-  /** Función para actualizar datos del usuario */
   updateUser: (userData: Partial<User>) => void;
 }
 
-/**
- * Props para el proveedor de autenticación
- * @interface AuthProviderProps
- */
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * Usuario de prueba para desarrollo
- * @constant testUser
- */
-const testUser: User = {
-  id: 'test-user-1',
-  name: 'Usuario Demo',
-  email: 'tester@bolt.ai',
-  avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop',
-  projects: ['Proyecto Alpha', 'Proyecto Beta', 'Sistema de Gestión de Inventario'],
-  joinDate: '2024-01-15',
-  role: 'Product Manager'
-};
-
-// @context: Crear contexto de autenticación
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Proveedor de contexto de autenticación
- * 
- * @component AuthProvider
- * @description Proveedor que maneja el estado global de autenticación,
- * incluyendo login, logout y persistencia de sesión en localStorage.
- * 
- * Características principales:
- * - Persistencia de sesión en localStorage
- * - Usuario de prueba para desarrollo
- * - Validación de credenciales
- * - Estados de carga
- * - Actualización de datos de usuario
- * 
- * @example
- * ```tsx
- * <AuthProvider>
- *   <App />
- * </AuthProvider>
- * ```
- * 
- * @param {AuthProviderProps} props - Props del componente
- * @returns {JSX.Element} Proveedor de autenticación
+ * Convierte usuario del backend al formato del frontend
  */
+const transformBackendUser = (backendUser: BackendUser): User => {
+  return {
+    id: backendUser.id_usuario,
+    name: backendUser.alias, // Usar alias como nombre por ahora
+    email: `${backendUser.alias}@sistema.com`, // Email temporal
+    alias: backendUser.alias,
+    tipo: backendUser.tipo,
+    id_empleado: backendUser.id_empleado,
+    activo: backendUser.activo,
+    proyectosIds: backendUser.proyectos || [],
+    projects: [], // Se puede poblar después con nombres de proyectos
+    joinDate: new Date().toISOString().split('T')[0], // Fecha temporal
+    role: backendUser.tipo,
+    avatar: undefined // Sin foto de avatar
+  };
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // @state: Usuario actual
   const [user, setUser] = useState<User | null>(null);
-  
-  // @state: Estado de carga
   const [isLoading, setIsLoading] = useState(true);
 
   /**
-   * Efecto para cargar usuario desde localStorage al inicializar
-   * @function useEffect
+   * Cargar usuario desde token al inicializar
    */
   useEffect(() => {
-    const loadUserFromStorage = () => {
+    const initAuth = async () => {
       try {
-        const storedUser = localStorage.getItem('auth_user');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
+        // Verificar si hay token y si es válido
+        const response = await verifyToken();
+        
+        if (response.success) {
+          const transformedUser = transformBackendUser(response.data.usuario);
+          setUser(transformedUser);
+          localStorage.setItem('auth_user', JSON.stringify(transformedUser));
         }
       } catch (error) {
-        console.error('Error loading user from storage:', error);
+        console.error('Error verificando token:', error);
+        // Limpiar datos inválidos
+        removeToken();
         localStorage.removeItem('auth_user');
       } finally {
         setIsLoading(false);
       }
     };
 
-    // @simulation: Simular delay de carga inicial
-    setTimeout(loadUserFromStorage, 500);
+    initAuth();
+
+    // Escuchar evento de logout desde interceptor
+    const handleLogout = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('auth:logout', handleLogout);
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleLogout);
+    };
   }, []);
 
   /**
-   * Función para iniciar sesión
-   * @function login
-   * @param {string} email - Email del usuario
-   * @param {string} password - Contraseña del usuario
-   * @returns {Promise<boolean>} true si el login es exitoso
-   * 
-   * @description Valida credenciales contra usuario de prueba y
-   * guarda la sesión en localStorage si es exitosa.
+   * Función para iniciar sesión con backend real
    */
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (alias: string, password: string): Promise<boolean> => {
     setIsLoading(true);
 
     try {
-      // @simulation: Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // @validation: Verificar credenciales del usuario de prueba
-      if (email === testUser.email && password === 'Test1234') {
-        setUser(testUser);
-        localStorage.setItem('auth_user', JSON.stringify(testUser));
+      const response = await loginService({ alias, password });
+      
+      if (response.success) {
+        // Guardar token
+        setToken(response.data.token);
+        
+        // Transformar y guardar usuario
+        const transformedUser = transformBackendUser(response.data.usuario);
+        setUser(transformedUser);
+        localStorage.setItem('auth_user', JSON.stringify(transformedUser));
+        
         return true;
       }
-
-      // @error: Credenciales inválidas
+      
       return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Error en login:', error);
       return false;
     } finally {
       setIsLoading(false);
@@ -154,19 +131,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   /**
    * Función para cerrar sesión
-   * @function logout
-   * @description Limpia el estado del usuario y remueve datos de localStorage
    */
   const logout = () => {
     setUser(null);
+    removeToken();
     localStorage.removeItem('auth_user');
   };
 
   /**
    * Función para actualizar datos del usuario
-   * @function updateUser
-   * @param {Partial<User>} userData - Datos parciales del usuario a actualizar
-   * @description Actualiza el usuario en estado y localStorage
    */
   const updateUser = (userData: Partial<User>) => {
     if (!user) return;
@@ -191,17 +164,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-/**
- * Hook para usar el contexto de autenticación
- * @function useAuth
- * @returns {AuthContextType} Contexto de autenticación
- * @throws {Error} Si se usa fuera del AuthProvider
- * 
- * @example
- * ```tsx
- * const { user, login, logout } = useAuth();
- * ```
- */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
