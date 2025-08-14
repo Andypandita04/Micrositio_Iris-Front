@@ -61,15 +61,15 @@ const Perfil: React.FC = () => {
       if (user && user.id_empleado && user.id_empleado > 0) {
         try {
           setLoadingEmpleado(true);
-          console.log('Usuario completo:', user);
-          console.log('ID empleado a buscar:', user.id_empleado);
-          console.log('Tipo de ID empleado:', typeof user.id_empleado);
+          // console.log('Usuario completo:', user);
+          // console.log('ID empleado a buscar:', user.id_empleado);
+          // console.log('Tipo de ID empleado:', typeof user.id_empleado);
           
           const datosEmpleado = await obtenerEmpleadoPorId(user.id_empleado);
-          console.log('Datos empleado obtenidos:', datosEmpleado);
-          console.log('Estructura completa del empleado:', JSON.stringify(datosEmpleado, null, 2));
-          console.log('ID del empleado obtenido:', datosEmpleado?.id_empleado);
-          console.log('Todas las propiedades del empleado:', Object.keys(datosEmpleado || {}));
+          // console.log('Datos empleado obtenidos:', datosEmpleado);
+          // console.log('Estructura completa del empleado:', JSON.stringify(datosEmpleado, null, 2));
+          // console.log('ID del empleado obtenido:', datosEmpleado?.id_empleado);
+          // console.log('Todas las propiedades del empleado:', Object.keys(datosEmpleado || {}));
           setEmpleado(datosEmpleado);
         } catch (error) {
           console.error('Error cargando datos del empleado:', error);
@@ -77,7 +77,7 @@ const Perfil: React.FC = () => {
           setLoadingEmpleado(false);
         }
       } else {
-        console.log('Usuario sin id_empleado válido:', user);
+        // console.log('Usuario sin id_empleado válido:', user);
         setLoadingEmpleado(false);
       }
     };
@@ -93,7 +93,7 @@ const Perfil: React.FC = () => {
    */
   const handleAvatarChange = () => {
     // @simulation: Simular cambio de avatar
-    console.log('Cambiar avatar - funcionalidad pendiente');
+    // console.log('Cambiar avatar - funcionalidad pendiente');
     // @todo: Implementar subida real de avatar
   };
 
@@ -156,13 +156,13 @@ const Perfil: React.FC = () => {
     setIsSavingEmail(true);
     
     try {
-      console.log('Actualizando correo del empleado:');
-      console.log('- Empleado completo:', empleado);
-      console.log('- ID empleado (id_empleado):', empleado.id_empleado);
-      console.log('- ID empleado (id):', (empleado as any).id);
-      console.log('- Todas las propiedades:', Object.keys(empleado));
-      console.log('- Tipo de ID:', typeof empleado.id_empleado);
-      console.log('- Nuevo correo:', emailValue);
+      // console.log('Actualizando correo del empleado:');
+      // console.log('- Empleado completo:', empleado);
+      // console.log('- ID empleado (id_empleado):', empleado.id_empleado);
+      // console.log('- ID empleado (id):', (empleado as any).id);
+      // console.log('- Todas las propiedades:', Object.keys(empleado));
+      // console.log('- Tipo de ID:', typeof empleado.id_empleado);
+      // console.log('- Nuevo correo:', emailValue);
       
       // Determinar qué campo usar para el ID
       const idEmpleado = empleado.id_empleado || (empleado as any).id;
@@ -176,18 +176,18 @@ const Perfil: React.FC = () => {
         correo: emailValue
       };
       
-      console.log('Datos a enviar al backend:', JSON.stringify(datosActualizar, null, 2));
+      // console.log('Datos a enviar al backend:', JSON.stringify(datosActualizar, null, 2));
       
       try {
         // @api: Llamada real al endpoint para actualizar el empleado
         const empleadoActualizado = await actualizarEmpleado(datosActualizar);
-        console.log('Empleado actualizado exitosamente:', empleadoActualizado);
+        // console.log('Empleado actualizado exitosamente:', empleadoActualizado);
         
         // @update: Actualizar el estado local con los nuevos datos
         setEmpleado(empleadoActualizado);
         
       } catch (updateError) {
-        console.log('Error con "id", intentando con "id_empleado"...');
+        // console.log('Error con "id", intentando con "id_empleado"...');
         
         // @fallback: Si falla con "id", intentar con "id_empleado"
         const datosAlternativos = {
@@ -195,13 +195,13 @@ const Perfil: React.FC = () => {
           correo: emailValue
         };
         
-        console.log('Datos alternativos a enviar:', JSON.stringify(datosAlternativos, null, 2));
+        // console.log('Datos alternativos a enviar:', JSON.stringify(datosAlternativos, null, 2));
         
         // Llamada directa al API client para probar
         const response = await apiClient.patch('/empleados/', datosAlternativos);
         const empleadoActualizado = response.data;
         
-        console.log('Empleado actualizado exitosamente con id_empleado:', empleadoActualizado);
+        // console.log('Empleado actualizado exitosamente con id_empleado:', empleadoActualizado);
         
         // @update: Actualizar el estado local con los nuevos datos
         setEmpleado(empleadoActualizado);

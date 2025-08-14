@@ -49,8 +49,8 @@ export const obtenerEmpleados = async (): Promise<Empleado[]> => {
  * @returns {Promise<Empleado>} Los datos del empleado
  */
 export const obtenerEmpleadoPorId = async (id: number): Promise<Empleado> => {
-  console.log('Obteniendo empleado por ID:', id);
-  console.log('Tipo de ID:', typeof id);
+  // console.log('Obteniendo empleado por ID:', id);
+  // console.log('Tipo de ID:', typeof id);
   
   // Para GET con body en axios, usar request con configuración específica
   const response = await apiClient.request({
@@ -62,7 +62,7 @@ export const obtenerEmpleadoPorId = async (id: number): Promise<Empleado> => {
     }
   });
   
-  console.log('Respuesta del servidor:', response.data);
+  // console.log('Respuesta del servidor:', response.data);
   return response.data;
 };
 
@@ -82,8 +82,8 @@ export const crearEmpleado = async (empleadoData: CrearEmpleadoData): Promise<Em
  * @returns {Promise<Empleado>} El empleado actualizado
  */
 export const actualizarEmpleado = async (empleadoData: ActualizarEmpleadoData): Promise<Empleado> => {
-  console.log('actualizarEmpleado - Datos recibidos:', JSON.stringify(empleadoData, null, 2));
-  console.log('actualizarEmpleado - Tipo de ID:', typeof empleadoData.id);
+  // console.log('actualizarEmpleado - Datos recibidos:', JSON.stringify(empleadoData, null, 2));
+  // console.log('actualizarEmpleado - Tipo de ID:', typeof empleadoData.id);
   
   const response = await apiClient.patch('/empleados/', empleadoData);
   return response.data;
