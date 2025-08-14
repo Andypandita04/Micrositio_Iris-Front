@@ -292,7 +292,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia, on
         descripcion: 'Descripción inicial de prueba', // >= 10 caracteres
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
-        id_responsable: 1, // Cambia por el id de usuario real si lo tienes
+        id_responsable: 13, // Cambia por el id de usuario real si lo tienes
         status: 'EN PLANEACION'
       };
       // console.log('[FlowEditor] Enviando payload para crear Testing Card:', payload);
