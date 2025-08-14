@@ -67,6 +67,9 @@ const Perfil: React.FC = () => {
           
           const datosEmpleado = await obtenerEmpleadoPorId(user.id_empleado);
           console.log('Datos empleado obtenidos:', datosEmpleado);
+          console.log('Estructura completa del empleado:', JSON.stringify(datosEmpleado, null, 2));
+          console.log('ID del empleado obtenido:', datosEmpleado?.id_empleado);
+          console.log('Todas las propiedades del empleado:', Object.keys(datosEmpleado || {}));
           setEmpleado(datosEmpleado);
         } catch (error) {
           console.error('Error cargando datos del empleado:', error);
@@ -154,12 +157,22 @@ const Perfil: React.FC = () => {
     
     try {
       console.log('Actualizando correo del empleado:');
-      console.log('- ID empleado:', empleado.id_empleado);
+      console.log('- Empleado completo:', empleado);
+      console.log('- ID empleado (id_empleado):', empleado.id_empleado);
+      console.log('- ID empleado (id):', (empleado as any).id);
+      console.log('- Todas las propiedades:', Object.keys(empleado));
       console.log('- Tipo de ID:', typeof empleado.id_empleado);
       console.log('- Nuevo correo:', emailValue);
       
+      // Determinar qué campo usar para el ID
+      const idEmpleado = empleado.id_empleado || (empleado as any).id;
+      
+      if (!idEmpleado) {
+        throw new Error('No se encontró el ID del empleado en los datos cargados');
+      }
+      
       const datosActualizar = {
-        id: empleado.id_empleado,
+        id: idEmpleado,
         correo: emailValue
       };
       
@@ -178,7 +191,7 @@ const Perfil: React.FC = () => {
         
         // @fallback: Si falla con "id", intentar con "id_empleado"
         const datosAlternativos = {
-          id_empleado: empleado.id_empleado,
+          id_empleado: idEmpleado,
           correo: emailValue
         };
         
