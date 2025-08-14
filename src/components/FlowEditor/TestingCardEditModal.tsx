@@ -1412,7 +1412,7 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
               <label htmlFor="dia_fin" className="testing-form-label">
                 <Calendar className="testing-form-icon" />
                 Fecha Fin
-              </label>f
+              </label>
               <input
                 type="date"
                 id="dia_fin"
