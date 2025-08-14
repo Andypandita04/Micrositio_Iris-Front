@@ -25,6 +25,7 @@ import DocumentationModal from './components/DocumentationModal';
 import ConfirmationModal from '../ui/ConfirmationModal/ConfirmationModal';
 import { obtenerPorId as obtenerLearningCardPorId, actualizar as actualizarLearningCard } from '../../services/learningCardService';
 import { UrlLearningCard, obtenerPorLearningCard, crear as crearUrl, eliminar as eliminarUrl } from '../../services/urlLearningCardService';
+import './styles/TestingCardEditModal.css';
 import { 
   LearningCardDocument, 
   getDocumentsByLearningCard, 
@@ -500,14 +501,25 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
                   disabled={estaGuardando}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: estaGuardando ? 'var(--theme-text-secondary)' : 'var(--theme-primary)',
-                    color: 'white',
-                    border: 'none',
+                    backgroundColor: estaGuardando ? '#6b7280' : '#3b82f6',
+                    color: '#ffffff',
+                    border: '1px solid ' + (estaGuardando ? '#6b7280' : '#3b82f6'),
                     borderRadius: '4px',
                     fontSize: '11px',
                     fontWeight: '600',
                     cursor: estaGuardando ? 'not-allowed' : 'pointer',
-                    minWidth: '70px'
+                    minWidth: '70px',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!estaGuardando) {
+                      e.currentTarget.style.backgroundColor = '#2563eb';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!estaGuardando) {
+                      e.currentTarget.style.backgroundColor = '#3b82f6';
+                    }
                   }}
                 >
                   {estaGuardando ? 'Guardando...' : 'Guardar'}
@@ -1308,10 +1320,56 @@ const LearningCardEditModal: React.FC<LearningCardEditModalProps> = ({ node, onS
 
           {/* @section: Botones de acción */}
           <div className="testing-form-actions">
-            <button type="button" onClick={onClose} className="testing-btn testing-btn-secondary">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="testing-btn testing-btn-secondary"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#475569',
+                border: '1px solid #e2e8f0',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8fafc';
+                e.currentTarget.style.color = '#1e293b';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#ffffff';
+                e.currentTarget.style.color = '#475569';
+              }}
+            >
               Cancelar
             </button>
-            <button type="submit" className="testing-btn testing-btn-primary">
+            <button 
+              type="submit" 
+              className="testing-btn testing-btn-primary"
+              style={{
+                backgroundColor: '#864080',
+                color: '#ffffff',
+                border: '1px solid #864080',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#753970';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#864080';
+              }}
+            >
               <Save className="testing-btn-icon" />
               Guardar Cambios
             </button>

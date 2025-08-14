@@ -273,11 +273,36 @@ const TestingCardNode: React.FC<TestingCardNodeProps> = ({ data, selected }) => 
       <div className="metricas-list">
         {metricas.map((metrica) => (
           <div key={metrica.id} className="metrica-item">
-            <div className="metrica-header">
+            <div className="metrica-header" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '4px'
+            }}>
               <BarChart3 size={14} />
-              <span className="metrica-nombre">{metrica.nombre}</span>
-              <span className="metrica-operador">{metrica.operador}</span>
-              <span className="metrica-valor">{metrica.criterio}</span>
+              <span className="metrica-nombre" style={{ fontWeight: '600' }}>
+                {metrica.nombre}
+              </span>
+              <span className="metrica-operador" style={{
+                backgroundColor: '#3b82f6',
+                color: '#ffffff',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: '600',
+                fontSize: '10px',
+                border: '1px solid #2563eb',
+                minWidth: '20px',
+                textAlign: 'center'
+              }}>
+                {metrica.operador}
+              </span>
+              <span className="metrica-valor" style={{
+                color: '#64748b',
+                fontWeight: '500',
+                fontSize: '11px'
+              }}>
+                {metrica.criterio}
+              </span>
             </div>
           </div>
         ))}
