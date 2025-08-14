@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { obtenerEmpleadoPorId, Empleado } from '../../services/empleadosService';
+import { obtenerEmpleadoPorId, actualizarEmpleado, Empleado } from '../../services/empleadosService';
+import apiClient from '../../apiClient';
 import { 
   User, 
   Mail, 
-  Save, 
-  Camera, 
   Briefcase,
-  Phone
+  Phone,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
-import Button from '../../components/ui/Button/Button';
 import styles from './Perfil.module.css';
 
 /**
@@ -38,63 +39,44 @@ import styles from './Perfil.module.css';
  */
 const Perfil: React.FC = () => {
   // @context: Contexto de autenticación
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   
   // @state: Datos del empleado
   const [empleado, setEmpleado] = useState<Empleado | null>(null);
   const [loadingEmpleado, setLoadingEmpleado] = useState(true);
   
-  // @state: Datos del formulario
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: ''
-  });
-  
-  // @state: Errores de validación
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // @state: Estado de guardado
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // @state: Mensaje de éxito
-  const [successMessage, setSuccessMessage] = useState('');
+  // @state: Estados de edición
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailSuccessMessage, setEmailSuccessMessage] = useState('');
 
   /**
    * Cargar datos del empleado cuando el usuario esté disponible
    */
   useEffect(() => {
     const cargarDatosEmpleado = async () => {
-      if (user && user.id_empleado) {
+      if (user && user.id_empleado && user.id_empleado > 0) {
         try {
           setLoadingEmpleado(true);
-          const datosEmpleado = await obtenerEmpleadoPorId(user.id_empleado);
-          setEmpleado(datosEmpleado);
+          // console.log('Usuario completo:', user);
+          // console.log('ID empleado a buscar:', user.id_empleado);
+          // console.log('Tipo de ID empleado:', typeof user.id_empleado);
           
-          // Actualizar formulario con datos del empleado
-          setFormData({
-            name: `${datosEmpleado.nombre_pila} ${datosEmpleado.apellido_paterno} ${datosEmpleado.apellido_materno || ''}`.trim(),
-            email: datosEmpleado.correo,
-            phone: datosEmpleado.celular || ''
-          });
+          const datosEmpleado = await obtenerEmpleadoPorId(user.id_empleado);
+          // console.log('Datos empleado obtenidos:', datosEmpleado);
+          // console.log('Estructura completa del empleado:', JSON.stringify(datosEmpleado, null, 2));
+          // console.log('ID del empleado obtenido:', datosEmpleado?.id_empleado);
+          // console.log('Todas las propiedades del empleado:', Object.keys(datosEmpleado || {}));
+          setEmpleado(datosEmpleado);
         } catch (error) {
           console.error('Error cargando datos del empleado:', error);
-          // Si no se pueden cargar los datos del empleado, usar datos básicos del usuario
-          setFormData({
-            name: user.name,
-            email: user.email,
-            phone: ''
-          });
         } finally {
           setLoadingEmpleado(false);
         }
       } else {
-        // Si no hay id_empleado, usar datos básicos del usuario
-        setFormData({
-          name: user?.name || '',
-          email: user?.email || '',
-          phone: ''
-        });
+        // console.log('Usuario sin id_empleado válido:', user);
         setLoadingEmpleado(false);
       }
     };
@@ -105,102 +87,138 @@ const Perfil: React.FC = () => {
   }, [user]);
 
   /**
-   * Valida los campos del formulario
-   * @function validateForm
-   * @returns {boolean} true si el formulario es válido
+   * Inicia la edición del correo electrónico
+   * @function startEmailEdit
    */
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'El nombre debe tener al menos 2 caracteres';
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'El email es requerido';
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Ingresa un email válido';
-      }
-    }
-    
-    if (formData.phone && formData.phone.length > 0) {
-      const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-      if (!phoneRegex.test(formData.phone)) {
-        newErrors.phone = 'Ingresa un teléfono válido';
-      }
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const startEmailEdit = () => {
+    setEmailValue(getEmail());
+    setIsEditingEmail(true);
+    setEmailError('');
+    setEmailSuccessMessage('');
   };
 
   /**
-   * Maneja el cambio en los campos del formulario
-   * @function handleInputChange
-   * @param {string} field - Campo que cambió
-   * @param {string} value - Nuevo valor
+   * Cancela la edición del correo electrónico
+   * @function cancelEmailEdit
    */
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // @validation: Limpiar errores al escribir
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    
-    // @cleanup: Limpiar mensaje de éxito
-    if (successMessage) {
-      setSuccessMessage('');
-    }
+  const cancelEmailEdit = () => {
+    setIsEditingEmail(false);
+    setEmailValue('');
+    setEmailError('');
+    setEmailSuccessMessage('');
   };
 
   /**
-   * Maneja el envío del formulario
-   * @function handleSubmit
-   * @param {React.FormEvent} e - Evento del formulario
+   * Valida el formato del email
+   * @function validateEmail
+   * @param {string} email - Email a validar
+   * @returns {boolean} true si el email es válido
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateEmail = (email: string): boolean => {
+    if (!email.trim()) {
+      setEmailError('El email es requerido');
+      return false;
+    }
     
-    if (!validateForm()) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Ingresa un email válido');
+      return false;
+    }
     
-    setIsSaving(true);
+    setEmailError('');
+    return true;
+  };
+
+  /**
+   * Guarda los cambios del correo electrónico
+   * @function saveEmailChanges
+   */
+  const saveEmailChanges = async () => {
+    if (!validateEmail(emailValue)) return;
+    
+    if (!empleado) {
+      setEmailError('No se encontró información del empleado');
+      return;
+    }
+    
+    setIsSavingEmail(true);
     
     try {
-      // @simulation: Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // console.log('Actualizando correo del empleado:');
+      // console.log('- Empleado completo:', empleado);
+      // console.log('- ID empleado (id_empleado):', empleado.id_empleado);
+      // console.log('- ID empleado (id):', (empleado as any).id);
+      // console.log('- Todas las propiedades:', Object.keys(empleado));
+      // console.log('- Tipo de ID:', typeof empleado.id_empleado);
+      // console.log('- Nuevo correo:', emailValue);
       
-      // @action: Actualizar usuario en contexto
-      updateUser({
-        name: formData.name.trim(),
-        email: formData.email.trim()
-      });
+      // Determinar qué campo usar para el ID
+      const idEmpleado = empleado.id_empleado || (empleado as any).id;
       
-      setSuccessMessage('Perfil actualizado correctamente');
+      if (!idEmpleado) {
+        throw new Error('No se encontró el ID del empleado en los datos cargados');
+      }
       
-      // @cleanup: Limpiar mensaje después de 3 segundos
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const datosActualizar = {
+        id: idEmpleado,
+        correo: emailValue
+      };
+      
+      // console.log('Datos a enviar al backend:', JSON.stringify(datosActualizar, null, 2));
+      
+      try {
+        // @api: Llamada real al endpoint para actualizar el empleado
+        const empleadoActualizado = await actualizarEmpleado(datosActualizar);
+        // console.log('Empleado actualizado exitosamente:', empleadoActualizado);
+        
+        // @update: Actualizar el estado local con los nuevos datos
+        setEmpleado(empleadoActualizado);
+        
+      } catch (updateError) {
+        // console.log('Error con "id", intentando con "id_empleado"...');
+        
+        // @fallback: Si falla con "id", intentar con "id_empleado"
+        const datosAlternativos = {
+          id_empleado: idEmpleado,
+          correo: emailValue
+        };
+        
+        // console.log('Datos alternativos a enviar:', JSON.stringify(datosAlternativos, null, 2));
+        
+        // Llamada directa al API client para probar
+        const response = await apiClient.patch('/empleados/', datosAlternativos);
+        const empleadoActualizado = response.data;
+        
+        // console.log('Empleado actualizado exitosamente con id_empleado:', empleadoActualizado);
+        
+        // @update: Actualizar el estado local con los nuevos datos
+        setEmpleado(empleadoActualizado);
+      }
+      
+      // @cleanup: Salir del modo edición
+      setIsEditingEmail(false);
+      setEmailError('');
+      
+      // @success: Mostrar mensaje de éxito
+      setEmailSuccessMessage('Correo actualizado exitosamente');
+      
+      // @cleanup: Limpiar mensaje de éxito después de 3 segundos
+      setTimeout(() => setEmailSuccessMessage(''), 3000);
       
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setErrors({ general: 'Error al actualizar el perfil. Intenta nuevamente.' });
+      console.error('Error actualizando correo del empleado:', error);
+      
+      // @error: Manejar diferentes tipos de errores
+      if (error instanceof Error) {
+        setEmailError(`Error al actualizar el correo: ${error.message}`);
+      } else {
+        setEmailError('Error al actualizar el correo. Intenta nuevamente.');
+      }
+      
     } finally {
-      setIsSaving(false);
+      setIsSavingEmail(false);
     }
-  };
-
-  /**
-   * Maneja el cambio de avatar (simulado)
-   * @function handleAvatarChange
-   */
-  const handleAvatarChange = () => {
-    // @simulation: Simular cambio de avatar
-    console.log('Cambiar avatar - funcionalidad pendiente');
-    // @todo: Implementar subida real de avatar
   };
 
   /**
@@ -227,13 +245,10 @@ const Perfil: React.FC = () => {
 
   /**
    * Obtiene información adicional del empleado
-   * @returns {string} Información adicional como número de empleado
+   * @returns {string} Información adicional como rol del usuario
    */
   const getInfoAdicional = (): string => {
-    if (empleado) {
-      return `Empleado #${empleado.numero_empleado}`;
-    }
-    return user?.role || '';
+    return user?.role || 'Empleado';
   };
 
   // @guard: Verificar que el usuario esté autenticado
@@ -284,13 +299,6 @@ const Perfil: React.FC = () => {
                     <User size={32} />
                   </div>
                 )}
-                <button 
-                  onClick={handleAvatarChange}
-                  className={styles['avatar-edit']}
-                  title="Cambiar avatar"
-                >
-                  <Camera size={16} />
-                </button>
               </div>
             </div>
             
@@ -313,111 +321,121 @@ const Perfil: React.FC = () => {
           </div>
         </div>
 
-        {/* @section: Formulario de edición */}
-        <div className={styles['perfil-form-section']}>
+        {/* @section: Información Personal - Solo visualización */}
+        <div className={styles['perfil-info-section']}>
           <div className={styles['section-header']}>
             <h2 className={styles['section-title']}>
               <User size={20} />
               Información Personal
             </h2>
             <p className={styles['section-description']}>
-              Actualiza tu información personal y preferencias
+              Información del empleado registrada en el sistema
             </p>
           </div>
 
-          {/* @component: Mensaje de éxito */}
-          {successMessage && (
-            <div className={styles['success-message']}>
-              <Save size={16} />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          {/* @component: Error general */}
-          {errors.general && (
-            <div className={styles['error-message']}>
-              <span>{errors.general}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className={styles['perfil-form']}>
+          <div className={styles['info-grid']}>
             {/* @section: Información básica */}
-            <div className={styles['form-row']}>
-              <div className={styles['form-group']}>
-                <label htmlFor="name" className={styles['form-label']}>
+            <div className={styles['info-row']}>
+              <div className={styles['info-field']}>
+                <div className={styles['field-label']}>
                   <User size={16} />
                   Nombre Completo
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`${styles['form-input']} ${errors.name ? styles['input-error'] : ''}`}
-                  placeholder="Tu nombre completo"
-                  disabled={isSaving}
-                />
-                {errors.name && (
-                  <span className={styles['error-text']}>{errors.name}</span>
-                )}
+                </div>
+                <div className={styles['field-value']}>
+                  {getNombreCompleto()}
+                </div>
               </div>
 
-              <div className={styles['form-group']}>
-                <label htmlFor="email" className={styles['form-label']}>
+              <div className={styles['info-field']}>
+                <div className={styles['field-label']}>
                   <Mail size={16} />
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`${styles['form-input']} ${errors.email ? styles['input-error'] : ''}`}
-                  placeholder="tu@email.com"
-                  disabled={isSaving}
-                />
-                {errors.email && (
-                  <span className={styles['error-text']}>{errors.email}</span>
+                  Correo Electrónico
+                </div>
+                
+                {/* Mensaje de éxito */}
+                {emailSuccessMessage && (
+                  <div className={styles['field-success']}>
+                    <Save size={14} />
+                    {emailSuccessMessage}
+                  </div>
+                )}
+                
+                {isEditingEmail ? (
+                  <div className={styles['field-edit-container']}>
+                    <input
+                      type="email"
+                      value={emailValue}
+                      onChange={(e) => setEmailValue(e.target.value)}
+                      className={`${styles['field-edit-input']} ${emailError ? styles['input-error'] : ''}`}
+                      placeholder="correo@ejemplo.com"
+                      disabled={isSavingEmail}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveEmailChanges();
+                        } else if (e.key === 'Escape') {
+                          cancelEmailEdit();
+                        }
+                      }}
+                    />
+                    {emailError && (
+                      <div className={styles['field-error']}>
+                        {emailError}
+                      </div>
+                    )}
+                    <div className={styles['field-edit-actions']}>
+                      <button
+                        onClick={saveEmailChanges}
+                        disabled={isSavingEmail}
+                        className={styles['field-save-btn']}
+                        title="Guardar cambios"
+                      >
+                        <Save size={14} />
+                        {isSavingEmail ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={cancelEmailEdit}
+                        disabled={isSavingEmail}
+                        className={styles['field-cancel-btn']}
+                        title="Cancelar"
+                      >
+                        <X size={14} />
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles['field-value-container']}>
+                    <div className={styles['field-value']}>
+                      {getEmail() || 'No disponible'}
+                    </div>
+                    <button
+                      onClick={startEmailEdit}
+                      className={styles['field-edit-btn']}
+                      title="Editar correo electrónico"
+                    >
+                      <Edit3 size={14} />
+                      Editar
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* @section: Información adicional */}
-            <div className={styles['form-row']}>
-              <div className={styles['form-group']}>
-                <label htmlFor="phone" className={styles['form-label']}>
-                  <Phone size={16} />
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`${styles['form-input']} ${errors.phone ? styles['input-error'] : ''}`}
-                  placeholder="+1 234 567 8900"
-                  disabled={isSaving}
-                />
-                {errors.phone && (
-                  <span className={styles['error-text']}>{errors.phone}</span>
-                )}
+            {/* @section: Información adicional del empleado */}
+            {empleado && empleado.celular && (
+              <div className={styles['info-row']}>
+                <div className={styles['info-field']}>
+                  <div className={styles['field-label']}>
+                    <Phone size={16} />
+                    Teléfono de Contacto
+                  </div>
+                  <div className={styles['field-value']}>
+                    {empleado.celular}
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* @section: Botón de guardar */}
-            <div className={styles['form-actions']}>
-              <Button
-                type="submit"
-                variant="primary"
-                size="large"
-                disabled={isSaving}
-                icon={<Save size={16} />}
-                className={styles['save-button']}
-              >
-                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-              </Button>
-            </div>
-          </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
