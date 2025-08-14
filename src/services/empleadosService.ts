@@ -82,6 +82,9 @@ export const crearEmpleado = async (empleadoData: CrearEmpleadoData): Promise<Em
  * @returns {Promise<Empleado>} El empleado actualizado
  */
 export const actualizarEmpleado = async (empleadoData: ActualizarEmpleadoData): Promise<Empleado> => {
+  console.log('actualizarEmpleado - Datos recibidos:', JSON.stringify(empleadoData, null, 2));
+  console.log('actualizarEmpleado - Tipo de ID:', typeof empleadoData.id);
+  
   const response = await apiClient.patch('/empleados/', empleadoData);
   return response.data;
 };

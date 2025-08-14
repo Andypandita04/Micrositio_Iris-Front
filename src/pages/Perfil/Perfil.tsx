@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { obtenerEmpleadoPorId, Empleado } from '../../services/empleadosService';
+import { obtenerEmpleadoPorId, actualizarEmpleado, Empleado } from '../../services/empleadosService';
+import apiClient from '../../apiClient';
 import { 
   User, 
   Mail, 
   Camera, 
   Briefcase,
-  Phone
+  Phone,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
 import styles from './Perfil.module.css';
 
@@ -41,6 +45,13 @@ const Perfil: React.FC = () => {
   // @state: Datos del empleado
   const [empleado, setEmpleado] = useState<Empleado | null>(null);
   const [loadingEmpleado, setLoadingEmpleado] = useState(true);
+  
+  // @state: Estados de edición
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailSuccessMessage, setEmailSuccessMessage] = useState('');
 
   /**
    * Cargar datos del empleado cuando el usuario esté disponible
@@ -81,6 +92,131 @@ const Perfil: React.FC = () => {
     // @simulation: Simular cambio de avatar
     console.log('Cambiar avatar - funcionalidad pendiente');
     // @todo: Implementar subida real de avatar
+  };
+
+  /**
+   * Inicia la edición del correo electrónico
+   * @function startEmailEdit
+   */
+  const startEmailEdit = () => {
+    setEmailValue(getEmail());
+    setIsEditingEmail(true);
+    setEmailError('');
+    setEmailSuccessMessage('');
+  };
+
+  /**
+   * Cancela la edición del correo electrónico
+   * @function cancelEmailEdit
+   */
+  const cancelEmailEdit = () => {
+    setIsEditingEmail(false);
+    setEmailValue('');
+    setEmailError('');
+    setEmailSuccessMessage('');
+  };
+
+  /**
+   * Valida el formato del email
+   * @function validateEmail
+   * @param {string} email - Email a validar
+   * @returns {boolean} true si el email es válido
+   */
+  const validateEmail = (email: string): boolean => {
+    if (!email.trim()) {
+      setEmailError('El email es requerido');
+      return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Ingresa un email válido');
+      return false;
+    }
+    
+    setEmailError('');
+    return true;
+  };
+
+  /**
+   * Guarda los cambios del correo electrónico
+   * @function saveEmailChanges
+   */
+  const saveEmailChanges = async () => {
+    if (!validateEmail(emailValue)) return;
+    
+    if (!empleado) {
+      setEmailError('No se encontró información del empleado');
+      return;
+    }
+    
+    setIsSavingEmail(true);
+    
+    try {
+      console.log('Actualizando correo del empleado:');
+      console.log('- ID empleado:', empleado.id_empleado);
+      console.log('- Tipo de ID:', typeof empleado.id_empleado);
+      console.log('- Nuevo correo:', emailValue);
+      
+      const datosActualizar = {
+        id: empleado.id_empleado,
+        correo: emailValue
+      };
+      
+      console.log('Datos a enviar al backend:', JSON.stringify(datosActualizar, null, 2));
+      
+      try {
+        // @api: Llamada real al endpoint para actualizar el empleado
+        const empleadoActualizado = await actualizarEmpleado(datosActualizar);
+        console.log('Empleado actualizado exitosamente:', empleadoActualizado);
+        
+        // @update: Actualizar el estado local con los nuevos datos
+        setEmpleado(empleadoActualizado);
+        
+      } catch (updateError) {
+        console.log('Error con "id", intentando con "id_empleado"...');
+        
+        // @fallback: Si falla con "id", intentar con "id_empleado"
+        const datosAlternativos = {
+          id_empleado: empleado.id_empleado,
+          correo: emailValue
+        };
+        
+        console.log('Datos alternativos a enviar:', JSON.stringify(datosAlternativos, null, 2));
+        
+        // Llamada directa al API client para probar
+        const response = await apiClient.patch('/empleados/', datosAlternativos);
+        const empleadoActualizado = response.data;
+        
+        console.log('Empleado actualizado exitosamente con id_empleado:', empleadoActualizado);
+        
+        // @update: Actualizar el estado local con los nuevos datos
+        setEmpleado(empleadoActualizado);
+      }
+      
+      // @cleanup: Salir del modo edición
+      setIsEditingEmail(false);
+      setEmailError('');
+      
+      // @success: Mostrar mensaje de éxito
+      setEmailSuccessMessage('Correo actualizado exitosamente');
+      
+      // @cleanup: Limpiar mensaje de éxito después de 3 segundos
+      setTimeout(() => setEmailSuccessMessage(''), 3000);
+      
+    } catch (error) {
+      console.error('Error actualizando correo del empleado:', error);
+      
+      // @error: Manejar diferentes tipos de errores
+      if (error instanceof Error) {
+        setEmailError(`Error al actualizar el correo: ${error.message}`);
+      } else {
+        setEmailError('Error al actualizar el correo. Intenta nuevamente.');
+      }
+      
+    } finally {
+      setIsSavingEmail(false);
+    }
   };
 
   /**
@@ -220,9 +356,73 @@ const Perfil: React.FC = () => {
                   <Mail size={16} />
                   Correo Electrónico
                 </div>
-                <div className={styles['field-value']}>
-                  {getEmail() || 'No disponible'}
-                </div>
+                
+                {/* Mensaje de éxito */}
+                {emailSuccessMessage && (
+                  <div className={styles['field-success']}>
+                    <Save size={14} />
+                    {emailSuccessMessage}
+                  </div>
+                )}
+                
+                {isEditingEmail ? (
+                  <div className={styles['field-edit-container']}>
+                    <input
+                      type="email"
+                      value={emailValue}
+                      onChange={(e) => setEmailValue(e.target.value)}
+                      className={`${styles['field-edit-input']} ${emailError ? styles['input-error'] : ''}`}
+                      placeholder="correo@ejemplo.com"
+                      disabled={isSavingEmail}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveEmailChanges();
+                        } else if (e.key === 'Escape') {
+                          cancelEmailEdit();
+                        }
+                      }}
+                    />
+                    {emailError && (
+                      <div className={styles['field-error']}>
+                        {emailError}
+                      </div>
+                    )}
+                    <div className={styles['field-edit-actions']}>
+                      <button
+                        onClick={saveEmailChanges}
+                        disabled={isSavingEmail}
+                        className={styles['field-save-btn']}
+                        title="Guardar cambios"
+                      >
+                        <Save size={14} />
+                        {isSavingEmail ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={cancelEmailEdit}
+                        disabled={isSavingEmail}
+                        className={styles['field-cancel-btn']}
+                        title="Cancelar"
+                      >
+                        <X size={14} />
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles['field-value-container']}>
+                    <div className={styles['field-value']}>
+                      {getEmail() || 'No disponible'}
+                    </div>
+                    <button
+                      onClick={startEmailEdit}
+                      className={styles['field-edit-btn']}
+                      title="Editar correo electrónico"
+                    >
+                      <Edit3 size={14} />
+                      Editar
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
