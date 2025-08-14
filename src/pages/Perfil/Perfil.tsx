@@ -5,7 +5,6 @@ import apiClient from '../../apiClient';
 import { 
   User, 
   Mail, 
-  Camera, 
   Briefcase,
   Phone,
   Edit3,
@@ -86,16 +85,6 @@ const Perfil: React.FC = () => {
       cargarDatosEmpleado();
     }
   }, [user]);
-
-  /**
-   * Maneja el cambio de avatar (simulado)
-   * @function handleAvatarChange
-   */
-  const handleAvatarChange = () => {
-    // @simulation: Simular cambio de avatar
-    // console.log('Cambiar avatar - funcionalidad pendiente');
-    // @todo: Implementar subida real de avatar
-  };
 
   /**
    * Inicia la edición del correo electrónico
@@ -310,13 +299,6 @@ const Perfil: React.FC = () => {
                     <User size={32} />
                   </div>
                 )}
-                <button 
-                  onClick={handleAvatarChange}
-                  className={styles['avatar-edit']}
-                  title="Cambiar avatar"
-                >
-                  <Camera size={16} />
-                </button>
               </div>
             </div>
             
