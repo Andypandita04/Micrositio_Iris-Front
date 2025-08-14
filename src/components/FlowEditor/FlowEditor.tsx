@@ -351,7 +351,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia, on
         descripcion: 'Descripción (para eso haremos . . .)',
         dia_inicio: new Date().toISOString().slice(0, 10),
         dia_fin: new Date().toISOString().slice(0, 10),
-        id_responsable: 1, // Valor por defecto
+        id_responsable: 13, // Valor por defecto
         id_experimento_tipo: 15, // Valor por defecto
         status: 'EN PLANEACION',
       };
@@ -421,7 +421,7 @@ const FlowEditor = forwardRef<FlowEditorRef, FlowEditorProps>(({ idSecuencia, on
         id_testing_card: testingCardIdNumber,
         resultado: 'Nuevo aprendizaje',
         estado: 'ACEPTADA',
-        id_responsable: 1, // Valor por defecto - puedes cambiar esto según tu lógica
+        id_responsable: 13, // Valor por defecto - puedes cambiar esto según tu lógica
       });
 
       // console.log('[FlowEditor] Nueva Learning Card creada:', nuevaLC);
