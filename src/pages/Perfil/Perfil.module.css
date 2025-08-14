@@ -612,3 +612,121 @@
     border-width: 2px;
   }
 }
+
+/* =================================================================
+   SECCIÓN DE INFORMACIÓN PERSONAL - SOLO LECTURA
+   ================================================================= */
+
+.perfil-info-section {
+  background: var(--theme-bg-primary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--theme-border);
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 768px) {
+  .info-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .info-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+  }
+}
+
+.info-field {
+  background: var(--theme-bg-secondary);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-fast);
+}
+
+.info-field:hover {
+  border-color: var(--color-primary-purple);
+  box-shadow: 0 0 0 3px var(--color-primary-purple-rgba);
+  transform: translateY(-1px);
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-label svg {
+  color: var(--color-primary-purple);
+  flex-shrink: 0;
+}
+
+.field-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--theme-text-primary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+/* @responsive: Ajustes para pantallas pequeñas */
+@media (max-width: 640px) {
+  .perfil-info-section {
+    padding: var(--spacing-lg);
+  }
+  
+  .info-field {
+    padding: var(--spacing-md);
+  }
+  
+  .field-label {
+    font-size: var(--text-xs);
+  }
+  
+  .field-value {
+    font-size: var(--text-sm);
+  }
+}
+
+/* @animation: Entrada suave de los campos */
+.info-field {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* @hover: Estados de hover más sutiles en móvil */
+@media (max-width: 768px) {
+  .info-field:hover {
+    transform: none;
+  }
+}

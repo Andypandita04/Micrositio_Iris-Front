@@ -49,7 +49,20 @@ export const obtenerEmpleados = async (): Promise<Empleado[]> => {
  * @returns {Promise<Empleado>} Los datos del empleado
  */
 export const obtenerEmpleadoPorId = async (id: number): Promise<Empleado> => {
-  const response = await apiClient.post('/empleados', { id });
+  console.log('Obteniendo empleado por ID:', id);
+  console.log('Tipo de ID:', typeof id);
+  
+  // Para GET con body en axios, usar request con configuración específica
+  const response = await apiClient.request({
+    method: 'POST',
+    url: '/empleados',
+    data: { id },
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  console.log('Respuesta del servidor:', response.data);
   return response.data;
 };
 
