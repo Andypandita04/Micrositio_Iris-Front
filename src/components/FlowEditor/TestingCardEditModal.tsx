@@ -1492,6 +1492,31 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   onClick={cancelarEliminacionMetrica}
                   className="testing-btn testing-btn-secondary"
                   disabled={loadingMetricas}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loadingMetricas ? 'not-allowed' : 'pointer',
+                    opacity: loadingMetricas ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.color = '#1e293b';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.color = '#475569';
+                    }
+                  }}
                 >
                   Cancelar
                 </button>
@@ -1500,6 +1525,29 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   onClick={confirmarEliminacionMetrica}
                   className="testing-btn testing-btn-danger"
                   disabled={loadingMetricas}
+                  style={{
+                    backgroundColor: loadingMetricas ? '#ef4444aa' : '#ef4444',
+                    color: '#ffffff',
+                    border: '1px solid #ef4444',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loadingMetricas ? 'not-allowed' : 'pointer',
+                    opacity: loadingMetricas ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#dc2626';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#ef4444';
+                    }
+                  }}
                 >
                   {loadingMetricas ? 'Eliminando...' : 'Eliminar'}
                 </button>
@@ -1529,6 +1577,31 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   onClick={cancelarCreacionMetrica}
                   className="testing-btn testing-btn-secondary"
                   disabled={loadingMetricas}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loadingMetricas ? 'not-allowed' : 'pointer',
+                    opacity: loadingMetricas ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.color = '#1e293b';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.color = '#475569';
+                    }
+                  }}
                 >
                   Cancelar
                 </button>
@@ -1537,6 +1610,29 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   onClick={confirmarCreacionMetrica}
                   className="testing-btn testing-btn-primary"
                   disabled={loadingMetricas}
+                  style={{
+                    backgroundColor: loadingMetricas ? '#864080aa' : '#864080',
+                    color: '#ffffff',
+                    border: '1px solid #864080',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loadingMetricas ? 'not-allowed' : 'pointer',
+                    opacity: loadingMetricas ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#753970';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loadingMetricas) {
+                      e.currentTarget.style.backgroundColor = '#864080';
+                    }
+                  }}
                 >
                   {loadingMetricas ? 'Guardando...' : 'Guardar'}
                 </button>
@@ -1562,6 +1658,26 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   type="button"
                   onClick={() => setShowDeleteUrlConfirmation(false)}
                   className="testing-btn testing-btn-secondary"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#1e293b';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.color = '#475569';
+                  }}
                 >
                   Cancelar
                 </button>
@@ -1569,6 +1685,24 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   type="button"
                   onClick={confirmDeleteUrl}
                   className="testing-btn testing-btn-danger"
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    border: '1px solid #ef4444',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#dc2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ef4444';
+                  }}
                 >
                   Eliminar
                 </button>
@@ -1594,6 +1728,26 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   type="button"
                   onClick={() => setShowDeleteDocumentConfirmation(false)}
                   className="testing-btn testing-btn-secondary"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    border: '1px solid #e2e8f0',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#1e293b';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.color = '#475569';
+                  }}
                 >
                   Cancelar
                 </button>
@@ -1601,6 +1755,24 @@ const TestingCardEditModal: React.FC<TestingCardEditModalProps> = ({ node, onSav
                   type="button"
                   onClick={confirmDeleteDocument}
                   className="testing-btn testing-btn-danger"
+                  style={{
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    border: '1px solid #ef4444',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    minWidth: '100px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#dc2626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ef4444';
+                  }}
                 >
                   Eliminar
                 </button>
